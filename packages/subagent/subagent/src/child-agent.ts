@@ -25,6 +25,13 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 // keeps its model-facing rows on the host plane, where the child already sees
 // them through the tool registry's global layer.
 import type {} from '@deepseek-ai/dsh-agent-presets'
+// Type-only: make `ctx.get('agentDefaultModel')` resolve to the live default
+// selection service when composed — child routing reads the parent's current
+// selection so a subagent follows whatever model the master is currently using,
+// not its frozen creation-time options. Optional composition: a rosterless
+// deployment without the default service keeps the legacy `parent.options`
+// fallback via the documented `ctx.get` pattern.
+import type {} from '@deepseek-ai/dsh-agent-default-model'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -57,10 +64,34 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the child's `AgentOptions`: the parent's provider/model/maxTokens
- * route unless the request overrides it, stamped with the child's own
- * delegation depth.
- * @param parent - the delegating parent whose route the child inherits.
+ * Resolve the child's `AgentOptions` from the parent's LIVE routing
+ * waterfall — the same one api-proxy's `selectionFor` uses per request — so a
+ * subagent follows whatever model the master is currently using instead of
+ * the parent's frozen creation-time snapshot.
+ *
+ * Precedence (highest wins), applied per field:
+ *   1. `parent.session.requestHeader()?.config` — the master's latest logged
+ *      `request/header`, captured before any subagent dispatch.
+ *   2. `parent.ctx.get('agentDefaultModel')?.currentSelection()` — the live
+ *      default selection, hot-reloaded from the settings document.
+ *   3. `parent.options` — the parent's frozen creation-time route, kept as
+ *      the backward-compatible fallback when neither live source is
+ *      composed (e.g. minimal headless bundles that never mount the
+ *      `agentDefaultModel` service).
+ *
+ * `requested` (the per-tool `agentOptions` override) is spread last so the
+ * documented escape hatch still wins over every inherited source.
+ *
+ * `maxTokens` is a budget, not a route: it inherits from `parent.options`
+ * and is not pulled from the live waterfall, matching today's behavior.
+ *
+ * Caveat — `picked` selection (the master's per-session UI choice set in
+ * api-proxy's `selectionFor` closure) is not externally accessible, so a
+ * `/model` UI switch is only visible to subagents after the master's next
+ * logged request carries the new header. The two inherited sources above
+ * cover every other routing change without restart.
+ *
+ * @param parent - the delegating parent whose live route the child inherits.
  * @param requested - per-child overrides, if any.
  * @param childDepth - the resolved delegation depth to stamp.
  * @returns the resolved options for `ctx.agents.create()`.
@@ -70,13 +101,15 @@ export function resolveChildAgentOptions(
   requested: AgentOptions | undefined,
   childDepth: number,
 ): AgentOptions {
-  const parentProvider = parent.options.provider
-  const parentModel = parent.options.model
-  const parentMaxTokens = parent.options.maxTokens
+  const logged = parent.session.requestHeader()?.config
+  const live = parent.ctx.get('agentDefaultModel')?.currentSelection()
+  const provider = logged?.provider ?? live?.provider ?? parent.options.provider
+  const model = logged?.model ?? live?.model ?? parent.options.model
+  const maxTokens = parent.options.maxTokens
   return {
-    ...parentProvider !== undefined ? { provider: parentProvider } : {},
-    ...parentModel !== undefined ? { model: parentModel } : {},
-    ...parentMaxTokens !== undefined ? { maxTokens: parentMaxTokens } : {},
+    ...provider !== undefined ? { provider } : {},
+    ...model !== undefined ? { model } : {},
+    ...maxTokens !== undefined ? { maxTokens } : {},
     ...requested,
     subagentDepth: childDepth,
   }
