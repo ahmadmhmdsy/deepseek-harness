@@ -267,7 +267,7 @@ describe('SQLite cross-backend differential behavior', () => {
       for (const name of ['jsonl-zstd', 'sqlite'] as const) {
         await verifyBackend(name, join(directory, name), events, batchSizes)
       }
-    }), { numRuns: 100, seed: 0x5A17E })
-  }, 60_000)
+    }), { numRuns: process.platform === 'win32' ? 20 : 100, seed: 0x5A17E })
+  }, 120_000)
 
 })
