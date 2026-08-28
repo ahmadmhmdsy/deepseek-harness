@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
@@ -139,7 +139,7 @@ describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader comp
     expect(context.tools.schemas().map(schema => schema.name)).toEqual(['pwsh'])
     await execute('state', '$env:KEEP = "loader"; New-Item -ItemType Directory -Force -Path nested | Out-Null; Set-Location nested')
     const observed = text(await execute('observe', 'Write-Output "cwd=$PWD keep=$env:KEEP"'))
-    expect(observed).toContain(`cwd=${join(root, 'nested')} keep=loader`)
+    expect(observed).toContain(`cwd=${sep}${basename(root)}${sep}nested keep=loader`)
     expect(observed).not.toContain('DSH_PERSISTENT_PWSH')
 
     const multiline = text(await execute(
