@@ -584,16 +584,27 @@ async function waitForPersistedChildTurnEnd(
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS,
   minimumTurn = 1,
 ): Promise<void> {
-  await vi.waitFor(async () => {
-    const log = (await harvestSessionLogs(root))[child]
-    if (log === undefined || !latestTurnIsClosed(log.content)
-      || !hasRequestHeaderAfterDescriptor(log.content)
-      || !hasClosedTurn(log.content, minimumTurn)) {
-      throw new Error(
+  let lastCallbackError: Error | undefined
+  try {
+    await vi.waitFor(async () => {
+      const log = (await harvestSessionLogs(root))[child]
+      if (log === undefined || !latestTurnIsClosed(log.content)
+        || !hasRequestHeaderAfterDescriptor(log.content)
+        || !hasClosedTurn(log.content, minimumTurn)) {
+        lastCallbackError = new Error(
+          `snapshot-harness: subagent child #${child} did not persist closed turn ${minimumTurn} within ${timeoutMs}ms`,
+        )
+        throw lastCallbackError
+      }
+    }, { interval: WAIT_POLL_INTERVAL_MS, timeout: timeoutMs })
+  } catch {
+    if (lastCallbackError === undefined) {
+      lastCallbackError = new Error(
         `snapshot-harness: subagent child #${child} did not persist closed turn ${minimumTurn} within ${timeoutMs}ms`,
       )
     }
-  }, { interval: WAIT_POLL_INTERVAL_MS, timeout: timeoutMs })
+    throw lastCallbackError
+  }
 }
 
 /** Whether a raw session log contains the requested closed turn. */
@@ -665,12 +676,21 @@ async function waitForPersistedTitleAfterTurnEnd(
   sessionId: string,
   timeoutMs = DEFAULT_WAIT_TIMEOUT_MS,
 ): Promise<void> {
-  await vi.waitFor(async () => {
-    const log = (await harvestSessionLogs(root)).find(candidate => candidate.id === sessionId)
-    if (log === undefined || !latestTitleFollowsTurnEnd(log.content)) {
-      throw new Error(`snapshot-harness: session "${sessionId}" did not persist session/title after turn/end within ${timeoutMs}ms`)
+  let lastCallbackError: Error | undefined
+  try {
+    await vi.waitFor(async () => {
+      const log = (await harvestSessionLogs(root)).find(candidate => candidate.id === sessionId)
+      if (log === undefined || !latestTitleFollowsTurnEnd(log.content)) {
+        lastCallbackError = new Error(`snapshot-harness: session "${sessionId}" did not persist session/title after turn/end within ${timeoutMs}ms`)
+        throw lastCallbackError
+      }
+    }, { interval: WAIT_POLL_INTERVAL_MS, timeout: timeoutMs })
+  } catch {
+    if (lastCallbackError === undefined) {
+      lastCallbackError = new Error(`snapshot-harness: session "${sessionId}" did not persist session/title after turn/end within ${timeoutMs}ms`)
     }
-  }, { interval: WAIT_POLL_INTERVAL_MS, timeout: timeoutMs })
+    throw lastCallbackError
+  }
 }
 
 /** Wait until a complete record of `type` follows the latest closed turn. */
