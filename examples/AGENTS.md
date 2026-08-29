@@ -17,4 +17,4 @@ Do not inventory example tests here; the `tests/` trees and root scripts are aut
 
 In `cordis.yml`, comment only non-obvious wiring, load-order consequences, replay, security boundaries, and configuration scope. Do not narrate visible entries; use [dsh-prose-standard](../.agents/skills/dsh-prose-standard/SKILL.md) for required coverage and editorial judgment.
 
-See [the root AGENTS.md](../AGENTS.md) for repo-wide conventions and [docs/architecture.md](../docs/architecture.md) for the design.
+See [the root AGENTS.md](../AGENTS.md) for repo-wide conventions, [CLAUDE.md](../CLAUDE.md) for the general agent operating system, and [docs/architecture.md](../docs/architecture.md) for the design.
