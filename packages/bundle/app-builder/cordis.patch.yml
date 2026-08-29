@@ -1,0 +1,24 @@
+# The dsh-app-builder bundle patch: applied as ONE insert over the dsh-base
+# profile root, registering the App Builder MVP plugins. Last write wins per
+# row, so a user's profile cordis.patch.yml can address any of these rows by
+# id to override defaults.
+
+- insert:
+    # Project entity + projection unit. Owns the per-project session enumeration
+    # (ctx.sessions + ctx.sessionQuery).
+    - id: app-builder-project
+      name: '@deepseek-ai/dsh-app-builder-project'
+
+    # Scaffold tool: composes dsh-tool-fs + dsh-tool-str-replace-editor +
+    # dsh-tool-bash to materialize a template project under the project cwd.
+    - id: app-builder-scaffold
+      name: '@deepseek-ai/dsh-app-builder-scaffold'
+
+    # Preview tool: starts the project dev server via dsh-tool-bash (background),
+    # waits for readiness via an HTTP-poll helper, returns the preview URL.
+    - id: app-builder-preview
+      name: '@deepseek-ai/dsh-app-builder-preview'
+
+    # App Builder persona: scopes the agent to project scaffolding + iteration.
+    - id: app-builder-persona
+      name: '@deepseek-ai/dsh-app-builder-persona'
