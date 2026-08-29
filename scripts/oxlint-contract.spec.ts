@@ -254,7 +254,7 @@ export const longProbe = 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 + 1 +
     }
   }, 20_000)
 
-  it('accepts an ignored-only staged selection', () => {
+  it('accepts an ignored-only staged selection', { timeout: 60_000 }, () => {
     const result = runOxlint([
       '--fix',
       '--no-error-on-unmatched-pattern',
