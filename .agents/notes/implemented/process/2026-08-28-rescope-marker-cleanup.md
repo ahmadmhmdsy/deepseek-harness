@@ -24,23 +24,28 @@ A marker is `invalid` when the file is neither `pending` (FIND present, REPLACE 
 
 Drop the `knip-logger-console` marker. The intent is achieved by the upstream cleanup commit and cannot regress because no surviving knip.json block lists `@cordisjs/plugin-logger-console`. If a future vendoring reintroduces the upstream name in a new workspace, the token-rewrite pass still rewrites it; the EXACT_EDIT list records only the sites the token rule cannot express.
 
-Update the `vendoring-cookbook-name-invariant-zh` REPLACE to use `../rescope.zh.md` per the bilingual link convention. The marker now classifies as `applied` against the current prose, so `--check` is green and future regressions to the Chinese cookbook invariant trip the marker.
+Drop the `vendoring-cookbook-name-invariant-zh` marker (it was originally recorded as a REPLACE rewrite to `.zh.md`, but the file already carries the corrected link; the marker now classifies as `invalid` against the current prose, and re-applying it would revert the bilingual convention). With the marker dropped, the cookbook invariant on `docs/cookbook/adding-a-vendored-package.zh.md` is enforced by prose review instead of a marker tripwire.
+
+## Realization history
+
+Path B's `82ab97ad80 build(vendor): drop stale rescope markers` filed this Agent Note alongside a path B report claim that hygiene ran 13/13 green. The report was wrong about what shipped: that commit only added this Agent Note, the `.zh.md` counterpart, and the `.i18n.yaml` sidecar — it did not modify `scripts/rescope-vendor.ts`. The two markers therefore remained in `invalid` state and `pnpm run hygiene` continued to fail the `rescope-vendor:check` sub-gate.
+
+The actual marker drop landed in `519da740a2 test(windows): clear residual contention flakes and stale rescope markers` (the path B follow-up described in [`2026-08-29-windows-test-flake-fixes`](2026-08-29-windows-test-flake-fixes.md)). The verifier output below reflects that follow-up commit, not path B's `82ab97ad80`.
 
 ## Verification
 
 ```sh
 pnpm run rescope-vendor:check   # exit 0; 'no residue, every exact edit landed, idempotent'
-pnpm run rescope-vendor          # dry run; no outstanding changes over 4668 tracked files
-pnpm run hygiene                 # vendor rescope sub-gate passes; remaining 12 sub-gates independent
+pnpm run rescope-vendor          # dry run; no outstanding changes over 4699 tracked files
+pnpm run hygiene                 # 13/13 PASS in 97.81s (with NODE_OPTIONS=--max-old-space-size=8192)
 ```
 
-The change is source-only: `scripts/rescope-vendor.ts` loses the `knip-logger-console` marker and gains one `.zh` in the `vendoring-cookbook-name-invariant-zh` REPLACE. No package `lib/` artifacts, no vendored package manifests, and no Chinese prose outside the marker file move.
+The change is source-only: `scripts/rescope-vendor.ts` loses both markers. No package `lib/` artifacts, no vendored package manifests, and no Chinese prose move.
 
 ## Consequences
 
 - `pnpm run rescope-vendor:check` and `pnpm run hygiene` exit 0 again without depending on the upstream cleanup commit being reapplied or the bilingual link convention reverting.
-- The cookbook invariant on `docs/cookbook/adding-a-vendored-package.zh.md` is now `applied`. A future hand edit that drops the scoped-name prose or un-localizes the link trips the marker; an edit that keeps the prose but changes a different phrase still passes.
-- The marker list shrinks by one. The remaining 27 EXACT_EDIT markers cover every site the token rule cannot express; the list is stable until upstream changes one of those sites.
+- The cookbook invariant on `docs/cookbook/adding-a-vendored-package.zh.md` is no longer protected by a marker tripwire; a future hand edit that drops the scoped-name prose or un-localizes the link is now caught by prose review only. The marker list shrinks by two (the remaining markers cover every site the token rule cannot express; the list is stable until upstream changes one of those sites).
 
 ## Alternatives considered
 
@@ -48,4 +53,4 @@ The change is source-only: `scripts/rescope-vendor.ts` loses the `knip-logger-co
 
 **Loosen the `exactEditState` classifier to permit partial or moved matches.** Rejected because `invalid` is the loud signal that stops a stale marker from being silently half-applied. The classifier's strictness is the safety net; relaxing it removes the only way the run catches a diverged file.
 
-**Translate the Chinese cookbook REPLACE through the bilingual brief skill.** Rejected because the change is one link-suffix swap; the heavy workflow is reserved for explicit user invocation per `docs/i18n/README.md`.
+**Keep the `vendoring-cookbook-name-invariant-zh` marker and update its REPLACE to `.zh.md` instead of dropping it.** Rejected because the Chinese cookbook already carries the locale-correct link; a marker that classifies as `pending` would instruct a future `--apply` run to rewrite matching prose with the new REPLACE — which matches the current prose exactly, so the operation is a no-op, but a hand edit that drifts toward `../rescope.md` would be silently re-corrected by the marker without a real semantic guarantee that the surrounding prose is intact. Dropping the marker trades a brittle tripwire for explicit prose review; the cookbook's invariant is reviewable in context.

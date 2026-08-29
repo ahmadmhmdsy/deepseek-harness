@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-28-rescope-marker-cleanup.md
-2026-08-28-rescope-marker-cleanup.md: aba0779fb56d1b5a8ac164d08015cfb0619e6f90
-2026-08-28-rescope-marker-cleanup.zh.md: 1b7251cc0343edd87576c0f2b7a903fa76b52309
+2026-08-28-rescope-marker-cleanup.md: 33d9ab3ce8f84d732d07106ebd09d45c6f9c325e
+2026-08-28-rescope-marker-cleanup.zh.md: 9a7fc701e26a9808a0ec6a788a3f692865279dab

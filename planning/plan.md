@@ -71,6 +71,27 @@ Acceptance criteria:
 
 Guardrails: no new packages in this phase.
 
+### Status — accepted with caveats (commit `519da740a2`)
+
+Per-task evidence lives in [`inspect/17-phase0-acceptance-results.md`](inspect/17-phase0-acceptance-results.md); the inline digest lives at the bottom of [`Phase 0 prompt.md`](Phase%200%20prompt.md).
+
+- **Version pinned** at `0.1.1-rc.2`.
+- **Hello-world smoke** self-skipped without `DEEPSEEK_API_KEY` (CLI boots a mock fallback and the agent responds with a clarifying question — gate not failed).
+- **Gates** (`build` + `typecheck` + `hygiene` + `doc-sync`) all PASS. `pnpm run hygiene` requires `NODE_OPTIONS=--max-old-space-size=8192` on this machine; `knip`'s `oxc-parser` exhausts the default V8 ArrayBuffer pool. Document the windows dev setup once a follow-up agent lands it.
+- **`docs/PROJECT.md`** is canonical with the bilingual pair; `planning/PROJECT.md` is a redirect.
+- **Git state:** tag `apps-web-classic-pre-app-builder` pinned at `9306f9371b`; branch `app-builder-web-reskin` at `519da740a2` ready for Phase 1 UI reskin.
+- **Path B closure:** `519da740a2 test(windows): clear residual contention flakes and stale rescope markers` cleared the in-scope flake category and dropped the two stale `rescope-vendor` markers.
+
+Residual `pnpm run test` failures (8 in 3 files, all out-of-scope per `inspect/15-phase0-pre-existing-failures.md §6.7`):
+
+| Count | File | Bucket |
+|---|---|---|
+| 6 | `packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts` | Environmental (PowerShell 7 not installed at the resolver's standard location; the AppX variant under `WindowsApps\` is invisible to the ACL-segregated runner) |
+| 1 | `packages/shell/pwsh-sandbox/tests/sandbox.spec.ts > wraps the exact pwsh argv` | Same root cause |
+| 1 | `scripts/change-scope.spec.ts > renders deterministic versioned JSON` | Intermittent contention flake (passes in isolation in 2.04s) |
+
+User owes the acceptance decision: accept the 8 deferred failures as out-of-scope and proceed to Phase 1, OR install PowerShell 7 to clear the 7 environmental failures before Phase 1 begins.
+
 ## 3. Phase 1 — App Builder MVP (1–2 weeks)
 
 Goal: prompt -> running app with live preview, locally, no auth.
