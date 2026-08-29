@@ -9,19 +9,21 @@ App Builder Web Shell 插件：当 `appBuilder.enabled` 为 true 时，通过 sl
 - 空的 `apply()` 宿主插件（无 Node 侧行为；纯浏览器 UI）。
 - 浏览器 `apply()` 通过 `ctx.slots.inject` 把 `app-builder-shell` 注册到 `root` slot（链接管），并声明三个子 slot：`app-builder.projects`、`app-builder.preview`（root 作用域）、`app-builder.conversation`（session 作用域）。
 - `Shell` 组件渲染 3 栏 CSS Grid 布局，把从 slot 声明的选择 store 读到的 selected project id 通过 owner share 传给 preview pane。
+- `ctx.appBuilder` Cordis 服务，把 shell 的选择存储作为类型化服务句柄暴露出去（兄弟包可以通过 `ctx.appBuilder.selectProject(id)` 写入选择，避免跨包边界泄漏存储句柄）。
 - Shell chrome 的多语言字典（English + 中文）。
 - 带文档化 "No runtime invariant" 理由的 invariant companion。
 
 ## 尚未交付
 
 - 接管 `root` 需要现有 `ui-layout` 的 `root` 注册改为 `kind: chain`（目前为 `single`）；这一步与 `apps/web/index.html` 中的 `appBuilder.enabled` 配置一起在后续提交中完成。
-- `ui-app-builder-projects` 与 `ui-app-builder-preview` 包尚未存在；shell 在它们完成之前渲染空的占位区域。
+- `ui-app-builder-projects` 与 `ui-app-builder-preview` 包尚未存在；shell 在它们完成之前渲染空的占位区域。`ui-app-builder-projects` 已落地并消费了 `appBuilder` 服务；预览包是下一个消费者。
 - `ConversationRoot` 注册未改动；`root` 改造为 chain 后，现有 `@deepseek-ai/dsh-client-ui-conversation` 条目会填充 `app-builder.conversation` slot。
 - 服务端状态桥（`/__dsh/app-builder/snapshot.json` 轮询）是单独的 chunk。
 
 ## 已知限制与延后工作
 
 - **链接管待办。** Shell 通过 `ctx.slots.inject` 把自己的条目声明进 `root`，但现有 `ui-layout` 的注册把 `root` 声明为 `single`。在不把 `ui-layout` 改为 `kind: chain`（并加入返回 `appBuilder.enabled` 的 select）之前，链接管在加载时仅是 typecheck 层面的成功，实际并不会替换默认布局。该问题在后续提交中与 apps/web 配置一并解决。
-- **三个子 slot 是空占位。** 在 `ui-app-builder-projects` 与 `ui-app-builder-preview` 完成前，projects / preview pane 渲染空的 `<aside>` 与 `<section>` 元素；shell 本身仍能正确 typecheck 与加载。
+- **三个子 slot 部分填充。** `app-builder.projects` slot 现在有了消费者（`ui-app-builder-projects`）；在 `ui-app-builder-preview` 完成前 preview pane 仍是空 `<section>`。shell 本身仍能正确 typecheck 与加载。
 - **无面板拖拽分隔条。** 260px / 1fr / 1fr 的栅格固定；可拖拽分隔条延后到 Phase 2。
+- **选择只能通过 `ctx.appBuilder.selectProject` 传播。** shell 把选择存储作为 Cordis 服务暴露，使兄弟 pane 可以在不泄漏存储句柄的情况下写入选择。shell 自身通过 `useStore` share 读取选择；preview pane 及任何未来的 pane 以同样方式读取选择。跨包存储共享被 slot 系统设计禁止 — 服务句柄是被许可的通道。
 - **不支持多项目预览。** 同一时间只能预览一个项目；列表选择切换 URL。多 iframe 实时预览为 Phase 2 内容。

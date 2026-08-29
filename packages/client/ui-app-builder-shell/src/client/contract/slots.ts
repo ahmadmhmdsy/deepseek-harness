@@ -32,9 +32,17 @@ export interface AppBuilderShellOwnerProps {
   children?: never
 }
 
-/** Empty owner for the projects pane. */
+/**
+ * Owner share for the projects pane: the current selection so the pane can
+ * highlight the active row without round-tripping through its own store or
+ * the shell's service. The pane writes selection through its inject-face
+ * `selectProject` callback; the shell reads `selectedProjectId` from its own
+ * selection store and passes it here on every renderSlot call.
+ */
 export interface AppBuilderProjectsOwnerProps {
   children?: never
+  /** Currently selected project id, or undefined when no project is selected. */
+  selectedProjectId?: string | undefined
 }
 
 /** Owner for the preview pane carries the selected project id. */

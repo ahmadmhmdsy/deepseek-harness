@@ -20,7 +20,7 @@ export function Shell(props: AppBuilderShellComponentProps): JSX.Element {
     <div className={styles.shell} data-app-builder-enabled='true'>
       <header className={styles.header}>{t('shellTitle')}</header>
       <aside className={styles.projects} data-pane='projects'>
-        {renderSlot('app-builder.projects', {})}
+        {renderSlot('app-builder.projects', { selectedProjectId })}
       </aside>
       <section className={styles.chat} data-pane='chat'>
         {renderSlot('app-builder.conversation', {})}

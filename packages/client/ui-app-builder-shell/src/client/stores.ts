@@ -12,22 +12,29 @@
 import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
 
 /** Selection state owned by the shell. */
-type AppBuilderShellState = {
+export type AppBuilderShellState = {
   /** The currently selected project id, or undefined when none is selected. */
   selectedProjectId: string | undefined
 }
 
 /** Action twin (the export needs a declared return type for type inference). */
-type AppBuilderShellActions = {
+export type AppBuilderShellActions = {
   /** Set or clear the selected project id. */
   selectProject: (draft: AppBuilderShellState, projectId: string | undefined) => void
 }
 
 /**
+ * Concrete store handle type for the shell selection store. Cross-package
+ * consumers (the App Builder service layer) name the handle so they can
+ * construct a live instance without re-deriving the type.
+ */
+export type AppBuilderShellStore = EngineStoreHandle<AppBuilderShellState, AppBuilderShellActions>
+
+/**
  * Create the shell selection store handle.
  * @returns the store handle (spec + type + identity + factory in one).
  */
-export function createAppBuilderShellStore(): EngineStoreHandle<AppBuilderShellState, AppBuilderShellActions> {
+export function createAppBuilderShellStore(): AppBuilderShellStore {
   return defineStore({
     init: (): AppBuilderShellState => ({ selectedProjectId: undefined }),
     actions: {
