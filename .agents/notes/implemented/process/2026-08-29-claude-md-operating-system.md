@@ -47,3 +47,11 @@ When creating new tracked symlinks on Windows, prefer `git update-index --add --
 - `git checkout` and `git status` now show root `CLAUDE.md` as a regular file; the symlink-to-regular transition is a `mode change 120000 => 100644`.
 - Any contributor who edits `packages/CLAUDE.md` or `examples/CLAUDE.md` no longer edits the local `AGENTS.md`; they edit the root. This is the intended direction but means contributors must follow the symlink to root before editing.
 - A Windows contributor replacing a tracked symlink with a regular file must use `git rm` before `tools.write`; the harness `tools.write` follows NTFS reparse points and otherwise writes through to the symlink target.
+
+## Related
+
+This change partially supersedes the implicit assumption in three older Agent Notes that `CLAUDE.md` is best modeled as a byte-identical mirror of `AGENTS.md`. The mechanisms in those notes are still correct and the symlink-mirror case still applies to `vendor/CLAUDE.md` and `.agents/notes/implemented/CLAUDE.md`.
+
+- [Workspace context instruction files](../feature/2026-06-24-workspace-context.md) — candidate list `['AGENTS.md', 'CLAUDE.md']`, scope key, baseline and dynamic refresh. Mechanism unchanged; the `CLAUDE.md → AGENTS.md` mirror is now one supported layout rather than the canonical one.
+- [Follow symlinked instruction files](../feature/2026-07-21-follow-instruction-symlinks.md) — symlinks are followed instead of rejected. This now also covers `packages/CLAUDE.md → ../CLAUDE.md` and `examples/CLAUDE.md → ../CLAUDE.md`, not only `CLAUDE.md → AGENTS.md`.
+- [Load all instruction candidates with per-directory dedup](../feature/2026-07-21-instruction-load-all-dedup.md) — per-candidate scope dedup. The dedup key is resolved content, so a symlink to `../CLAUDE.md` and one to local `AGENTS.md` resolve to different content and stay distinct; two symlinks to `../CLAUDE.md` from sibling folders deduplicate as before.

@@ -47,3 +47,11 @@ Claude Code 会读取 `CLAUDE.md`；许多其他工具会读取 `AGENTS.md`。�
 - `git checkout` 与 `git status` 现在把根 `CLAUDE.md` 显示为普通文件；符号链接到普通文件的转换会以 `mode change 120000 => 100644` 出现。
 - 任何编辑 `packages/CLAUDE.md` 或 `examples/CLAUDE.md` 的贡献者不再编辑本地 `AGENTS.md`；他们编辑根。这是预期方向，但意味着贡献者必须先跟随符号链接到根再编辑。
 - Windows 上的贡献者要把已跟踪的符号链接换成普通文件，必须在 `tools.write` 之前执行 `git rm`；本工具的 `tools.write` 会跟随 NTFS 重解析点，否则就会写穿到符号链接目标。
+
+## 相关
+
+本次改动部分取代了三条较早的 Agent Note 中「`CLAUDE.md` 应被视作 `AGENTS.md` 的逐字节镜像」这一隐含假设。那些 note 中的机制仍然成立，符号链接镜像这种布局仍适用于 `vendor/CLAUDE.md` 与 `.agents/notes/implemented/CLAUDE.md`。
+
+- [Workspace context instruction files](../feature/2026-06-24-workspace-context.zh.md) — 候选列表 `['AGENTS.md', 'CLAUDE.md']`、scope key、基线与动态刷新。机制不变；「`CLAUDE.md → AGENTS.md` 镜像」现在是一种受支持的布局，而非唯一规范。
+- [Follow symlinked instruction files](../feature/2026-07-21-follow-instruction-symlinks.zh.md) — 跟随符号链接而非拒绝。该规则现在也覆盖 `packages/CLAUDE.md → ../CLAUDE.md` 与 `examples/CLAUDE.md → ../CLAUDE.md`，不再仅限于 `CLAUDE.md → AGENTS.md`。
+- [Load all instruction candidates with per-directory dedup](../feature/2026-07-21-instruction-load-all-dedup.zh.md) — 按候选粒度去重。去重键是解析后的内容，所以指向 `../CLAUDE.md` 的符号链接与指向本地 `AGENTS.md` 的符号链接解析到不同内容并保持区分；兄弟目录里两个指向 `../CLAUDE.md` 的符号链接依旧会按内容去重。
