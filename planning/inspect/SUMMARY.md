@@ -27,6 +27,7 @@ The plan in `planning/{goal,mission,plan,PROJECT}.md` describes an App Builder o
 | 15 | `15-phase0-pre-existing-failures.md` | Path B action plan: vendor-rescope drift + 9 Windows thread-safe test fixes + two Phase 0 prompt gaps, with actionable fix steps and verification commands. |
 | 16 | `16-plan-fix-report.md` | Plan-rewrite record: what changed between the original `planning/{PROJECT,mission,goal,plan,Phase 0..3 prompt}.md` and the dsh-reality-aligned versions. |
 | 17 | `17-phase0-acceptance-results.md` | Phase 0 acceptance evidence (commit `519da740a2`): per-task outcomes, gate pass/fail, residual failures (8 in 3 files, all out-of-scope environmental or known intermittent), git state, deferred work. |
+| 18 | `18-phase1-start-record.md` | Phase 1 kickoff log on `app-builder-web-reskin` (post `abc87d4df1`): per-package status, decisions carried from Phase 0, residual items inherited, git state. |
 
 ## What already exists (top-line)
 

@@ -139,6 +139,24 @@ Every new package ships: `tests/`, `./invariant`, README + JSDoc with `Model Exp
 - Resume a session after restart.
 - Sandbox enforced (mode = `workspace-write`); approvals gate destructive ops.
 - All five verification commands pass.
+### Status — started (commit `abc87d4df1`)
+
+Phase 1 work begins on branch `app-builder-web-reskin` at `9d99c4788e`. The first action is a docs-only commit that adds a standing workflow rule to root `AGENTS.md` (`## Project process and maintained artifacts`) so every later commit/PR in this phase obeys the same-PR artifact-update discipline.
+
+Next steps in order:
+
+1. Explore existing package/bundle/example/web patterns so the new packages follow the same conventions.
+2. Register the `packages/app-builder/` workspace group (`packages/README.md`, `tsconfig.host.json`, root `tsconfig.json` if needed).
+3. Author the four packages with their full per-package obligations (per `planning/Phase 1 prompt.md §10`).
+4. Author the `packages/bundle/app-builder/cordis.patch.yml` patch over `packages/bundle/base`.
+5. Author `examples/app-builder/` with keyless + with-key smokes.
+6. Re-skin `apps/web` on the existing branch (no parallel `apps/app-builder-web`).
+7. Add web browser snapshot scenarios.
+8. File Agent Notes for each non-trivial change (scaffold, preview, project, persona).
+9. Run the five verification commands.
+
+Each step lands as its own commit; planning artifacts (`plan.md`, `inspect/INDEX.md`, `inspect/SUMMARY.md`, `docs/PROJECT.md` pair) update in the same commit as the change that drives the update.
+
 
 Guardrails: no credentials in the sandbox; cost limits on (via `dsh-token-meter`); single-user only.
 
