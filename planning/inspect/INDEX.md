@@ -24,6 +24,7 @@
 18. [17-phase0-acceptance-results.md](17-phase0-acceptance-results.md) — Phase 0 acceptance evidence (commit `519da740a2`): per-task outcomes, gate pass/fail, residual failures (8 in 3 files, all out-of-scope environmental or known intermittent), git state, deferred work
 19. [18-phase1-start-record.md](18-phase1-start-record.md) — Phase 1 kickoff log on `app-builder-web-reskin`: per-package status, decisions, residual failures as the App Builder MVP lands
 
+20. [21-app-builder-web-shell.md](21-app-builder-web-shell.md) - App Builder web reskin plan: 3-pane shell (projects | chat | preview), server-state bridge via file snapshot, slot composition contract, test plan, and git sequence for `app-builder-web-reskin`
 ## Conventions
 
 - Each file ends with a 'Plan mismatches identified (carried to Step 14)' section (steps 1-14).
@@ -33,4 +34,5 @@
 - Step 17 (16-plan-fix-report.md) records the plan rewrite that brought `planning/` in line with dsh reality.
 - Step 18 (17-phase0-acceptance-results.md) records Phase 0 acceptance: which gates passed, which fixes landed in `519da740a2`, and which failures are deferred.
 - Step 19 (18-phase1-start-record.md) is the Phase 1 kickoff log on `app-builder-web-reskin`; updated continuously as packages, bundle, example, web reskin, snapshots, and Agent Notes land.
+- Step 20 (21-app-builder-web-shell.md) is the Phase 1 web reskin plan: 3-pane ui-app-builder-shell, the AppBuilderSnapshot server bridge, the slot take-over chain, the test plan, and the git sequence.
 - Quotes from source files are verbatim with line numbers where possible.
