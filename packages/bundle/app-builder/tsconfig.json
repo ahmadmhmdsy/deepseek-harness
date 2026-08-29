@@ -9,8 +9,6 @@
     { "path": "../../../vendor/cordis" },
     { "path": "../../../packages/app-builder/project" },
     { "path": "../../../packages/app-builder/scaffold" },
-    { "path": "../../../packages/app-builder/preview" },
-    { "path": "../../../packages/app-builder/persona" },
     { "path": "../../../packages/runtime-diagnostics/invariants" }
   ]
 }

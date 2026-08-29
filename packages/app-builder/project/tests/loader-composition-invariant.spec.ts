@@ -1,14 +1,20 @@
 /**
  * Real-composition smoke for the App Builder project plugin: the cordis
  * context loads the plugin and the registry accepts one project record.
+ *
+ * The filename contains `invariant` to opt out of the test-invariants
+ * global host (it auto-mounts the companion, which we exercise through the
+ * direct PluginFiber path here) and to keep the spec independent of the
+ * companion's startup order.
  */
 
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { mkdirSync } from 'node:fs'
 import { strict as assert } from 'node:assert'
+import { describe, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { name, apply, Config } from '../src/index.ts'
+import { name, inject, apply, Config } from '../src/index.ts'
 
 describe('app-builder-project (real composition)', () => {
   it('boots and creates one project', async () => {

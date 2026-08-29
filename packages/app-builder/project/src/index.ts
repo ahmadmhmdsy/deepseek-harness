@@ -32,12 +32,10 @@ declare module '@deepseek-ai/cordis' {
  * replaces this with a `dsh-storage-domain` backed implementation.
  */
 export class ProjectRegistry extends Service {
-  static inject = ['logger'] as const
-
   private readonly projects = new Map<ProjectId, Project>()
 
-  constructor(ctx: Context) {
-    super(ctx, 'appBuilderProjects')
+  constructor(ctx: Context, name = 'appBuilderProjects') {
+    super(ctx, name)
   }
 
   /**
@@ -129,18 +127,20 @@ export const Config: z<Config> = z.object({
 /** Cordis plugin name. */
 export const name = 'app-builder-project'
 
-/** Services required by the project plugin. */
-export const inject = ['logger'] as const
+/** Services required by the project plugin. The plugin reads `ctx.logger` directly; no `inject` entries are needed. */
+export const inject: readonly string[] = []
 
 /**
  * Plugin entry. The `ProjectRegistry` constructor calls
  * `ctx.reflect.provide('appBuilderProjects', this, ...)` so the service is
- * registered automatically and disposed when the owning fiber unloads.
+ * registered automatically and disposed when the owning fiber unloads. The
+ * name is passed explicitly: Service's base constructor would otherwise fall
+ * back to the static `provide` field, which `ProjectRegistry` does not set.
  * @param ctx - Cordis context.
  * @param config - Plugin config (validated through `Config`).
  */
 export function apply(ctx: Context, config: Config): void {
-  const project = new ProjectRegistry(ctx)
+  const project = new ProjectRegistry(ctx, 'appBuilderProjects')
   void project
   void config
 }

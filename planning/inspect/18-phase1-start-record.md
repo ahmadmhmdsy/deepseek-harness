@@ -4,15 +4,15 @@
 
 ## TL;DR
 
-Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), and the project package (`b44970308b`).
+Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), and the scaffold package (this step).
 
 ## Per-package status
 
 | Package | Status | Notes |
 |---|---|---|
-| `packages/bundle/app-builder` | **shipped** (`e339f83877`) | cordis.patch.yml + four plugin rows + invariant companion |
-| `packages/app-builder/project` | **shipped** (`b44970308b`) | `ProjectRegistry` service + `project/created` event + real-composition test |
-| `packages/app-builder/scaffold` | pending | composes dsh-tool-fs + dsh-tool-str-replace-editor + dsh-tool-bash |
+| `packages/bundle/app-builder` | **shipped** (`e339f83877`, invariant fix in `f50009233c`) | cordis.patch.yml + four plugin rows + invariant companion |
+| `packages/app-builder/project` | **shipped** (`b44970308b`, apply() fix + invariant rewrite in this step) | `ProjectRegistry` service + `project/created` event + real-composition test |
+| `packages/app-builder/scaffold` | **shipped** (this step) | composes ctx.fs + ctx.shell + ctx.jobs + ctx.sandboxPolicy; model-facing `app_builder_scaffold` tool + three inline templates (nextjs-app, nextjs-pages, svelte-spa) + optional background `npm install` |
 | `packages/app-builder/preview` | pending | composes dsh-tool-bash background + readiness HTTP-poll + dsh-tool-jobs |
 | `packages/app-builder/persona` | pending | uses dsh-persona |
 | `examples/app-builder` | pending | keyless + with-key smoke tests |
@@ -33,9 +33,14 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 ## Notes from package work
 
 - The `project` package ships an in-memory `ProjectRegistry` with one `project/created` event per durable record; Phase 2 replaces it with a `dsh-storage-domain` implementation. Documented in `Known Limitations and Deferred Work`.
-- `registerManifest` is not a real export; the actual API is `ctx.invariants.register(packageName, installer: InvariantInstaller)`. Both new invariant files use the correct shape (empty installer with documented reason). The bundle invariant (`packages/bundle/app-builder/src/invariant.ts`) was corrected in this step after an initial draft used the fictional API.
+- `registerManifest` is not a real export; the actual API is `ctx.invariants.register(packageName, installer: InvariantInstaller)`. All three invariant companions (project, scaffold, bundle) now use the canonical plugin form (`name`/`inject`/`apply` named exports) and a no-op `install: InvariantInstaller` with a documented `No runtime invariant:` reason. The bundle invariant (`packages/bundle/app-builder/src/invariant.ts`) was corrected in `f50009233c` after an initial draft used the fictional API.
+- The original `project` package's `apply()` constructed `new ProjectRegistry(ctx)` without a name argument; `Service`'s base constructor falls back to the static `provide` field, which `ProjectRegistry` does not set, so the service was registered under `undefined` and `ctx.appBuilderProjects` resolved to nothing. The constructor now takes an explicit `name` (default `'appBuilderProjects'`) and `apply()` passes it through. The original `static inject = ['logger']` is removed: `ctx.logger` is auto-mounted on `new Context()` (not a registered service) and the inject array kept the fiber stuck in PENDING.
 - Translation pairing enforces byte-identical structure between EN and ZH: list bullet counts, link targets, and code blocks must align. Bundled scripts `verify-translation-pairing --write` and lefthook `pre-commit` enforce.
-- Group-level READMEs (`packages/app-builder/README.md`) require a `.zh.md` and `.i18n.yaml` triplet whenever the group exists; the original `f6c75d2350` commit added the EN side only. Both that group and the `packages/README.md` ↔ `README.zh.md` table are reconciled here. Process rule reinforced: every bilingual README change must re-record both hashes immediately before `git add`.
+- Group-level READMEs (`packages/app-builder/README.md`) require a `.zh.md` and `.i18n.yaml` triplet whenever the group exists; the original `f6c75d2350` commit added the EN side only. Both that group and the `packages/README.md` ↔ `README.zh.md` table are reconciled in `f50009233c`. Process rule reinforced: every bilingual README change must re-record both hashes immediately before `git add`.
+- The scaffold tool's three templates (nextjs-app, nextjs-pages, svelte-spa) are inline TypeScript modules exporting a `Readonly<Record<ScaffoldTemplate, ScaffoldTemplateDefinition>>` — no template engine, no string interpolation, no Phase 1 dependency on bundling real Next.js/Svelte projects. The Agent Note `scaffold-plugin` (deferred to a later step) records the decision to defer templating.
+- The bundle's `tsconfig.json` references `packages/app-builder/{preview,persona}` only after those packages ship; this step drops both references so the bundle typecheck passes today. The references return once preview/persona are added.
+- Test-invariants global host bypass: tests that exercise a Service-class plugin with no inject dependencies must opt out of the host by including `invariant` in the test filename (e.g. `loader-composition-invariant.spec.ts`). The bypass pattern matches the harness's `usesManualInvariantTree` regex.
+- The `index.ts` for the scaffold package carries `/* v8 ignore */` not used; the full plugin lifecycle (including `ctx.tools.register`, `ctx.fs.writeText`, the optional `ctx.jobs.start` branch) is reachable only through the Loader-driven smoke in `examples/app-builder/`, which the next commits build out.
 
 ## Verification
 
@@ -54,6 +59,8 @@ Each run reports which sub-steps were exercised (per `AGENTS.md` §Run relevant 
 ## Git state at this step
 
 ```
+<scaffold> feat(app-builder): scaffold packages/app-builder/scaffold MVP tool
+f50009233c fix(app-builder): align bundle invariant API and complete bilingual pair for app-builder group
 b44970308b feat(app-builder): scaffold packages/app-builder/project MVP package
 e339f83877 feat(app-builder): scaffold packages/bundle/app-builder MVP patch layer
 f6c75d2350 feat(workspace): register app-builder group on app-builder-web-reskin
