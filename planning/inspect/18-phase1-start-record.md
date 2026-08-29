@@ -94,6 +94,7 @@ Each run reports which sub-steps were exercised (per `AGENTS.md` §Run relevant 
 ## Git state at this step
 
 ```
+3c44265daa feat(client): scaffold ui-app-builder-projects pane (project list, snapshot polling, selection) (tag: apps-app-builder-projects-mvp-1)
 03418a4679 feat(client): scaffold ui-app-builder-shell MVP 3-pane layout
 5b4b7951f0 docs(planning): add step 21 - App Builder web shell reskin plan
 de25c77d7f docs(planning): record examples/app-builder commit SHA in step 18
