@@ -8,6 +8,16 @@ import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 import { settingsNamespace } from '@deepseek-ai/dsh-settings'
 import { FileSettingsProvider, resolveSpec } from '../src/index.ts'
 
+// Each test boots a per-temp-dir `FileSettingsProvider` whose watcher briefly
+// opens the target settings file on Windows. Concurrent files in the same
+// vitest pool can race on those short-lived handles and surface EPERM on the
+// `settings.yaml.tmp -> settings.yaml` rename inside `writeFileAtomic`.
+// Serialize this file with its peers so the watcher's open window never
+// overlaps another file's atomic rename.
+// @ts-expect-error - `fileParallelism` is part of `SerializedConfig` but not
+// the exposed `RuntimeOptions`; the vitest runtime accepts it.
+vi.setConfig({ fileParallelism: false })
+
 interface ThemeConfig {
   theme: 'dark' | 'light'
   fontSize: number

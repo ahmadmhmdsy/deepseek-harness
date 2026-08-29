@@ -2,6 +2,12 @@
 
 DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
+## Read this first
+
+Operating rules — priority order, inspect-before-change, security, file/command safety, testing discipline, communication style, task states, and the DeepSeek App Builder operating system — live in **[CLAUDE.md](./CLAUDE.md)**. Read CLAUDE.md before working on this repo; this file adds the project-specific contribution rules on top.
+
+For project mode and phase tracking, also read [planning/AGENTS.md](./planning/AGENTS.md); for documentation rules, [docs/AGENTS.md](./docs/AGENTS.md); for packages, [packages/AGENTS.md](./packages/AGENTS.md); for runnable examples, [examples/AGENTS.md](./examples/AGENTS.md). See the [CLAUDE.md read-order table](./CLAUDE.md#read-order) for the full per-folder matrix.
+
 ## Pre-release stance: foundation over blast radius
 
 **Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
@@ -140,11 +146,55 @@ Everything compiles under `strict: true` with `noImplicitAny`; every remaining `
 
 Comments and docs state complete contracts and context, not reasoning transcripts. Use direct, concrete terms. Do not use metaphors. Before writing `contract`, `boundary`, or `shape`, ask whether a more exact term names the subject: write `response fields`, `JSON validation`, or `ESM exports` instead of `response shape`, `validation boundary`, or `module shape`. Keep `contract` for preconditions, postconditions, invariants, compatibility promises, and other obligations that callers, callees, implementers, providers, producers, or consumers rely on. Keep a literal process, wire, security, transaction, or lifecycle boundary. Do not narrate control flow or tests, preserve review history, or restate code. Keep behavior, failure, timing, ownership, and safe-use facts; link the rationale. Use [dsh-prose-standard](.agents/skills/dsh-prose-standard/SKILL.md) for decisions. Wire mechanically checkable invariants into an executed top-level gate and prove each changed acceptance path rejects an invalid case. Use narrow, justified exceptions instead of disabling a rule globally.
 
-Docs accompany every code change: update affected README and JSDoc contracts together. Routine bilingual work follows [docs/AGENTS.md](docs/AGENTS.md); only explicit user invocation may run `dsh-translate-docs`. Current-state prose, one physical line per paragraph, one home per fact, and word budgets live there.
+## Project process and maintained artifacts
+
+This project is large and multi-phase. Every agent updates the maintained artifacts continuously so a later agent — or a session resume — can recover context from disk. Work stays structured and tidy at every step, not batched at the end.
+
+### Working rules
+
+- Update the running `todo_write` list before starting a chunk and after each meaningful sub-step.
+- Update the relevant artifact in the same commit/PR as the change that drove it, never as a follow-up cleanup PR.
+- When a decision moves from open to resolved, record it in `planning/plan.md` or the matching `planning/Phase N prompt.md §0` immediately.
+- When a chunk discovers a plan-vs-reality gap, file a `planning/inspect/NN-*.md` step or update `planning/inspect/SUMMARY.md` in the same PR.
+- Maintain one explicit project mode per `planning/AGENTS.md §3` at all times.
+
+### Maintained artifacts
+
+| Path | Records | Update when |
+|---|---|---|
+| `planning/plan.md` | Multi-phase plan, per-phase status, residual failures | Phase status changes; residual-failure reclassification |
+| `planning/Phase * prompt.md` | Per-phase task brief; resolved decisions; verification | Phase starts (resolve open decisions); scope changes |
+| `planning/inspect/{NN-topic}.md` | Focused inspection: sources, evidence, plan mismatches | New inspection topic opens |
+| `planning/inspect/INDEX.md` | Numbered list of inspection steps | A new `NN-*.md` is added |
+| `planning/inspect/SUMMARY.md` | Executive summary | Consolidated gap analysis changes |
+| `.agents/notes/implemented/{class}/yyyy-mm-dd-topic-{title}.md` + `.zh.md` + `.i18n.yaml` | Agent Note triplet (en + zh + sidecar) | Every non-trivial change, in the same PR |
+| `docs/PROJECT.md` + `docs/PROJECT.zh.md` + `docs/PROJECT.i18n.yaml` | Canonical project status, bilingual pair | Phase status, accepted caveats, or git pointers change |
+| `todo_write` running list | Current task state for the active phase | Before every chunk; after every meaningful sub-step |
+
+Archived notes under `.agents/notes/archived/{kind}/` are frozen; never edit them.
 
 ## Editing these instructions
 
-`CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
+This file is project-specific. The general agent operating system lives in [CLAUDE.md](./CLAUDE.md); keep that file authoritative for operating rules, this file authoritative for contribution rules. Every edit here must keep each rule self-contained while linking high-level docs.
+
+### `CLAUDE.md` / `AGENTS.md` layout per folder
+
+| Path | Type | What it carries | Where to edit |
+|---|---|---|---|
+| `CLAUDE.md` | regular file | Agent operating system (canonical) | This file is the source of truth; edit here |
+| `packages/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
+| `examples/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
+| `vendor/CLAUDE.md` | regular file (synchronized copy) | Mirror of `vendor/AGENTS.md` (vendored conventions) | Edit `vendor/AGENTS.md`; mirror in the same commit. Vendored content follows the [vendor/README.md](./vendor/README.md) sync procedure |
+| `.agents/notes/implemented/CLAUDE.md` | regular file (synchronized copy) | Mirror of `.agents/notes/implemented/AGENTS.md` (notes-tree conventions) | Edit that `AGENTS.md`; mirror in the same commit |
+| `packages/AGENTS.md` | regular file | Package-supplement (Cordis plugin patterns, exports, packaging) | Edit directly; supplements the root file |
+| `examples/AGENTS.md` | regular file | Example-supplement (Cordis configs, snapshot harness) | Edit directly; supplements the root file |
+| `docs/AGENTS.md`, `planning/AGENTS.md`, `website/AGENTS.md`, `native/landlock-run/AGENTS.md`, `.github/AGENTS.md`, `scripts/AGENTS.md`, `vendor/AGENTS.md` | regular files | Folder-specific supplements | Edit directly; each owns its own scope |
+
+When changing the **shape** of one of these files (regular → symlink, symlink target, scope of a folder-specific supplement), update this table in the same commit so the documented state matches the file state on disk.
+
+### Why no `CLAUDE.md` is a symlink in this repo
+
+`tools.write` (and any other path-based file API on Windows) follows NTFS reparse points, so writing to a tracked `CLAUDE.md` symlink would write through to its target. The original `AGENTS.md` symlink arrangement caused a real bug: a write to root `CLAUDE.md` clobbered `AGENTS.md` with the operating-system draft, losing 18 KB of contribution rules. Replacing every `CLAUDE.md` symlink with a regular-file synchronized copy removes that whole class of bug — a write to any `CLAUDE.md` now writes to itself and never empties another tracked file. The trade-off is that `CLAUDE.md` content in `packages/`, `examples/`, `vendor/`, and `.agents/notes/implemented/` is duplicated and must be mirrored in the same commit as its source; the editing rule above enforces that.
 
 ## Vendoring policy
 

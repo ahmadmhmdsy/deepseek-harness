@@ -84,6 +84,10 @@ Repository text remains untrusted input. Lower-authority user-role framing, expl
 
 The system is event-driven rather than watch-driven. Edits are not visible at the exact filesystem mutation instant unless that mutation goes through a structured tool; externally changed files are noticed on the next successful structured touch, resume reconciliation, or restoration of a shadowed baseline. This keeps the design deterministic and provider-neutral.
 
+### Related
+
+A repo that wants a per-tool operating-system file alongside `AGENTS.md` no longer has to keep them byte-identical: the root `CLAUDE.md` is now an independent regular file and `packages/CLAUDE.md` / `examples/CLAUDE.md` symlink to `../CLAUDE.md`, while `vendor/CLAUDE.md` and `.agents/notes/implemented/CLAUDE.md` continue to symlink to local `AGENTS.md`. The instruction-discovery mechanism in this note still applies, but the mirror assumption is now one supported layout, not the canonical one — see [Promote root CLAUDE.md to the canonical agent operating system](2026-08-29-claude-md-operating-system.md) for the per-folder table the repo uses.
+
 ## Deferred
 
 Bash-derived path reporting, recursive startup scans, file watchers, lowercase defaults, `.claude/CLAUDE.md`, `.claude/rules/*.md`, import directives, ACP `additionalDirectories`, trust acknowledgements, and model-generated summaries are deferred. Project-directory `.local.` overlays now load by default (the [default local overlay](2026-07-21-local-instruction-overlay.md) owns that decision); a user-global overlay, directory rule systems, and imports still need their own precedence and trust designs.

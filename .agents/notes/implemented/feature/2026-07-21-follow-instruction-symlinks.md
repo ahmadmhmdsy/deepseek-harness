@@ -29,3 +29,7 @@ Following repository-owned links crosses the plugin's trust boundary: a cloned, 
 ## Consequences
 
 A symlinked instruction file is now loaded and rendered like its target, enabling shared canonical instruction files across tools and homes, and the `CLAUDE.md → AGENTS.md` mirror deduplicates through content instead of being skipped. The plugin no longer depends on `ctx.fs.lstat` for instruction loading; a resolved non-file is a confirmed absence and only a provider exception is temporarily unavailable. The trust boundary moves out of this plugin into the filesystem policy and sandbox layers, which must confine `ctx.fs` when a deployment loads untrusted repositories. The [agent-instructions note](2026-06-24-workspace-context.md) and the package README carry the same follow behavior and residual-risk statement.
+
+### Related
+
+The `CLAUDE.md → AGENTS.md` mirror remains a supported layout in this repo for `vendor/CLAUDE.md` and `.agents/notes/implemented/CLAUDE.md`. The same follow-symlink rule now also covers the `packages/CLAUDE.md → ../CLAUDE.md` and `examples/CLAUDE.md → ../CLAUDE.md` layout, where the symlink resolves to the root operating-system file rather than to `AGENTS.md`. See [Promote root CLAUDE.md to the canonical agent operating system](2026-08-29-claude-md-operating-system.md) for the full per-folder layout.

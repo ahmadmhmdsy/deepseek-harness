@@ -261,4 +261,25 @@ interface ToolPolicy {
 
 ## 12. Inspect artifacts
 
-本计划的逐步检视结论位于 `planning/inspect/01..14-*.md` + `SUMMARY.md` + `INDEX.md`。检视过程中识别的所有 plan 与现实不符项都汇总在 `planning/inspect/14-gap-analysis.md`。
+本计划的逐步检视结论位于 `planning/inspect/01..17-*.md` + `SUMMARY.md` + `INDEX.md`。检视过程中识别的所有 plan 与现实不符项都汇总在 `planning/inspect/14-gap-analysis.md`。
+
+## 13. Phase 0 验收状态
+
+Phase 0（无新代码的验收门）**带说明通过**。证据与逐项结论在 [`planning/inspect/17-phase0-acceptance-results.md`](../planning/inspect/17-phase0-acceptance-results.md)；内联摘要附在 [`planning/Phase 0 prompt.md`](../planning/Phase%200%20prompt.md) 末尾。
+
+- **版本固定**：`0.1.1-rc.2`，所有 workspace 包共享同一版本。
+- **Hello-world smoke**：未设置 `DEEPSEEK_API_KEY` 时自跳过（CLI 引导出 mock fallback，agent 用澄清问题回应——门未失败）。
+- **各门**：`pnpm install` PASS；`pnpm run build` PASS；`pnpm run typecheck` PASS；`pnpm run hygiene` PASS 13/13，97.81s（需要 `NODE_OPTIONS=--max-old-space-size=8192`）；`pnpm run doc-sync` PASS 28/28，179.45s。
+- **`docs/PROJECT.md` 即规范来源**，附中文配对；`planning/PROJECT.md` 为重定向。
+- **Git 锚点**：tag `apps-web-classic-pre-app-builder` 固定 Phase 1 UI 重皮前状态；branch `app-builder-web-reskin` 承载 Phase 1 UI 重皮。
+- **Path B 收尾**：范围内的 flake 类别已清掉，并按更新后的 [`2026-08-28-rescope-marker-cleanup`](../.agents/notes/implemented/process/2026-08-28-rescope-marker-cleanup.zh.md) 删除两条陈旧 `rescope-vendor` marker。四项测试修复 + path B 破修复位于 [`2026-08-29-windows-test-flake-fixes`](../.agents/notes/implemented/process/2026-08-29-windows-test-flake-fixes.zh.md)。
+
+`pnpm run test` 剩余失败（8 个，位于 3 个文件，全部按 [`planning/inspect/15-phase0-pre-existing-failures.md §6.7`](../planning/inspect/15-phase0-pre-existing-failures.md) 视为超出范围）：
+
+| 数量 | 文件 | 类别 | 建议修复 |
+|---|---|---|---|
+| 6 | `packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts` | 环境性（resolver 标准位置未安装 PowerShell 7） | 在 `C:\Program Files\PowerShell\7\pwsh.exe` 安装 PowerShell 7 |
+| 1 | `packages/shell/pwsh-sandbox/tests/sandbox.spec.ts > wraps the exact pwsh argv` | 同根因 | 同上，或一行正则放宽 |
+| 1 | `scripts/change-scope.spec.ts > renders deterministic versioned JSON` | 间歇 contention flake（孤立运行通过） | 重试；若确定失败，参考 path B 模式 |
+
+用户需做出验收决策：把这 8 个超出范围失败视为 Phase 0 不阻塞项，进入 Phase 1；或者先安装 PowerShell 7 清掉 7 个环境失败，再开始 Phase 1。

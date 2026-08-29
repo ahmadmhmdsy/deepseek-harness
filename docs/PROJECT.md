@@ -261,4 +261,25 @@ Each decision in this table is reflected in the relevant Phase prompt (Phase 1 p
 
 ## 12. Inspect artifacts
 
-Step-by-step inspection findings for this plan are in `planning/inspect/01..14-*.md` + `SUMMARY.md` + `INDEX.md`. Every plan mismatch identified during inspection is tracked in `planning/inspect/14-gap-analysis.md`.
+Step-by-step inspection findings for this plan are in `planning/inspect/01..17-*.md` + `SUMMARY.md` + `INDEX.md`. Every plan mismatch identified during inspection is tracked in `planning/inspect/14-gap-analysis.md`.
+
+## 13. Phase 0 acceptance status
+
+Phase 0 (the acceptance gate with no new code) is **accepted with caveats**. Evidence and per-task outcomes are in [`planning/inspect/17-phase0-acceptance-results.md`](../planning/inspect/17-phase0-acceptance-results.md); the inline digest is at the bottom of [`planning/Phase 0 prompt.md`](../planning/Phase%200%20prompt.md).
+
+- **Version pinned:** `0.1.1-rc.2`. Every workspace package shares the version.
+- **Hello-world smoke:** self-skipped without `DEEPSEEK_API_KEY` (CLI boots a mock fallback and the agent responds with a clarifying question — gate not failed).
+- **Gates:** `pnpm install` PASS, `pnpm run build` PASS, `pnpm run typecheck` PASS, `pnpm run hygiene` PASS 13/13 in 97.81s (with `NODE_OPTIONS=--max-old-space-size=8192`), `pnpm run doc-sync` PASS 28/28 in 179.45s.
+- **`docs/PROJECT.md` is canonical** with the bilingual pair; `planning/PROJECT.md` is a redirect.
+- **Git anchors:** tag `apps-web-classic-pre-app-builder` pins the pre-Phase-1 UI state; branch `app-builder-web-reskin` carries the Phase 1 UI reskin.
+- **Path B closure:** the in-scope flake category is cleared and the two stale `rescope-vendor` markers are dropped per the updated [`2026-08-28-rescope-marker-cleanup`](../.agents/notes/implemented/process/2026-08-28-rescope-marker-cleanup.md). The four test fixes + the path B broken-fix repair are in [`2026-08-29-windows-test-flake-fixes`](../.agents/notes/implemented/process/2026-08-29-windows-test-flake-fixes.md).
+
+Residual `pnpm run test` failures (8 in 3 files, all out-of-scope per [`planning/inspect/15-phase0-pre-existing-failures.md §6.7`](../planning/inspect/15-phase0-pre-existing-failures.md)):
+
+| Count | File | Bucket | Suggested fix |
+|---|---|---|---|
+| 6 | `packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts` | Environmental (PowerShell 7 not installed at the resolver's standard location) | Install PowerShell 7 to `C:\Program Files\PowerShell\7\pwsh.exe` |
+| 1 | `packages/shell/pwsh-sandbox/tests/sandbox.spec.ts > wraps the exact pwsh argv` | Same root cause | Same as above, or 1-line regex tolerance |
+| 1 | `scripts/change-scope.spec.ts > renders deterministic versioned JSON` | Intermittent contention flake (passes in isolation) | Retry; if deterministic, follow path B pattern |
+
+User owes the acceptance decision: accept the 8 deferred failures as out-of-scope for Phase 0 and proceed to Phase 1, OR install PowerShell 7 to clear the 7 environmental failures before Phase 1 begins.

@@ -71,6 +71,27 @@ Acceptance criteria:
 
 Guardrails: no new packages in this phase.
 
+### Status — accepted with caveats (commit `519da740a2`)
+
+Per-task evidence lives in [`inspect/17-phase0-acceptance-results.md`](inspect/17-phase0-acceptance-results.md); the inline digest lives at the bottom of [`Phase 0 prompt.md`](Phase%200%20prompt.md).
+
+- **Version pinned** at `0.1.1-rc.2`.
+- **Hello-world smoke** self-skipped without `DEEPSEEK_API_KEY` (CLI boots a mock fallback and the agent responds with a clarifying question — gate not failed).
+- **Gates** (`build` + `typecheck` + `hygiene` + `doc-sync`) all PASS. `pnpm run hygiene` requires `NODE_OPTIONS=--max-old-space-size=8192` on this machine; `knip`'s `oxc-parser` exhausts the default V8 ArrayBuffer pool. Document the windows dev setup once a follow-up agent lands it.
+- **`docs/PROJECT.md`** is canonical with the bilingual pair; `planning/PROJECT.md` is a redirect.
+- **Git state:** tag `apps-web-classic-pre-app-builder` pinned at `9306f9371b`; branch `app-builder-web-reskin` at `519da740a2` ready for Phase 1 UI reskin.
+- **Path B closure:** `519da740a2 test(windows): clear residual contention flakes and stale rescope markers` cleared the in-scope flake category and dropped the two stale `rescope-vendor` markers.
+
+Residual `pnpm run test` failures (8 in 3 files, all out-of-scope per `inspect/15-phase0-pre-existing-failures.md §6.7`):
+
+| Count | File | Bucket |
+|---|---|---|
+| 6 | `packages/sandbox/sandbox-windows-acl/tests/runner.spec.ts` | Environmental (PowerShell 7 not installed at the resolver's standard location; the AppX variant under `WindowsApps\` is invisible to the ACL-segregated runner) |
+| 1 | `packages/shell/pwsh-sandbox/tests/sandbox.spec.ts > wraps the exact pwsh argv` | Same root cause |
+| 1 | `scripts/change-scope.spec.ts > renders deterministic versioned JSON` | Intermittent contention flake (passes in isolation in 2.04s) |
+
+User owes the acceptance decision: accept the 8 deferred failures as out-of-scope and proceed to Phase 1, OR install PowerShell 7 to clear the 7 environmental failures before Phase 1 begins.
+
 ## 3. Phase 1 — App Builder MVP (1–2 weeks)
 
 Goal: prompt -> running app with live preview, locally, no auth.
@@ -118,6 +139,24 @@ Every new package ships: `tests/`, `./invariant`, README + JSDoc with `Model Exp
 - Resume a session after restart.
 - Sandbox enforced (mode = `workspace-write`); approvals gate destructive ops.
 - All five verification commands pass.
+### Status — started (commit `abc87d4df1`)
+
+Phase 1 work begins on branch `app-builder-web-reskin` at `9d99c4788e`. The first action is a docs-only commit that adds a standing workflow rule to root `AGENTS.md` (`## Project process and maintained artifacts`) so every later commit/PR in this phase obeys the same-PR artifact-update discipline.
+
+Next steps in order:
+
+1. Explore existing package/bundle/example/web patterns so the new packages follow the same conventions.
+2. Register the `packages/app-builder/` workspace group (`packages/README.md`, `tsconfig.host.json`, root `tsconfig.json` if needed).
+3. Author the four packages with their full per-package obligations (per `planning/Phase 1 prompt.md §10`).
+4. Author the `packages/bundle/app-builder/cordis.patch.yml` patch over `packages/bundle/base`.
+5. Author `examples/app-builder/` with keyless + with-key smokes.
+6. Re-skin `apps/web` on the existing branch (no parallel `apps/app-builder-web`).
+7. Add web browser snapshot scenarios.
+8. File Agent Notes for each non-trivial change (scaffold, preview, project, persona).
+9. Run the five verification commands.
+
+Each step lands as its own commit; planning artifacts (`plan.md`, `inspect/INDEX.md`, `inspect/SUMMARY.md`, `docs/PROJECT.md` pair) update in the same commit as the change that drives the update.
+
 
 Guardrails: no credentials in the sandbox; cost limits on (via `dsh-token-meter`); single-user only.
 

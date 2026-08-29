@@ -24,6 +24,10 @@ A self-referential agent that can inspect and change its in-memory Cordis plugin
 
 An opt-in Web overlay for durable, Session-local reminders. It supports positive whole-second `after_seconds` delays and absolute `at` targets through `schedule_create`, `schedule_list`, and `schedule_delete`; active reminders persist in the original Session, resume when that Session becomes live again, and do not run while it is cold. Run `dsh web --patch examples/web-schedule/cordis.yml`; see [web-schedule/README.md](web-schedule/README.md) for absolute-time authority, delivery, and recovery boundaries.
 
+## app-builder
+
+The App Builder MVP composition: it inlines the three runtime App Builder plugins (project registry, scaffold, preview) on top of a standard coding-agent plugin stack and mounts the App Builder persona through `agent-spine.config.persona`. The keyless smoke runs a four-turn mock fixture (scaffold a Svelte SPA, read the generated `package.json`, override the dev script, finish with a marker); the with-key twin is `describe.skipIf(!DEEPSEEK_API_KEY)` and exercises the full scaffold→preview loop against the real model. See the [app-builder example reference](app-builder/README.md).
+
 ## acp-agent
 
 An Agent Client Protocol automation server for programmatic clients, with session, permission, and cancellation support. See the [ACP example reference](acp-agent/README.md).

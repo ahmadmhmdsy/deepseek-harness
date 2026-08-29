@@ -1,6 +1,6 @@
 # AGENTS.md — Harness Packages
 
-These package-specific rules supplement the repo-wide [conventions](../AGENTS.md#conventions).
+These package-specific rules supplement the repo-wide [conventions](../AGENTS.md#conventions). General agent operating rules — priority order, inspect-before-change, security, file/command safety, testing discipline, communication style, task states, App Builder operating system — live in [CLAUDE.md](../CLAUDE.md); read it before applying anything below.
 
 - **Plugin exports:** service packages default-export their service class; function plugins named-export `name` / `inject` / `Config` / `apply` and have no default export. Mixing the forms makes the Loader discard the function plugin's namespace ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
 - **Optional services use `ctx.get(name)`.** Reserve `ctx.<name>` for declared injections; the property proxy is topology-sensitive, while strict `ctx.get` reads the global service store ([postmortem](../docs/postmortem/0001-acp-default-export-drops-inject.md)).
