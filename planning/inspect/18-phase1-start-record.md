@@ -33,8 +33,9 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 ## Notes from package work
 
 - The `project` package ships an in-memory `ProjectRegistry` with one `project/created` event per durable record; Phase 2 replaces it with a `dsh-storage-domain` implementation. Documented in `Known Limitations and Deferred Work`.
-- `registerManifest` is not a real export; the actual API is `ctx.invariants.register(packageName, installer: InvariantInstaller)`. Both new invariant files use the correct shape (empty installer with documented reason).
+- `registerManifest` is not a real export; the actual API is `ctx.invariants.register(packageName, installer: InvariantInstaller)`. Both new invariant files use the correct shape (empty installer with documented reason). The bundle invariant (`packages/bundle/app-builder/src/invariant.ts`) was corrected in this step after an initial draft used the fictional API.
 - Translation pairing enforces byte-identical structure between EN and ZH: list bullet counts, link targets, and code blocks must align. Bundled scripts `verify-translation-pairing --write` and lefthook `pre-commit` enforce.
+- Group-level READMEs (`packages/app-builder/README.md`) require a `.zh.md` and `.i18n.yaml` triplet whenever the group exists; the original `f6c75d2350` commit added the EN side only. Both that group and the `packages/README.md` ↔ `README.zh.md` table are reconciled here. Process rule reinforced: every bilingual README change must re-record both hashes immediately before `git add`.
 
 ## Verification
 

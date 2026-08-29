@@ -1,6 +1,6 @@
 # App Builder packages
 
-English | [Chinese](README.zh.md)
+English | [中文](README.zh.md)
 
 The App Builder MVP: a prompt-to-running-app surface on top of DeepSeek Harness. A user types a prompt; the App Builder agent scaffolds a project, installs its dependencies, starts its dev server, and exposes the preview URL to the chat pane. Phase 1 (revised) targets a local, single-user loop with no auth.
 

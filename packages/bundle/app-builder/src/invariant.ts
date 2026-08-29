@@ -1,15 +1,19 @@
 /**
  * @module @deepseek-ai/dsh-app-builder/invariant
  *
- * Registers the bundle manifest name with the runtime-diagnostics invariant registry.
- * No runtime invariant is asserted by this bundle itself: the patch is the unit of
- * composition, and individual package invariants assert each plugin's relationship.
+ * The bundle patch layer carries no runtime invariant of its own: each
+ * loaded plugin (project, scaffold, preview, persona) registers its own
+ * installer when activated. The bundle records package ownership here so
+ * `verify-package-invariants` does not flag the empty bundle.
  */
-import { registerManifest } from '@deepseek-ai/dsh-invariants'
+import type { InvariantInstaller } from '@deepseek-ai/dsh-invariants'
 
-registerManifest({
-  name: '@deepseek-ai/dsh-app-builder',
-  reason: 'No runtime invariant: this bundle is a `cordis.patch.yml` patch layer; the four plugin invariants (project, scaffold, preview, persona) own the relationship checks.',
-})
+const PACKAGE_NAME = '@deepseek-ai/dsh-app-builder'
 
-export {}
+const install: InvariantInstaller = () => {}
+
+export function registerInvariant(ctx: { invariants: { register(name: string, installer: InvariantInstaller): () => void } }): () => void {
+  return ctx.invariants.register(PACKAGE_NAME, install)
+}
+
+export default install
