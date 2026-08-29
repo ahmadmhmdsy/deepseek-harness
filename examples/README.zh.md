@@ -24,6 +24,10 @@
 
 用于持久、仅限 Session 内提醒的可选 Web overlay。它通过 `schedule_create`、`schedule_list` 和 `schedule_delete` 支持正整数秒的 `after_seconds` 延时与绝对 `at` 目标；活动提醒保存在原 Session 中，该 Session 再次 live 时恢复，而 cold 期间不会运行。使用 `dsh web --patch examples/web-schedule/cordis.yml` 启动；绝对时间 authority 以及交付与恢复边界详见 [web-schedule/README.md](web-schedule/README.zh.md)。
 
+## app-builder
+
+App Builder MVP 组装：在标准 coding-agent 插件栈之上内联挂载三个运行时 App Builder 插件（project registry、scaffold、preview），并通过 `agent-spine.config.persona` 挂载 App Builder 身份。keyless smoke 运行一个四回合 mock 脚本（scaffold 一个 Svelte SPA，读取生成的 `package.json`，覆写 dev 脚本，以 marker 收尾）；with-key 版本通过 `describe.skipIf(!DEEPSEEK_API_KEY)` 自跳过，在真实模型下跑完 scaffold→preview 全流程。详见 [app-builder 示例参考](app-builder/README.zh.md)。
+
 ## acp-agent
 
 面向程序化客户端的 ACP（Agent Client Protocol）自动化服务器，支持会话、权限和取消操作。详见 [ACP 示例参考](acp-agent/README.zh.md)。

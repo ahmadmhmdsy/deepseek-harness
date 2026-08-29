@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), the preview package (`1267a1457b`), and the persona package (this step).
+Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), the preview package (`1267a1457b`), the persona package (`a7b37b571b`), and the example composition (`5b977a43ff`, this step).
 
 ## Per-package status
 
@@ -15,7 +15,7 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 | `packages/app-builder/scaffold` | **shipped** (this step) | composes ctx.fs + ctx.shell + ctx.jobs + ctx.sandboxPolicy; model-facing `app_builder_scaffold` tool + three inline templates (nextjs-app, nextjs-pages, svelte-spa) + optional background `npm install` |
 | `packages/app-builder/preview` | **shipped** (this step) | composes ctx.shell + ctx.fs + ctx.jobs + HTTP readiness poll on 127.0.0.1; model-facing `app_builder_preview` tool with framework detection (next/vite/unknown) and free-port allocation |
 | `packages/app-builder/persona` | **shipped** (this step) | thin wrapper around `@deepseek-ai/dsh-persona` that defaults the `deployment:persona` text to the App Builder identity (`APP_BUILDER_PERSONA`); bundle patch row references this name |
-| `examples/app-builder` | pending | keyless + with-key smoke tests |
+| `examples/app-builder` | **shipped** (`5b977a43ff`, this step) | keyless smoke (mock LLM) passes; with-key smoke is `describe.skipIf(!DEEPSEEK_API_KEY)`; `cordis.yml` inlines project+scaffold+preview plugins; persona pulled via `agent-spine.config.persona` `!!js createRequire` indirection (avoids persona-plugin / deployment-persona collision); agent-spine loads BEFORE the App Builder plugins so `agents` (the `AgentRegistry` service) is published first |
 | `apps/web` (reskin on this branch) | pending | project list pane + chat re-use + preview iframe + config switch |
 
 ## Decisions carried from Phase 0 (recap)
@@ -48,6 +48,18 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 - The App Builder persona peer-depends on `@deepseek-ai/dsh-persona`. The bundle patch layer includes `app-builder-persona` so any composition mounted from `@deepseek-ai/dsh-app-builder` carries the App Builder identity automatically. The persona plugin declares the peer in `package.json` and the loader refuses to mount it without `@deepseek-ai/dsh-persona` available.
 - Bundle `tsconfig.json` re-adds the `packages/app-builder/persona` reference that was dropped in `f3c73809ce`. All four app-builder packages now appear in the bundle references; the bundle typechecks across all of them.
 
+## Notes from example work (this step)
+
+- The bundle `cordis.patch.yml` is consumed only by the profile launcher (`dsh --profile app-builder`); direct `cordis.yml` compositions MUST inline the four plugin rows (project / scaffold / preview / optional persona) themselves. The bundle JS plugin is intentionally a no-op so direct compositions can mount the same plugin set without going through `dsh --profile`. The example's `cordis.yml` documents this and inlines the three runtime rows.
+- The persona plugin is scope-only by design: when mounted unscoped it collides with the `deployment:persona` slot owned by `dsh-system-prompt`. The example instead pulls `APP_BUILDER_PERSONA` out of `@deepseek-ai/dsh-app-builder-persona/text` via a `!!js` expression that uses `node:module` `createRequire` on `import.meta.url`, then pins it on `agent-spine.config.persona`. The keyless snapshot overrides that field with its own `Keyless App Builder smoke.` text via `cordis-plugin-include.patches`.
+- Load order: `agent-spine-demo` MUST be declared in `cordis.yml` before any `app-builder-*` row, because scaffold and preview inject `agents` (the `AgentRegistry` service). If the registry is not published yet the App Builder plugins stay PENDING and the Loader errors at boot. `sandbox-policy` runs in `workspace-write` mode so scaffold can create the project directory and preview can read the project `package.json`.
+- The keyless smoke uses a four-turn mock LLM (scaffold → read → write → final text). It boots the real `cordis.yml` through `@deepseek-ai/dsh-loader-smoke` with the real DeepSeek adapter disabled and a mock adapter (`@deepseek-ai/dsh-llm-local`-style fixture) mounted in its place. The fixture is `tests/fixtures/keyless-mock-llm.ts`; the driver is `tests/fixtures/keyless-driver.ts` (a near-clone of `examples/headless-agent/tests/fixtures/headless-driver.ts` adapted to the App Builder tool set).
+- The keyless smoke asserts: (a) `app_builder_scaffold` wrote the Svelte SPA template files (`package.json`, `src/App.svelte`, `index.html`, etc.) into the temp workspace; (b) the follow-up `write` call overrode the `dev` script with the bundled Node preview server; (c) the system prompt carries both `app_builder_scaffold` and `app_builder_preview` descriptions; (d) the `app_builder_scaffold` tool result event is captured with a non-empty `rootPath`; (e) the final assistant text ends with the `APP_BUILDER_KEYLESS_SMOKE_OK` marker. Wall-clock is ~9.4 s on this machine.
+- The with-key smoke is intentionally identical in shape (same driver, same boot path) but uses the real `cordis.yml` and asks the agent to scaffold then start a preview dev server. It self-skips via `describe.skipIf(!process.env.DEEPSEEK_API_KEY)`.
+- Bash is unavailable on this Windows runner (`C:\Windows\System32\bash.exe` is the WSL stub; `bash -c` fails with `WSL Relay ERROR: CreateProcessCommon:735: execvpe(/bin/bash) failed`). The keyless smoke therefore STOPS at scaffold + override write and does NOT call `app_builder_preview`; the bundled `preview-server.js` exists so a real-bash runner (CI, macOS/Linux developer) can exercise the full scaffold→preview loop in the with-key smoke.
+- A source-level fix landed with this step: the uncommitted scaffold/preview `index.ts` had `inject: ['...', 'agent']` (singular) which is the per-scope accessor, not the registry service. That made both plugins stay PENDING forever. Now both inject `'agents'` (plural). The same diff also adds `ctx.emit('fs/observed', fileTarget, { kind: 'present', version: outcome.version }, exec)` after every scaffold `writeText` call: the `fs-observation-policy` keys observations by `actor.agent.session`, so a model-driven `write` / `edit` in the same turn fails with `FS_NOT_OBSERVED` unless the scaffold writes are explicitly observed. The preview tool also forwards `PORT` via `env: { PORT: String(port) }` so the `framework: 'unknown'` fallback (`npm run dev` verbatim) can be picked up by any dev script that honors `$PORT`.
+- The example's bilingual README triplet (`README.md`, `README.zh.md`, `README.i18n.yaml`) was recorded via `scripts/verify-translation-pairing.ts --write`. Pair check across the repo reports 1013 records consistent. Group tables in the parent `examples/README.md` ↔ `README.zh.md` will be reconciled in the next step.
+
 ## Verification
 
 Five verification commands per `planning/Phase 1 prompt.md`:
@@ -65,7 +77,10 @@ Each run reports which sub-steps were exercised (per `AGENTS.md` §Run relevant 
 ## Git state at this step
 
 ```
-<scaffold> feat(app-builder): scaffold packages/app-builder/scaffold MVP tool
+5b977a43ff feat(examples): scaffold examples/app-builder MVP composition with keyless + with-key smokes
+a7b37b571b feat(app-builder): scaffold packages/app-builder/persona MVP persona wrapper
+1267a1457b feat(app-builder): scaffold packages/app-builder/preview MVP dev-server tool
+f3c73809ce feat(app-builder): scaffold packages/app-builder/scaffold MVP tool
 f50009233c fix(app-builder): align bundle invariant API and complete bilingual pair for app-builder group
 b44970308b feat(app-builder): scaffold packages/app-builder/project MVP package
 e339f83877 feat(app-builder): scaffold packages/bundle/app-builder MVP patch layer

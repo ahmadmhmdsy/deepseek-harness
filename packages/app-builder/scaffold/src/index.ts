@@ -35,7 +35,7 @@ import type {
 export const name = 'app-builder-scaffold'
 
 /** Services the scaffold tool requires; `ctx.jobs` is read via `ctx.get()` because it is optional. */
-export const inject = ['tools', 'fs', 'shell', 'systemPrompt', 'sandboxPolicy', 'agent'] as const
+export const inject = ['tools', 'fs', 'shell', 'systemPrompt', 'sandboxPolicy', 'agents'] as const
 
 /** Plugin-level config: deployment-time defaults applied when the model omits an input. */
 export interface Config {
@@ -72,8 +72,8 @@ function policyRequestFor(session: Session | undefined): SandboxPolicyRequest {
 /**
  * Build a `ctx.fs.resolve` options object without spreading `undefined`.
  */
-function resolveOptionsFor(cwd: string | undefined, signal: AbortSignal): { cwd?: string, signal?: AbortSignal } {
-  const opts: { cwd?: string, signal?: AbortSignal } = { signal }
+function resolveOptionsFor(cwd: string | undefined, signal: AbortSignal): { cwd?: string; signal?: AbortSignal } {
+  const opts: { cwd?: string; signal?: AbortSignal } = { signal }
   if (cwd !== undefined) opts.cwd = cwd
   return opts
 }
@@ -207,7 +207,12 @@ export function apply(ctx: Context, config: Config = {}): void {
         if (!fs.contains(target, fileTarget) && fileTarget.targetKey !== target.targetKey) {
           throw new Error(`app-builder-scaffold: template path escapes project root: ${file.path}`)
         }
-        await fs.writeText(fileTarget, file.content, undefined, exec.signal, policy)
+        const outcome = await fs.writeText(fileTarget, file.content, undefined, exec.signal, policy)
+        // Record an authoritative present observation so downstream `write`
+        // / `edit` calls in the same turn see the file and accept the
+        // observed version as the CAS basis (otherwise the observation
+        // policy rejects the follow-up with FS_NOT_OBSERVED).
+        ctx.emit('fs/observed', fileTarget, { kind: 'present', version: outcome.version }, exec)
         written.push(file.path)
       }
       // Coerce to mutable: the schema infers `files: string[]` from the output
@@ -217,7 +222,7 @@ export function apply(ctx: Context, config: Config = {}): void {
       const npmInstall = args.npmInstall ?? defaultNpmInstall
       let installJobId: string | undefined
       if (npmInstall) {
-        const jobs = ctx.get('jobs') as { start: (spec: { kind: string, label: string, owner?: Agent, run: () => { cancel: () => void, done: Promise<unknown>, readOutput: () => string } }) => string } | undefined
+        const jobs = ctx.get('jobs') as { start: (spec: { kind: string; label: string; owner?: Agent; run: () => { cancel: () => void; done: Promise<unknown>; readOutput: () => string } }) => string } | undefined
         if (jobs === undefined) {
           throw new Error('app-builder-scaffold: npmInstall requires @deepseek-ai/dsh-jobs (load it or pass npmInstall: false)')
         }

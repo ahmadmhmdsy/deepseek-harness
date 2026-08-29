@@ -38,7 +38,7 @@ declare module '@deepseek-ai/dsh-jobs' {
 export const name = 'app-builder-preview'
 
 /** Services the preview tool requires; `ctx.jobs` is read via `ctx.get()` because it is optional. */
-export const inject = ['tools', 'fs', 'shell', 'systemPrompt', 'sandboxPolicy', 'agent'] as const
+export const inject = ['tools', 'fs', 'shell', 'systemPrompt', 'sandboxPolicy', 'agents'] as const
 
 /** Plugin-level config: deployment-time defaults applied when the model omits an input. */
 export interface Config {
@@ -309,6 +309,7 @@ export function apply(ctx: Context, config: Config = {}): void {
         command,
         workdir: resolvedRoot,
         signal: exec.signal,
+        env: { PORT: String(port) },
         ...policy !== undefined ? { sandboxPolicy: policy } : {},
       })
 

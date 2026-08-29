@@ -1,0 +1,7 @@
+{
+  "name": "app-builder-example",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Runnable demo: App Builder MVP bundle with scaffold + preview tools and the App Builder persona"
+}
