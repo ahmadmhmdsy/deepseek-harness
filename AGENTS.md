@@ -2,6 +2,12 @@
 
 DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
+## Read this first
+
+Operating rules — priority order, inspect-before-change, security, file/command safety, testing discipline, communication style, task states, and the DeepSeek App Builder operating system — live in **[CLAUDE.md](./CLAUDE.md)**. Read CLAUDE.md before working on this repo; this file adds the project-specific contribution rules on top.
+
+For project mode and phase tracking, also read [planning/AGENTS.md](./planning/AGENTS.md); for documentation rules, [docs/AGENTS.md](./docs/AGENTS.md); for packages, [packages/AGENTS.md](./packages/AGENTS.md); for runnable examples, [examples/AGENTS.md](./examples/AGENTS.md). See the [CLAUDE.md read-order table](./CLAUDE.md#read-order) for the full per-folder matrix.
+
 ## Pre-release stance: foundation over blast radius
 
 **Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
@@ -169,7 +175,22 @@ Archived notes under `.agents/notes/archived/{kind}/` are frozen; never edit the
 
 ## Editing these instructions
 
-`CLAUDE.md` symlinks `AGENTS.md` at root, `packages/`, and `examples/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
+This file is project-specific. The general agent operating system lives in [CLAUDE.md](./CLAUDE.md); keep that file authoritative for operating rules, this file authoritative for contribution rules. Every edit here must keep each rule self-contained while linking high-level docs.
+
+### `CLAUDE.md` / `AGENTS.md` layout per folder
+
+| Path | Type | What it carries | Where to edit |
+|---|---|---|---|
+| `CLAUDE.md` | regular file | Agent operating system (canonical) | This file is the source of truth; edit here |
+| `packages/CLAUDE.md` | symlink → `../CLAUDE.md` | Operating-system inheritance | Resolves to root; symlink target is the edit point |
+| `examples/CLAUDE.md` | symlink → `../CLAUDE.md` | Operating-system inheritance | Resolves to root; symlink target is the edit point |
+| `vendor/CLAUDE.md` | symlink → `AGENTS.md` | Vendor-local conventions | The local `vendor/AGENTS.md`; vendored content follows the [vendor/README.md](./vendor/README.md) sync procedure |
+| `.agents/notes/implemented/CLAUDE.md` | symlink → `AGENTS.md` | Agent-Notes-local conventions | The local `.agents/notes/implemented/AGENTS.md` |
+| `packages/AGENTS.md` | regular file | Package-supplement (Cordis plugin patterns, exports, packaging) | Edit directly; supplements the root file |
+| `examples/AGENTS.md` | regular file | Example-supplement (Cordis configs, snapshot harness) | Edit directly; supplements the root file |
+| `docs/AGENTS.md`, `planning/AGENTS.md`, `website/AGENTS.md`, `native/landlock-run/AGENTS.md`, `.github/AGENTS.md`, `scripts/AGENTS.md`, `vendor/AGENTS.md` | regular files | Folder-specific supplements | Edit directly; each owns its own scope |
+
+When changing the **shape** of one of these files (regular → symlink, symlink target, scope of a folder-specific supplement), update this table in the same commit so the documented state matches the file state on disk.
 
 ## Vendoring policy
 
