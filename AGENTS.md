@@ -182,15 +182,19 @@ This file is project-specific. The general agent operating system lives in [CLAU
 | Path | Type | What it carries | Where to edit |
 |---|---|---|---|
 | `CLAUDE.md` | regular file | Agent operating system (canonical) | This file is the source of truth; edit here |
-| `packages/CLAUDE.md` | symlink → `../CLAUDE.md` | Operating-system inheritance | Resolves to root; symlink target is the edit point |
-| `examples/CLAUDE.md` | symlink → `../CLAUDE.md` | Operating-system inheritance | Resolves to root; symlink target is the edit point |
-| `vendor/CLAUDE.md` | symlink → `AGENTS.md` | Vendor-local conventions | The local `vendor/AGENTS.md`; vendored content follows the [vendor/README.md](./vendor/README.md) sync procedure |
-| `.agents/notes/implemented/CLAUDE.md` | symlink → `AGENTS.md` | Agent-Notes-local conventions | The local `.agents/notes/implemented/AGENTS.md` |
+| `packages/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
+| `examples/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
+| `vendor/CLAUDE.md` | regular file (synchronized copy) | Mirror of `vendor/AGENTS.md` (vendored conventions) | Edit `vendor/AGENTS.md`; mirror in the same commit. Vendored content follows the [vendor/README.md](./vendor/README.md) sync procedure |
+| `.agents/notes/implemented/CLAUDE.md` | regular file (synchronized copy) | Mirror of `.agents/notes/implemented/AGENTS.md` (notes-tree conventions) | Edit that `AGENTS.md`; mirror in the same commit |
 | `packages/AGENTS.md` | regular file | Package-supplement (Cordis plugin patterns, exports, packaging) | Edit directly; supplements the root file |
 | `examples/AGENTS.md` | regular file | Example-supplement (Cordis configs, snapshot harness) | Edit directly; supplements the root file |
 | `docs/AGENTS.md`, `planning/AGENTS.md`, `website/AGENTS.md`, `native/landlock-run/AGENTS.md`, `.github/AGENTS.md`, `scripts/AGENTS.md`, `vendor/AGENTS.md` | regular files | Folder-specific supplements | Edit directly; each owns its own scope |
 
 When changing the **shape** of one of these files (regular → symlink, symlink target, scope of a folder-specific supplement), update this table in the same commit so the documented state matches the file state on disk.
+
+### Why no `CLAUDE.md` is a symlink in this repo
+
+`tools.write` (and any other path-based file API on Windows) follows NTFS reparse points, so writing to a tracked `CLAUDE.md` symlink would write through to its target. The original `AGENTS.md` symlink arrangement caused a real bug: a write to root `CLAUDE.md` clobbered `AGENTS.md` with the operating-system draft, losing 18 KB of contribution rules. Replacing every `CLAUDE.md` symlink with a regular-file synchronized copy removes that whole class of bug — a write to any `CLAUDE.md` now writes to itself and never empties another tracked file. The trade-off is that `CLAUDE.md` content in `packages/`, `examples/`, `vendor/`, and `.agents/notes/implemented/` is duplicated and must be mirrored in the same commit as its source; the editing rule above enforces that.
 
 ## Vendoring policy
 

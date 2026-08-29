@@ -55,3 +55,13 @@ Claude Code 会读取 `CLAUDE.md`；许多其他工具会读取 `AGENTS.md`。�
 - [Workspace context instruction files](../feature/2026-06-24-workspace-context.zh.md) — 候选列表 `['AGENTS.md', 'CLAUDE.md']`、scope key、基线与动态刷新。机制不变；「`CLAUDE.md → AGENTS.md` 镜像」现在是一种受支持的布局，而非唯一规范。
 - [Follow symlinked instruction files](../feature/2026-07-21-follow-instruction-symlinks.zh.md) — 跟随符号链接而非拒绝。该规则现在也覆盖 `packages/CLAUDE.md → ../CLAUDE.md` 与 `examples/CLAUDE.md → ../CLAUDE.md`，不再仅限于 `CLAUDE.md → AGENTS.md`。
 - [Load all instruction candidates with per-directory dedup](../feature/2026-07-21-instruction-load-all-dedup.zh.md) — 按候选粒度去重。去重键是解析后的内容，所以指向 `../CLAUDE.md` 的符号链接与指向本地 `AGENTS.md` 的符号链接解析到不同内容并保持区分；兄弟目录里两个指向 `../CLAUDE.md` 的符号链接依旧会按内容去重。
+
+## 后续：将所有 `CLAUDE.md` 符号链接替换为普通文件副本
+
+最初这次改动把根 `CLAUDE.md` 提升为普通文件，但 `packages/CLAUDE.md`、`examples/CLAUDE.md`、`vendor/CLAUDE.md`、`.agents/notes/implemented/CLAUDE.md` 仍是符号链接（指向 `../CLAUDE.md` 或本地 `AGENTS.md`）。这留下了真实失败模式：任何对已跟踪 `CLAUDE.md` 符号链接的 `tools.write` 都会跟随 NTFS 重解析点并覆盖链接目标，向 `packages/CLAUDE.md` 写入空内容会清空根操作系统文件，向 `vendor/CLAUDE.md` 写入会破坏 `vendor/AGENTS.md`（与最初销毁 18 KB 根 `AGENTS.md` 的是同一类 bug）。
+
+为消除整类 bug，所有 `CLAUDE.md` 符号链接均替换为目标内容的普通文件同步副本。`packages/CLAUDE.md` 与 `examples/CLAUDE.md` 现在包含完整根操作系统内容，相对路径已相应调整（例如根里的 `./AGENTS.md` 在 `packages/` 中变为 `../AGENTS.md`）。`vendor/CLAUDE.md` 与 `.agents/notes/implemented/CLAUDE.md` 镜像本地 `AGENTS.md`。每份副本在文件顶部带有横幅说明这是同步副本并指向真正的源，任何打开它的 agent 都能立即理解编辑规则。
+
+代价真实但有界：编辑 `CLAUDE.md` 现在需要在同一笔提交中把改动镜像到最多其他四个文件。根 `AGENTS.md` 中 editing-instructions 表格记录了按目录的规则（"编辑源，同一笔提交内镜像"），新增的 `Why no CLAUDE.md is a symlink in this repo` 一节说明了这种间接性存在的原因。
+
+对已跟踪符号链接在工作树中执行 `git checkout -- CLAUDE.md` 会把它恢复为普通的 NTFS 符号链接而不管索引条目，所以任何贡献者本地对曾为符号链接的路径运行 `git checkout -- CLAUDE.md` 都会拿回重解析点。如果此布局被还原为符号链接，bug 就会回来；根 `AGENTS.md` 中的 `Why no CLAUDE.md is a symlink in this repo` 一节是对抗该回归的持久护栏。

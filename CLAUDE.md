@@ -7,7 +7,7 @@ Inspect before changing. Plan before implementing. Validate before claiming succ
 
 ## Read order
 
-This file is the **primary operating-system document** for any agent operating in this repository. It is a regular file (not a symlink). Conventions used in this repo: `packages/CLAUDE.md` and `examples/CLAUDE.md` symlink to this file so tooling that descends into those folders still finds the canonical operating system.
+This file is the **primary operating-system document** for any agent operating in this repository. It is a regular file. Conventions used in this repo: `packages/CLAUDE.md` and `examples/CLAUDE.md` are synchronized copies of this file (regular files, not symlinks, so a write through any of them cannot empty the canonical operating system). When you edit the operating system, mirror the change into `packages/CLAUDE.md` and `examples/CLAUDE.md` in the same commit.
 
 | If you are… | Read first | Then |
 |---|---|---|
@@ -16,8 +16,8 @@ This file is the **primary operating-system document** for any agent operating i
 | Using the harness to **build an app** | this file (App Builder section) | the cordis.yml and per-example README for the example you are running |
 | Working in `packages/` | this file | [packages/AGENTS.md](./packages/AGENTS.md) (Cordis plugin patterns, exports, packaging) |
 | Working in `examples/` | this file | [examples/AGENTS.md](./examples/AGENTS.md) (Cordis configs, snapshot harness) |
-| Working in `vendor/` | the local `AGENTS.md` (symlinked `CLAUDE.md`); do not modify vendored content | the upstream sync procedure in [vendor/README.md](./vendor/README.md) |
-| Working in `.agents/notes/` | the local `AGENTS.md` (symlinked `CLAUDE.md`) | [dsh-archive-agent-notes](./.agents/skills/dsh-archive-agent-notes/SKILL.md) |
+| Working in `vendor/` | the local `AGENTS.md` (vendored conventions; `vendor/CLAUDE.md` is a regular-file copy of that file) | the upstream sync procedure in [vendor/README.md](./vendor/README.md) |
+| Working in `.agents/notes/` | the local `AGENTS.md` (notes-tree conventions; `.agents/notes/implemented/CLAUDE.md` is a regular-file copy of that file) | [dsh-archive-agent-notes](./.agents/skills/dsh-archive-agent-notes/SKILL.md) |
 
 > Other instruction files in this repo: `packages/AGENTS.md`, `examples/AGENTS.md`, `docs/AGENTS.md`, `planning/AGENTS.md`, `website/AGENTS.md`, `native/landlock-run/AGENTS.md`, `.github/AGENTS.md`, `scripts/AGENTS.md`, `vendor/AGENTS.md`, and per-package `AGENTS.md` in `packages/<group>/<pkg>/`. The `AGENTS.md` files are repo- or folder-specific supplements; this file is the operating system.
 

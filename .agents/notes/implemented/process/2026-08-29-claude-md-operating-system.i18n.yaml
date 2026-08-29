@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/implemented/process/2026-08-29-claude-md-operating-system.md
-2026-08-29-claude-md-operating-system.md: 533eb030c9a804ead218c35549806388f12cdc9e
-2026-08-29-claude-md-operating-system.zh.md: 23e1c105709689d6779c41146ac7fe396535b5ce
+2026-08-29-claude-md-operating-system.md: 1b6c7c8329af7d7c89a1c50daee8619cb8d242be
+2026-08-29-claude-md-operating-system.zh.md: bdca24c43dda8056f6f7e8e0b41a3d10cb06cba2
