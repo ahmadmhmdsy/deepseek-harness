@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), the preview package (`1267a1457b`), the persona package (`a7b37b571b`), and the example composition (`dd8a6a399b`, this step).
+Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), the preview package (`1267a1457b`), the persona package (`a7b37b571b`), and the example composition (`dd8a6a399b`, this step), the planning step 21 (`5b4b7951f0`), and the App Builder web shell scaffold (`03418a4679`).
 
 ## Per-package status
 
@@ -16,6 +16,7 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 | `packages/app-builder/preview` | **shipped** (this step) | composes ctx.shell + ctx.fs + ctx.jobs + HTTP readiness poll on 127.0.0.1; model-facing `app_builder_preview` tool with framework detection (next/vite/unknown) and free-port allocation |
 | `packages/app-builder/persona` | **shipped** (this step) | thin wrapper around `@deepseek-ai/dsh-persona` that defaults the `deployment:persona` text to the App Builder identity (`APP_BUILDER_PERSONA`); bundle patch row references this name |
 | `examples/app-builder` | **shipped** (`dd8a6a399b`, this step) | keyless smoke (mock LLM) passes; with-key smoke is `describe.skipIf(!DEEPSEEK_API_KEY)`; `cordis.yml` inlines project+scaffold+preview plugins; persona pulled via `agent-spine.config.persona` `!!js createRequire` indirection (avoids persona-plugin / deployment-persona collision); agent-spine loads BEFORE the App Builder plugins so `agents` (the `AgentRegistry` service) is published first |
+| `packages/client/ui-app-builder-shell` | **scaffolded, typechecks** (`03418a4679`, this step) | App Builder 3-pane shell plugin: registers `app-builder-shell` (single/root) into the existing root layout through `ctx.slots.inject` (chain take-over); declares 3 child slots (`app-builder.projects`, `app-builder.preview` root scope; `app-builder.conversation` session scope); renders CSS Grid 260px | 1fr | 1fr layout with locale-aware header; selection store under `stores.ts` exposes `selectedProjectId`; invariant companion with documented no-op install reason |
 | `apps/web` (reskin on this branch) | pending | project list pane + chat re-use + preview iframe + config switch |
 
 ## Decisions carried from Phase 0 (recap)
@@ -77,6 +78,9 @@ Each run reports which sub-steps were exercised (per `AGENTS.md` §Run relevant 
 ## Git state at this step
 
 ```
+03418a4679 feat(client): scaffold ui-app-builder-shell MVP 3-pane layout
+5b4b7951f0 docs(planning): add step 21 - App Builder web shell reskin plan
+de25c77d7f docs(planning): record examples/app-builder commit SHA in step 18
 dd8a6a399b feat(examples): scaffold examples/app-builder MVP composition with keyless + with-key smokes
 a7b37b571b feat(app-builder): scaffold packages/app-builder/persona MVP persona wrapper
 1267a1457b feat(app-builder): scaffold packages/app-builder/preview MVP dev-server tool
