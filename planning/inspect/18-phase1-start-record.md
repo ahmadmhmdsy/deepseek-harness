@@ -4,7 +4,7 @@
 
 ## TL;DR
 
-Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), and the preview package (this step).
+Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0 closure (`519da740a2`, `9d99c4788e`), the standing workflow rule (`abc87d4df1`), the Phase 1 start marker (`708a956f3d`), the workspace registration (`f6c75d2350`), the bundle package (`e339f83877`), the bundle fix + bilingual pairs (`f50009233c`), the project package (`b44970308b`), the scaffold package (`f3c73809ce`), the preview package (`1267a1457b`), and the persona package (this step).
 
 ## Per-package status
 
@@ -14,7 +14,7 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 | `packages/app-builder/project` | **shipped** (`b44970308b`, apply() fix + invariant rewrite in this step) | `ProjectRegistry` service + `project/created` event + real-composition test |
 | `packages/app-builder/scaffold` | **shipped** (this step) | composes ctx.fs + ctx.shell + ctx.jobs + ctx.sandboxPolicy; model-facing `app_builder_scaffold` tool + three inline templates (nextjs-app, nextjs-pages, svelte-spa) + optional background `npm install` |
 | `packages/app-builder/preview` | **shipped** (this step) | composes ctx.shell + ctx.fs + ctx.jobs + HTTP readiness poll on 127.0.0.1; model-facing `app_builder_preview` tool with framework detection (next/vite/unknown) and free-port allocation |
-| `packages/app-builder/persona` | pending | uses dsh-persona |
+| `packages/app-builder/persona` | **shipped** (this step) | thin wrapper around `@deepseek-ai/dsh-persona` that defaults the `deployment:persona` text to the App Builder identity (`APP_BUILDER_PERSONA`); bundle patch row references this name |
 | `examples/app-builder` | pending | keyless + with-key smoke tests |
 | `apps/web` (reskin on this branch) | pending | project list pane + chat re-use + preview iframe + config switch |
 
@@ -44,6 +44,9 @@ Phase 1 work is underway on `app-builder-web-reskin`. The branch carries Phase 0
 - The preview tool keeps the dev server on `127.0.0.1` only: the free-port probe allocates via `net.createServer().listen(0, '127.0.0.1')` and the readiness helper dials the same loopback. Framework detection (next / vite / unknown) reads the project `package.json` through `ctx.fs.readText` and branches the port flag (`-p` for next, `--port` for vite); the `unknown` fallback runs `npm run dev` verbatim. The dev server lifecycle rides `ctx.jobs.start` with the new `JobKindMap` merge for `app-builder-preview-dev`. The tool fails loud with a clear message when `ctx.jobs` is missing, rather than falling back to a foreground process.
 - Readiness probe helper: each attempt runs inside its own `AbortController` so a hung socket cannot consume the entire wall-clock budget; the helper returns `{ ready: false, polls, readyMs }` when the budget elapses and throws when the outer signal aborts. 29 unit tests cover validators + framework detection + command construction + readiness abort + budget-elapse paths.
 - Bundle `tsconfig.json` re-adds the `packages/app-builder/preview` reference that was dropped in `f3c73809ce`; the scaffold reference is unchanged.
+- The persona plugin is a thin wrapper around `@deepseek-ai/dsh-persona`: it re-exports `PERSONA_SECTION` and `PERSONA_ORDER`, defaults `text` to `APP_BUILDER_PERSONA`, and forwards `complete` / `includeRuntimeContext` to the canonical row. The App Builder identity fixes scope (scaffolding + iteration), tools (the four App Builder tools plus `write` / `str_replace_editor` / `bash`), loop (one scaffold call per fresh project, dev server through preview not bash), and confirmation (model asks before destructive commands and refuses to scaffold into an existing directory). Empty `text` still occupies the slot, so a deployment that wants to shadow the deployment persona can override with `text: ""`.
+- The App Builder persona peer-depends on `@deepseek-ai/dsh-persona`. The bundle patch layer includes `app-builder-persona` so any composition mounted from `@deepseek-ai/dsh-app-builder` carries the App Builder identity automatically. The persona plugin declares the peer in `package.json` and the loader refuses to mount it without `@deepseek-ai/dsh-persona` available.
+- Bundle `tsconfig.json` re-adds the `packages/app-builder/persona` reference that was dropped in `f3c73809ce`. All four app-builder packages now appear in the bundle references; the bundle typechecks across all of them.
 
 ## Verification
 
