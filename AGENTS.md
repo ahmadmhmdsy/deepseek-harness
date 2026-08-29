@@ -140,7 +140,32 @@ Everything compiles under `strict: true` with `noImplicitAny`; every remaining `
 
 Comments and docs state complete contracts and context, not reasoning transcripts. Use direct, concrete terms. Do not use metaphors. Before writing `contract`, `boundary`, or `shape`, ask whether a more exact term names the subject: write `response fields`, `JSON validation`, or `ESM exports` instead of `response shape`, `validation boundary`, or `module shape`. Keep `contract` for preconditions, postconditions, invariants, compatibility promises, and other obligations that callers, callees, implementers, providers, producers, or consumers rely on. Keep a literal process, wire, security, transaction, or lifecycle boundary. Do not narrate control flow or tests, preserve review history, or restate code. Keep behavior, failure, timing, ownership, and safe-use facts; link the rationale. Use [dsh-prose-standard](.agents/skills/dsh-prose-standard/SKILL.md) for decisions. Wire mechanically checkable invariants into an executed top-level gate and prove each changed acceptance path rejects an invalid case. Use narrow, justified exceptions instead of disabling a rule globally.
 
-Docs accompany every code change: update affected README and JSDoc contracts together. Routine bilingual work follows [docs/AGENTS.md](docs/AGENTS.md); only explicit user invocation may run `dsh-translate-docs`. Current-state prose, one physical line per paragraph, one home per fact, and word budgets live there.
+## Project process and maintained artifacts
+
+This project is large and multi-phase. Every agent updates the maintained artifacts continuously so a later agent — or a session resume — can recover context from disk. Work stays structured and tidy at every step, not batched at the end.
+
+### Working rules
+
+- Update the running `todo_write` list before starting a chunk and after each meaningful sub-step.
+- Update the relevant artifact in the same commit/PR as the change that drove it, never as a follow-up cleanup PR.
+- When a decision moves from open to resolved, record it in `planning/plan.md` or the matching `planning/Phase N prompt.md §0` immediately.
+- When a chunk discovers a plan-vs-reality gap, file a `planning/inspect/NN-*.md` step or update `planning/inspect/SUMMARY.md` in the same PR.
+- Maintain one explicit project mode per `planning/AGENTS.md §3` at all times.
+
+### Maintained artifacts
+
+| Path | Records | Update when |
+|---|---|---|
+| `planning/plan.md` | Multi-phase plan, per-phase status, residual failures | Phase status changes; residual-failure reclassification |
+| `planning/Phase * prompt.md` | Per-phase task brief; resolved decisions; verification | Phase starts (resolve open decisions); scope changes |
+| `planning/inspect/{NN-topic}.md` | Focused inspection: sources, evidence, plan mismatches | New inspection topic opens |
+| `planning/inspect/INDEX.md` | Numbered list of inspection steps | A new `NN-*.md` is added |
+| `planning/inspect/SUMMARY.md` | Executive summary | Consolidated gap analysis changes |
+| `.agents/notes/implemented/{class}/yyyy-mm-dd-topic-{title}.md` + `.zh.md` + `.i18n.yaml` | Agent Note triplet (en + zh + sidecar) | Every non-trivial change, in the same PR |
+| `docs/PROJECT.md` + `docs/PROJECT.zh.md` + `docs/PROJECT.i18n.yaml` | Canonical project status, bilingual pair | Phase status, accepted caveats, or git pointers change |
+| `todo_write` running list | Current task state for the active phase | Before every chunk; after every meaningful sub-step |
+
+Archived notes under `.agents/notes/archived/{kind}/` are frozen; never edit them.
 
 ## Editing these instructions
 
