@@ -9,7 +9,7 @@
  * right default; projects are server-state and resynced from the snapshot
  * endpoint on every mount.
  */
-import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-runtime/client'
+import { defineStore, type EngineStoreHandle } from '@deepseek-ai/dsh-client-store'
 
 /** Selection state owned by the shell. */
 export type AppBuilderShellState = {

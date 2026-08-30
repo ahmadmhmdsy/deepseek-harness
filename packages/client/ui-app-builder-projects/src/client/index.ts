@@ -1,4 +1,4 @@
-﻿/**
+/**
  * App Builder projects pane plugin, browser half. Registers the projects list
  * into the host-declared `app-builder.projects` slot through
  * `ctx.slots.inject` (chain take-over for child slots), then drives a
@@ -17,7 +17,7 @@
  * - `selectProject` is the shell's selection callback; the projects pane
  *   never touches the shell's store handle directly.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the locale plugin Context merge (ctx.locale) and the shell's
 // appBuilder service merge (ctx.appBuilder).
 import type {} from '@deepseek-ai/dsh-client-locale/client'

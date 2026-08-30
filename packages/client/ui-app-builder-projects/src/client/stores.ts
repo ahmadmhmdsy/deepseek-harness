@@ -1,4 +1,4 @@
-﻿/**
+/**
  * The App Builder projects pane's snapshot polling state. The state lives
  * on a runtime snapshot store (the framework's subscription engine); the
  * apply closure creates one and shares its `HostObservable` projection
@@ -7,7 +7,7 @@
  * engine. The polling effect in apply() writes through `set`/`update`;
  * components only read.
  */
-import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
+import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { EMPTY_SNAPSHOT, type AppBuilderSnapshot } from './snapshot.ts'
 
 /** Snapshot polling state owned by the projects pane. */

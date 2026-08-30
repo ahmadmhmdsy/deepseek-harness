@@ -1,13 +1,13 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, join, sep } from 'node:path'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import Loader from '@deepseek-ai/cordis-plugin-loader'
 import Include from '@deepseek-ai/cordis-plugin-include'
-import { CallId } from '@deepseek-ai/dsh-llm'
+import { ToolCallId } from '@deepseek-ai/dsh-llm'
 import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import AgentRegistry, { Inbox } from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
@@ -72,7 +72,7 @@ function text(result: { content: { type: string; text?: string }[] }): string {
 
 describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader composition', () => {
   it('preserves cwd and environment across calls', async () => {
-    root = await mkdtemp(join(tmpdir(), 'dsh-persistent-pwsh-loader-'))
+    root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-persistent-pwsh-loader-')))
     const configPath = join(root, 'cordis.yml')
     await writeFile(configPath, [
       "- name: '@deepseek-ai/dsh-agent'",
@@ -93,11 +93,11 @@ describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader comp
       '    idleSilenceMs: 300',
       '    handoffGraceMs: 300',
       '    scrollbackLines: 20000',
-      '    timeoutMs: 8000',
+      '    timeoutMs: 60000',
       '    disposeGraceMs: 500',
       "- name: '@deepseek-ai/dsh-tool-pwsh-persistent'",
       '  config:',
-      '    timeoutMs: 20000',
+      '    timeoutMs: 60000',
       '',
     ].join('\n'))
 
@@ -130,7 +130,7 @@ describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader comp
     const signal = new AbortController().signal
     const execute = (id: string, command: string) => context!.tools.execute({
       signal,
-      callId: CallId(id),
+      callId: ToolCallId(id),
       name: 'pwsh',
       arguments: { command },
       agent: owner,
@@ -139,13 +139,7 @@ describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader comp
     expect(context.tools.schemas().map(schema => schema.name)).toEqual(['pwsh'])
     await execute('state', '$env:KEEP = "loader"; New-Item -ItemType Directory -Force -Path nested | Out-Null; Set-Location nested')
     const observed = text(await execute('observe', 'Write-Output "cwd=$PWD keep=$env:KEEP"'))
-    // PowerShell's `$PWD` returns the absolute resolved path on Windows (and
-    // may be relative on POSIX). Tolerate both shapes by anchoring on the
-    // envelope (`cwd=` / `keep=loader`) and asserting the path contains the
-    // tmpdir basename followed by the `nested` segment.
-    expect(observed.startsWith('cwd=')).toBe(true)
-    expect(observed.endsWith(' keep=loader')).toBe(true)
-    expect(observed).toContain(`${sep}${basename(root)}${sep}nested`)
+    expect(observed).toContain(`cwd=${join(root, 'nested')} keep=loader`)
     expect(observed).not.toContain('DSH_PERSISTENT_PWSH')
 
     const multiline = text(await execute(
@@ -162,21 +156,12 @@ describe.skipIf(!hasPwsh)('persistent pwsh through a real cordis.yml Loader comp
     expect(hereString).toBe('alpha\nbeta')
 
     const large = text(await execute('large-output', '1..12050 | ForEach-Object { $_ }'))
-    // The clipped head must preserve the first lines of the original output.
-    // Under vitest contention the exact byte at offset 0 can shift (the
-    // persistent terminal may flush a partial chunk first), so anchor on the
-    // presence of the early sequence rather than a strict startsWith.
-    expect(large).toMatch(/^1\n2\n3\n/)
+    expect(large.startsWith('1\n2\n3\n')).toBe(true)
     expect(large).toContain('<response clipped>')
     expect(large).not.toContain('beginning of this command output was dropped')
 
     const exited = text(await execute('exit', 'exit'))
     expect(exited).toContain('next pwsh call starts from the workspace')
-    // mkdtemp may return an 8.3 short name on Windows while PowerShell's
-    // `$PWD` reports the resolved long form; realpathSync does not bridge the
-    // gap because the short name IS canonical when no symlink is involved.
-    // Compare the trailing component (the unique tmpdir basename) so the
-    // assertion holds on both Windows shapes and on POSIX.
-    expect(basename(text(await execute('after-exit', 'Write-Output "$PWD"')))).toBe(basename(root))
-  }, 60_000)
+    expect(text(await execute('after-exit', 'Write-Output "$PWD"'))).toBe(root)
+  }, 120_000)
 })

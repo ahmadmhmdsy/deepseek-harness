@@ -12,6 +12,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentOptions, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
 import type { SandboxMode } from '@deepseek-ai/dsh-sandbox'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
+import { PERSONA_ORDER } from '@deepseek-ai/dsh-system-prompt'
 import type { ToolRestriction } from '@deepseek-ai/dsh-tools'
 // Type-only: make `ctx.get('sandboxPolicy')` / `ctx.get('approval')` resolve
 // to the policy services when composed — delegation consumes both
@@ -25,13 +26,6 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 // keeps its model-facing rows on the host plane, where the child already sees
 // them through the tool registry's global layer.
 import type {} from '@deepseek-ai/dsh-agent-presets'
-// Type-only: make `ctx.get('agentDefaultModel')` resolve to the live default
-// selection service when composed — child routing reads the parent's current
-// selection so a subagent follows whatever model the master is currently using,
-// not its frozen creation-time options. Optional composition: a rosterless
-// deployment without the default service keeps the legacy `parent.options`
-// fallback via the documented `ctx.get` pattern.
-import type {} from '@deepseek-ai/dsh-agent-default-model'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -64,34 +58,39 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the child's `AgentOptions` from the parent's LIVE routing
- * waterfall — the same one api-proxy's `selectionFor` uses per request — so a
- * subagent follows whatever model the master is currently using instead of
- * the parent's frozen creation-time snapshot.
- *
- * Precedence (highest wins), applied per field:
- *   1. `parent.session.requestHeader()?.config` — the master's latest logged
- *      `request/header`, captured before any subagent dispatch.
- *   2. `parent.ctx.get('agentDefaultModel')?.currentSelection()` — the live
- *      default selection, hot-reloaded from the settings document.
- *   3. `parent.options` — the parent's frozen creation-time route, kept as
- *      the backward-compatible fallback when neither live source is
- *      composed (e.g. minimal headless bundles that never mount the
- *      `agentDefaultModel` service).
- *
- * `requested` (the per-tool `agentOptions` override) is spread last so the
- * documented escape hatch still wins over every inherited source.
- *
- * `maxTokens` is a budget, not a route: it inherits from `parent.options`
- * and is not pulled from the live waterfall, matching today's behavior.
- *
- * Caveat — `picked` selection (the master's per-session UI choice set in
- * api-proxy's `selectionFor` closure) is not externally accessible, so a
- * `/model` UI switch is only visible to subagents after the master's next
- * logged request carries the new header. The two inherited sources above
- * cover every other routing change without restart.
- *
- * @param parent - the delegating parent whose live route the child inherits.
+ * Resolve the parent values inherited by a child. The latest request header
+ * owns provider, model, and reasoning effort after request-time selection;
+ * creation options remain the fallback before the first request and retain
+ * the configured output-token limit.
+ * @param parent - delegating parent Agent.
+ * @returns detached Agent options for child-option merging.
+ */
+export function parentAgentOptionsForDelegation(parent: Agent): AgentOptions {
+  const requestConfig = parent.session.requestHeader()?.config
+  if (requestConfig === undefined) return { ...parent.options }
+  const {
+    provider: _createdProvider,
+    model: _createdModel,
+    reasoningEffort: _createdReasoningEffort,
+    ...createdOptions
+  } = parent.options
+  return {
+    ...createdOptions,
+    provider: requestConfig.provider,
+    model: requestConfig.model,
+    ...requestConfig.reasoningEffort === undefined
+      ? {}
+      : { reasoningEffort: requestConfig.reasoningEffort },
+  }
+}
+
+/**
+ * Resolve the child's `AgentOptions`: the parent's provider/model,
+ * reasoning-effort, and maxTokens values unless the request overrides them,
+ * stamped with the child's own delegation depth. Changing the route without
+ * naming an effort clears the parent's route-owned effort so the selected
+ * model resolves its own default.
+ * @param parent - the delegating parent whose route the child inherits.
  * @param requested - per-child overrides, if any.
  * @param childDepth - the resolved delegation depth to stamp.
  * @returns the resolved options for `ctx.agents.create()`.
@@ -101,18 +100,22 @@ export function resolveChildAgentOptions(
   requested: AgentOptions | undefined,
   childDepth: number,
 ): AgentOptions {
-  const logged = parent.session.requestHeader()?.config
-  const live = parent.ctx.get('agentDefaultModel')?.currentSelection()
-  const provider = logged?.provider ?? live?.provider ?? parent.options.provider
-  const model = logged?.model ?? live?.model ?? parent.options.model
-  const maxTokens = parent.options.maxTokens
-  return {
-    ...provider !== undefined ? { provider } : {},
-    ...model !== undefined ? { model } : {},
-    ...maxTokens !== undefined ? { maxTokens } : {},
+  const parentOptions = parentAgentOptionsForDelegation(parent)
+  const parentProvider = parentOptions.provider
+  const parentModel = parentOptions.model
+  const parentReasoningEffort = parentOptions.reasoningEffort
+  const parentMaxTokens = parentOptions.maxTokens
+  const resolved: AgentOptions = {
+    ...parentProvider !== undefined ? { provider: parentProvider } : {},
+    ...parentModel !== undefined ? { model: parentModel } : {},
+    ...parentReasoningEffort !== undefined ? { reasoningEffort: parentReasoningEffort } : {},
+    ...parentMaxTokens !== undefined ? { maxTokens: parentMaxTokens } : {},
     ...requested,
     subagentDepth: childDepth,
   }
+  const routeChanged = resolved.provider !== parentProvider || resolved.model !== parentModel
+  if (routeChanged && requested?.reasoningEffort === undefined) delete resolved.reasoningEffort
+  return resolved
 }
 
 /**
@@ -202,7 +205,7 @@ export function applyChildComposition(
   // Order 120: after the sandbox:policy (110) and approval:policy (115) sentences.
   childCtx.systemPrompt.context({ name: 'subagent:delegation', order: 120, text: SUBAGENT_DELEGATION_CONTEXT })
   if (composition.persona !== undefined) {
-    childCtx.systemPrompt.section({ name: 'deployment:persona', order: 0, text: composition.persona })
+    childCtx.systemPrompt.section({ name: 'deployment:persona', order: PERSONA_ORDER, text: composition.persona })
   }
   if (composition.toolFilter !== undefined) childCtx.tools.restrict(composition.toolFilter)
 }
