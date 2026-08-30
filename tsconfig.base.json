@@ -241,6 +241,7 @@
       "@deepseek-ai/dsh-app-builder-preview/invariant": ["./packages/app-builder/preview/src/invariant.ts"],
       "@deepseek-ai/dsh-app-builder-persona": ["./packages/app-builder/persona/src"],
       "@deepseek-ai/dsh-app-builder-persona/invariant": ["./packages/app-builder/persona/src/invariant.ts"],
+      "@deepseek-ai/dsh-app-builder-snapshot-bridge": ["./packages/app-builder/snapshot-bridge/src"],
       "@deepseek-ai/dsh-client-ui-app-builder-shell": ["./packages/client/ui-app-builder-shell/src"],
       "@deepseek-ai/dsh-client-ui-app-builder-shell/client": ["./packages/client/ui-app-builder-shell/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-app-builder-projects": ["./packages/client/ui-app-builder-projects/src"],

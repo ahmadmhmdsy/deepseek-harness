@@ -40,7 +40,9 @@ export class ProjectRegistry extends Service {
 
   /**
    * Create one project. Canonicalizes the path, validates the root exists and
-   * is a directory, then emits a `project/created` event before publishing.
+   * is a directory, adds the record to the in-memory registry, then emits
+   * `project/created`. Adding before emitting lets listeners observe a
+   * consistent `list()`/`get(id)` view (the snapshot bridge relies on this).
    * @param input - Validated project input.
    * @returns the new project.
    */
@@ -59,9 +61,9 @@ export class ProjectRegistry extends Service {
       dshProfile: input.dshProfile ?? 'app-builder',
       createdAt: new Date().toISOString(),
     }
+    this.projects.set(id, project)
     const event: ProjectCreatedEvent = { type: 'project/created', project }
     await this.ctx.emit('project/created', event)
-    this.projects.set(id, project)
     this.ctx.logger('app-builder-project').info(`project '${project.name}' created at ${project.rootPath}`)
     return project
   }

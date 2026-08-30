@@ -147,6 +147,9 @@ importers:
       '@deepseek-ai/dsh-agent-instructions':
         specifier: workspace:^
         version: link:../../packages/context/agent-instructions
+      '@deepseek-ai/dsh-agent-spine-demo':
+        specifier: workspace:^
+        version: link:../../packages/examples/agent-spine-demo
       '@deepseek-ai/dsh-agent-tool-presentation':
         specifier: workspace:^
         version: link:../../packages/core/agent-tool-presentation
@@ -165,6 +168,9 @@ importers:
       '@deepseek-ai/dsh-base':
         specifier: workspace:^
         version: link:../../packages/bundle/base
+      '@deepseek-ai/dsh-bash-local':
+        specifier: workspace:^
+        version: link:../../packages/shell/bash-local
       '@deepseek-ai/dsh-client-ui-agent-preset':
         specifier: workspace:^
         version: link:../../packages/client/ui-agent-preset
@@ -189,9 +195,15 @@ importers:
       '@deepseek-ai/dsh-cordis-client-runner':
         specifier: workspace:^
         version: link:../../packages/extensions/cordis-client-runner
+      '@deepseek-ai/dsh-credentials-local':
+        specifier: workspace:^
+        version: link:../../packages/credentials/credentials-local
       '@deepseek-ai/dsh-fs-local':
         specifier: workspace:^
         version: link:../../packages/fs/fs-local
+      '@deepseek-ai/dsh-fs-observation-policy':
+        specifier: workspace:^
+        version: link:../../packages/fs/fs-observation-policy
       '@deepseek-ai/dsh-goal':
         specifier: workspace:^
         version: link:../../packages/goal/goal
@@ -216,6 +228,9 @@ importers:
       '@deepseek-ai/dsh-launch-environment':
         specifier: workspace:^
         version: link:../../packages/util/launch-environment
+      '@deepseek-ai/dsh-llm-deepseek':
+        specifier: workspace:^
+        version: link:../../packages/llm/llm-deepseek
       '@deepseek-ai/dsh-mcp-client':
         specifier: workspace:^
         version: link:../../packages/mcp/mcp-client
@@ -231,6 +246,9 @@ importers:
       '@deepseek-ai/dsh-pwsh-sandbox':
         specifier: workspace:^
         version: link:../../packages/shell/pwsh-sandbox
+      '@deepseek-ai/dsh-sandbox-policy':
+        specifier: workspace:^
+        version: link:../../packages/sandbox/sandbox-policy
       '@deepseek-ai/dsh-schedule':
         specifier: workspace:^
         version: link:../../packages/schedule/schedule
@@ -240,18 +258,30 @@ importers:
       '@deepseek-ai/dsh-sdk-minimal':
         specifier: workspace:^
         version: link:../../packages/bundle/sdk-minimal
+      '@deepseek-ai/dsh-session-checkpoint-policy':
+        specifier: workspace:^
+        version: link:../../packages/session/session-checkpoint-policy
+      '@deepseek-ai/dsh-session-persistence-jsonl':
+        specifier: workspace:^
+        version: link:../../packages/session/session-persistence-jsonl
       '@deepseek-ai/dsh-session-projection':
         specifier: workspace:^
         version: link:../../packages/session/session-projection
       '@deepseek-ai/dsh-session-reference':
         specifier: workspace:^
         version: link:../../packages/context/session-reference
+      '@deepseek-ai/dsh-settings-file':
+        specifier: workspace:^
+        version: link:../../packages/settings/settings-file
       '@deepseek-ai/dsh-skill':
         specifier: workspace:^
         version: link:../../packages/skill/skill
       '@deepseek-ai/dsh-skill-filesystem':
         specifier: workspace:^
         version: link:../../packages/skill/skill-filesystem
+      '@deepseek-ai/dsh-subprocess-local':
+        specifier: workspace:^
+        version: link:../../packages/subprocess/subprocess-local
       '@deepseek-ai/dsh-terminal':
         specifier: workspace:^
         version: link:../../packages/terminal/terminal
@@ -355,18 +385,9 @@ importers:
       '@deepseek-ai/dsh-agent':
         specifier: workspace:^
         version: link:../../packages/core/agent
-      '@deepseek-ai/dsh-agent-spine-demo':
-        specifier: workspace:^
-        version: link:../../packages/examples/agent-spine-demo
       '@deepseek-ai/dsh-attachment-local':
         specifier: workspace:^
         version: link:../../packages/attachment/attachment-local
-      '@deepseek-ai/dsh-bash-local':
-        specifier: workspace:^
-        version: link:../../packages/shell/bash-local
-      '@deepseek-ai/dsh-credentials-local':
-        specifier: workspace:^
-        version: link:../../packages/credentials/credentials-local
       '@deepseek-ai/dsh-deepseek-llm-api-extensions':
         specifier: workspace:^
         version: link:../../packages/llm/deepseek-llm-api-extensions
@@ -379,9 +400,6 @@ importers:
       '@deepseek-ai/dsh-experimental-tool-agent-team':
         specifier: workspace:^
         version: link:../../packages/experimental/tool-agent-team
-      '@deepseek-ai/dsh-fs-observation-policy':
-        specifier: workspace:^
-        version: link:../../packages/fs/fs-observation-policy
       '@deepseek-ai/dsh-fs-sandbox':
         specifier: workspace:^
         version: link:../../packages/fs/fs-sandbox
@@ -394,9 +412,6 @@ importers:
       '@deepseek-ai/dsh-llm':
         specifier: workspace:^
         version: link:../../packages/llm/llm
-      '@deepseek-ai/dsh-llm-deepseek':
-        specifier: workspace:^
-        version: link:../../packages/llm/llm-deepseek
       '@deepseek-ai/dsh-llm-mock-server':
         specifier: workspace:^
         version: link:../../packages/test-support/llm-mock-server
@@ -415,30 +430,18 @@ importers:
       '@deepseek-ai/dsh-sandbox-local':
         specifier: workspace:^
         version: link:../../packages/sandbox/sandbox-local
-      '@deepseek-ai/dsh-sandbox-policy':
-        specifier: workspace:^
-        version: link:../../packages/sandbox/sandbox-policy
       '@deepseek-ai/dsh-session':
         specifier: workspace:^
         version: link:../../packages/core/session
-      '@deepseek-ai/dsh-session-checkpoint-policy':
-        specifier: workspace:^
-        version: link:../../packages/session/session-checkpoint-policy
       '@deepseek-ai/dsh-session-log-deepseek':
         specifier: workspace:^
         version: link:../../packages/session/session-log-deepseek
-      '@deepseek-ai/dsh-session-persistence-jsonl':
-        specifier: workspace:^
-        version: link:../../packages/session/session-persistence-jsonl
       '@deepseek-ai/dsh-session-query':
         specifier: workspace:^
         version: link:../../packages/session-query/session-query
       '@deepseek-ai/dsh-settings':
         specifier: workspace:^
         version: link:../../packages/settings/settings
-      '@deepseek-ai/dsh-settings-file':
-        specifier: workspace:^
-        version: link:../../packages/settings/settings-file
       '@deepseek-ai/dsh-subagent':
         specifier: workspace:^
         version: link:../../packages/subagent/subagent
@@ -448,9 +451,6 @@ importers:
       '@deepseek-ai/dsh-subagent-spawn-in-process':
         specifier: workspace:^
         version: link:../../packages/subagent/subagent-spawn-in-process
-      '@deepseek-ai/dsh-subprocess-local':
-        specifier: workspace:^
-        version: link:../../packages/subprocess/subprocess-local
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:^
         version: link:../../packages/core/system-prompt
@@ -1019,6 +1019,25 @@ importers:
         specifier: ^5.0.0
         version: 5.9.3
 
+  packages/app-builder/snapshot-bridge:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/attachment/attachment:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -1575,6 +1594,9 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:^
         version: link:../../boot/app-boot
+      '@deepseek-ai/dsh-app-builder-snapshot-bridge':
+        specifier: workspace:^
+        version: link:../../app-builder/snapshot-bridge
       '@deepseek-ai/dsh-client-connection':
         specifier: workspace:^
         version: link:../../client/connection
@@ -1590,6 +1612,12 @@ importers:
       '@deepseek-ai/dsh-client-ui-agent-preset':
         specifier: workspace:^
         version: link:../../client/ui-agent-preset
+      '@deepseek-ai/dsh-client-ui-app-builder-projects':
+        specifier: workspace:^
+        version: link:../../client/ui-app-builder-projects
+      '@deepseek-ai/dsh-client-ui-app-builder-shell':
+        specifier: workspace:^
+        version: link:../../client/ui-app-builder-shell
       '@deepseek-ai/dsh-client-ui-approval':
         specifier: workspace:^
         version: link:../../client/ui-approval

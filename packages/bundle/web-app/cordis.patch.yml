@@ -143,6 +143,14 @@
     - id: client-hmr
       name: '@deepseek-ai/dsh-client-hmr'
 
+    # App Builder host-side state projector: subscribes to project/created
+    # and app-builder-preview/dev-state, atomically writes the snapshot
+    # file, and serves GET /__dsh/app-builder/snapshot.json on ctx.webServer.
+    # Mounted before the client plugins so the snapshot endpoint is live
+    # by the time the projects pane starts polling.
+    - id: app-builder-snapshot-bridge
+      name: '@deepseek-ai/dsh-app-builder-snapshot-bridge'
+
     # ── browser plugin roster (dsh.client rows; node halves are layer-2 hosts) ──
 
     # Dual-face: the node half scans this tree, composes window.__DSH_BOOT__,
@@ -292,6 +300,23 @@
 
     - id: ui-trajectory
       name: '@deepseek-ai/dsh-client-ui-trajectory'
+
+    # App Builder 3-pane shell: a CSS-Grid layout (projects | chat | preview)
+    # that takes over the root layout via the chain take-over mechanism when
+    # `enabled` is true. The existing root layout renders unchanged when the
+    # flag is false, so the classic UI stays available as a fallback.
+    - id: app-builder-shell
+      name: '@deepseek-ai/dsh-client-ui-app-builder-shell'
+      config:
+        enabled: true
+
+    # App Builder projects pane: a vertical list of projects read from the
+    # host snapshot endpoint. Polling cadence defaults to 5 s; the snapshot
+    # bridge writes the JSON the pane reads.
+    - id: app-builder-projects
+      name: '@deepseek-ai/dsh-client-ui-app-builder-projects'
+      config:
+        snapshotUrl: !!js '/__dsh/app-builder/snapshot.json'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

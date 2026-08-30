@@ -19,6 +19,9 @@
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pull the locale plugin Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// Type-only: pull the SlotRegistry service merge (ctx.slots) the shell reads
+// for chain take-over registration.
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { createAppBuilderShellStore, type AppBuilderShellStore } from './stores.ts'
 import { Shell } from './Shell.tsx'
 import { en, zh, type AppBuilderShellKey } from './locales.ts'

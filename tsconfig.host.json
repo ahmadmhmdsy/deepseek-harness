@@ -273,6 +273,7 @@
     { "path": "./packages/app-builder/scaffold" },
     { "path": "./packages/app-builder/preview" },
     { "path": "./packages/app-builder/persona" },
+    { "path": "./packages/app-builder/snapshot-bridge" },
     { "path": "./packages/boot/app-boot" },
     { "path": "./packages/boot/cmdline" },
     { "path": "./packages/sdk/server" },

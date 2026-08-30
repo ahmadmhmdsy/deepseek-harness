@@ -22,6 +22,9 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // appBuilder service merge (ctx.appBuilder).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-app-builder-shell/client'
+// Type-only: pulls the SlotRegistry service merge (ctx.slots) the pane reads
+// for chain registration into the shell-declared slot.
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type { AppBuilderShellService } from './app-builder.ts'
 import { createAppBuilderProjectsSnapshotStore } from './stores.ts'
 import { ProjectsList } from './ProjectsList.tsx'
