@@ -143,6 +143,7 @@ export type PiAiChatTemplateVar = Extract<ChatTemplateKwargValue, { $var: string
 const CHAT_TEMPLATE_VAR_GATE: Record<PiAiChatTemplateVar, true> = {
   'thinking.enabled': true,
   'thinking.effort': true,
+  'thinking.budget': true,
 }
 
 /** The request-state placeholders a profile may name. */
@@ -232,6 +233,7 @@ const COMPLETIONS_COMPAT_GATE = {
   supportsStrictMode: 'offer',
   cacheControlFormat: 'offer',
   supportsLongCacheRetention: 'offer',
+  thinkingTokenBudgetField: 'withhold',
   openRouterRouting: 'withhold',
   vercelGatewayRouting: 'withhold',
   zaiToolStream: 'withhold',
@@ -262,6 +264,7 @@ const ANTHROPIC_COMPAT_GATE = {
   forceAdaptiveThinking: 'offer',
   allowEmptySignature: 'offer',
   supportsStrictTools: 'offer',
+  allowedFallbackModels: 'withhold',
   sendSessionAffinityHeaders: 'withhold',
   supportsToolReferences: 'withhold',
 } as const satisfies Record<keyof AnthropicMessagesCompat, CompatDisposition>
