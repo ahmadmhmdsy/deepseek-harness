@@ -26,6 +26,13 @@ import type {} from '@deepseek-ai/dsh-user-approval'
 // keeps its model-facing rows on the host plane, where the child already sees
 // them through the tool registry's global layer.
 import type {} from '@deepseek-ai/dsh-agent-presets'
+// Type-only: make `ctx.get('agentDefaultModel')` resolve to the live default
+// selection service when composed — child routing reads the parent's current
+// selection so a subagent follows whatever model the master is currently using,
+// not its frozen creation-time options. Optional composition: a rosterless
+// deployment without the default service keeps the legacy `parent.options`
+// fallback via the documented `ctx.get` pattern.
+import type {} from '@deepseek-ai/dsh-agent-default-model'
 import { delegationDepthOf } from './depth.ts'
 
 /** Thrown when starting a child would exceed the requested depth cap. */
@@ -58,16 +65,48 @@ export function resolveChildDepth(parent: Agent, maxDepth: number | undefined): 
 }
 
 /**
- * Resolve the parent values inherited by a child. The latest request header
- * owns provider, model, and reasoning effort after request-time selection;
- * creation options remain the fallback before the first request and retain
- * the configured output-token limit.
+ * Resolve the parent values inherited by a child. Provider, model, and
+ * reasoning effort follow a live waterfall that mirrors the precedence
+ * api-proxy's `selectionFor` uses per request; `maxTokens` is a budget, not a
+ * route, and stays inherited from the parent's creation options.
+ *
+ * Precedence (highest wins), applied per field:
+ *   1. `parent.session.requestHeader()?.config` — the master's latest logged
+ *      `request/header`, captured before any subagent dispatch.
+ *   2. `parent.ctx.get('agentDefaultModel')?.currentSelection()` — the live
+ *      default selection, hot-reloaded from the settings document.
+ *   3. `parent.options` — the parent's frozen creation-time route, kept as
+ *      the backward-compatible fallback when neither live source is composed
+ *      (e.g. minimal headless bundles that never mount the
+ *      `agentDefaultModel` service).
+ *
+ * Reasoning effort is route-owned: when a live source supplies the route, its
+ * effort (or absence) takes effect and the parent's creation-time effort is
+ * dropped. The per-tool `agentOptions` override is applied downstream by
+ * {@link resolveChildAgentOptions} and still wins over every inherited source.
+ *
+ * Caveat — the per-session `picked` selection set by the master's `/model` UI
+ * lives inside api-proxy's `selectionFor` closure and is not externally
+ * readable; subagents pick it up automatically after the parent's next logged
+ * request carries the new header.
  * @param parent - delegating parent Agent.
  * @returns detached Agent options for child-option merging.
  */
 export function parentAgentOptionsForDelegation(parent: Agent): AgentOptions {
   const requestConfig = parent.session.requestHeader()?.config
-  if (requestConfig === undefined) return { ...parent.options }
+  const liveSelection = parent.ctx.get('agentDefaultModel')?.currentSelection()
+  // Per-field precedence: logged header > agentDefaultModel > creation options.
+  // Both live sources carry provider/model/reasoningEffort with the same shape.
+  const provider = requestConfig?.provider ?? liveSelection?.provider ?? parent.options.provider
+  const model = requestConfig?.model ?? liveSelection?.model ?? parent.options.model
+  // Reasoning effort is route-owned: only adopt the parent's creation-time
+  // effort when no live source supplied a route. A live source that omits
+  // effort lets the selected model resolve its own default.
+  const reasoningEffort = requestConfig !== undefined
+    ? requestConfig.reasoningEffort
+    : liveSelection !== undefined
+      ? liveSelection.reasoningEffort
+      : parent.options.reasoningEffort
   const {
     provider: _createdProvider,
     model: _createdModel,
@@ -76,11 +115,9 @@ export function parentAgentOptionsForDelegation(parent: Agent): AgentOptions {
   } = parent.options
   return {
     ...createdOptions,
-    provider: requestConfig.provider,
-    model: requestConfig.model,
-    ...requestConfig.reasoningEffort === undefined
-      ? {}
-      : { reasoningEffort: requestConfig.reasoningEffort },
+    ...provider !== undefined ? { provider } : {},
+    ...model !== undefined ? { model } : {},
+    ...reasoningEffort === undefined ? {} : { reasoningEffort },
   }
 }
 
