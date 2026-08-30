@@ -14,8 +14,11 @@ import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
 import type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectId } from './types.ts'
+import { bindProjectionContext, projectProjectionDefinition } from './projection.ts'
 
 export type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectId, ProjectStack } from './types.ts'
+export type { ProjectState, ProjectView } from './projection.ts'
+export { projectProjectionDefinition } from './projection.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -63,7 +66,7 @@ export class ProjectRegistry extends Service {
     }
     this.projects.set(id, project)
     const event: ProjectCreatedEvent = { type: 'project/created', project }
-    await this.ctx.emit('project/created', event)
+    this.ctx.emit('project/created', event)
     this.ctx.logger('app-builder-project').info(`project '${project.name}' created at ${project.rootPath}`)
     return project
   }
@@ -129,8 +132,12 @@ export const Config: z<Config> = z.object({
 /** Cordis plugin name. */
 export const name = 'app-builder-project'
 
-/** Services required by the project plugin. The plugin reads `ctx.logger` directly; no `inject` entries are needed. */
-export const inject: readonly string[] = []
+/**
+ * Services required by the project plugin. The plugin reads `ctx.logger`
+ * directly and registers the `project` projection unit on
+ * `ctx.sessionProjections`, so the projection registry must be present.
+ */
+export const inject: readonly string[] = ['sessionProjections']
 
 /**
  * Plugin entry. The `ProjectRegistry` constructor calls
@@ -138,6 +145,9 @@ export const inject: readonly string[] = []
  * registered automatically and disposed when the owning fiber unloads. The
  * name is passed explicitly: Service's base constructor would otherwise fall
  * back to the static `provide` field, which `ProjectRegistry` does not set.
+ * The projection unit is registered on `ctx.sessionProjections` so the
+ * persisted projection cache (`@deepseek-ai/dsh-session-projection-cache`)
+ * checkpoints the unit's state on its throttled write-behind.
  * @param ctx - Cordis context.
  * @param config - Plugin config (validated through `Config`).
  */
@@ -145,6 +155,6 @@ export function apply(ctx: Context, config: Config): void {
   const project = new ProjectRegistry(ctx, 'appBuilderProjects')
   void project
   void config
+  bindProjectionContext(ctx)
+  ctx.sessionProjections.register(projectProjectionDefinition)
 }
-
-export default ProjectRegistry

@@ -4,10 +4,30 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../../vendor/schemastery" },
-    { "path": "../../../packages/runtime-diagnostics/invariants" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../../packages/runtime-diagnostics/invariants"
+    },
+    {
+      "path": "../../../packages/core/session"
+    },
+    {
+      "path": "../../../packages/session/session-projection"
+    },
+    {
+      "path": "../../../packages/session/session-projection-cache"
+    },
+    {
+      "path": "../../../packages/storage/storage-domain"
+    }
   ]
 }

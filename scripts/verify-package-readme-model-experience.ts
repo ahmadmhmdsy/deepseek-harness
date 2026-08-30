@@ -35,6 +35,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
   'packages/util/home-paths': 'The package only resolves harness-owned host paths; model-facing consumers own any rendered use.',
   'packages/util/launch-environment': 'The package only resolves host environment values; model-facing consumers own any rendered use.',
   'packages/util/workspace-path': 'The package only formats Workspace paths for browser UI; it never constructs model input.',
+  'packages/app-builder/project': 'The project entity + projection unit folds session cwd against the in-memory registry; consumers (listing UI, API gateway) read the persisted cache row, and prompts and tool catalog are owned by the composing agent preset.',
 }
 
 /**
