@@ -2,7 +2,7 @@
  * Unit tests for the App Builder preview tool. These cover the pure
  * validators, the framework detection, the dev command construction, and
  * the readiness helper abort behavior. The full end-to-end composition
- * (start dev server + readiness probe) lives in `examples/app-builder/tests/e2e/`
+ * (start dev server + readiness probe) lives in `apps/cli/config/examples/app-builder/tests/`
  * once the bundle is mounted; this spec keeps the package self-contained.
  */
 

@@ -51,7 +51,7 @@ Each package listed in the patch must appear in `bundle/app-builder/package.json
 - Use `@deepseek-ai/dsh-persona` to declare a persona that scopes an App Builder agent.
 - Persona text: an App Builder coding persona, scoped to project scaffolding + iteration.
 
-## 6. Example (`examples/app-builder/`)
+## 6. Example (`apps/cli/config/examples/app-builder/`)
 
 > Note: this location moves to `apps/cli/config/examples/app-builder/` in Phase 1.5 (Upstream sync). Upstream's PR #2977 retired top-level `examples/`; the fork aligns with the new shape before Phase 2 begins. Snapshot fixtures and the keyless/with-key smokes re-record at the new path. See [`Phase 1.5 prompt.md §1.2`](Phase%201.5%20prompt.md).
 
@@ -59,7 +59,7 @@ Each package listed in the patch must appear in `bundle/app-builder/package.json
 - `cordis.snapshot.yml` (expected composition output).
 - `tests/e2e/keyless-smoke.spec.ts` — boots via `@deepseek-ai/dsh-loader-smoke`.
 - `tests/e2e/with-key-smoke.spec.ts` — sends a real prompt, verifies scaffold + preview.
-- Add the new packages to `examples/package.json`.
+- Add the new packages to the bundle's `dependencies` (`packages/bundle/app-builder/package.json`); `examples/package.json` no longer applies because upstream PR #2977 retired the top-level `examples/` workspace.
 
 ## 7. Web UI integration (`apps/web`)
 

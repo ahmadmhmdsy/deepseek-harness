@@ -1,0 +1,7 @@
+{
+  "name": "app-builder-example",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "Runnable demo: App Builder MVP bundle with scaffold + preview tools and the App Builder persona. Located at apps/cli/config/examples/app-builder/ since Phase 1.5 (1.5.2); the previous examples/app-builder/ umbrella package.json that declared its dependencies was retired by upstream PR #2977. The app-builder-* deps live in apps/cli/package.json (this directory is not a workspace project under apps/* glob)."
+}

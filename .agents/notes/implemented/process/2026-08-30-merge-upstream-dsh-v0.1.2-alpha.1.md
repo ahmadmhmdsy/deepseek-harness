@@ -68,7 +68,8 @@ Two more fixes landed in a follow-up commit (`515fa46121`):
    - `CHAT_TEMPLATE_VAR_GATE`: added `'thinking.budget': true` (sibling of `'thinking.enabled'` and `'thinking.effort'`).
    - `OPENAI_COMPAT_GATE`: added `thinkingTokenBudgetField: 'withhold'` — catalog routes carry it automatically; profiles do not configure it.
    - `ANTHROPIC_COMPAT_GATE`: added `allowedFallbackModels: 'withhold'` — same reasoning.
-   The two `'withhold'` dispositions are conservative defaults; flip to `'offer'` once a profile-side use case surfaces.
+
+The two `'withhold'` dispositions are conservative defaults; flip to `'offer'` once a profile-side use case surfaces.
 
 2. **Removed `packages/host/apiproxy/lib/`** — 171 gitignored stale build-output files. Upstream commit `4f00a8b82a refactor(api): remove ApiProxy package` retired the source package, but the lib output was never cleaned from the working tree. `rolldown` picked the stale emit during the post-merge `tsdown` run and reported `MISSING_EXPORT` errors for symbols (`ApiRemoteSessionNotFound`, `createApiRemoteAgentResolver`, `resolveSessionPreset`, …) that never existed in current source. No source files changed for the removal; only the stale artifact directory was deleted.
 
@@ -81,8 +82,23 @@ Two more fixes landed in a follow-up commit (`515fa46121`):
   - `packages/llm/llm-pi-ai/tests/catalog.spec.ts` (2 tests) expect pi-ai's xai catalog to ship both `openai-completions` and `openai-responses` models; the xai catalog is now single-API (`xai no longer ships a mixed catalog`).
   - `packages/subagent/subagent-claude-code/tests/real-product.spec.ts` (1 test) requires a live Claude Agent SDK installation; keyless CI already skips this branch.
   - `scripts/build-exe-for-python-sdk.spec.ts`, `scripts/doc-standard.spec.ts`, `scripts/gen-client-catalog.spec.ts`, `scripts/gen-third-party-notices.spec.ts`, `scripts/gen-tsconfig-paths.spec.ts`, `scripts/oxlint-contract.spec.ts`, `scripts/test-invariants.spec.ts`, `packages/experimental/webworker-packer/tests/image-loadable.spec.ts`, `packages/typert/generator/tests/{cordis-catalog,tools-catalog,type-model}.spec.ts`, `scripts/client-build-environment.client.spec.ts` — each fails one assertion against the merged tree's generated artifacts; all are upstream test-script expectations, not consumer-side regressions.
-  Follow-up PRs will address each cluster (catalog generators in 1.5.7, webworker-runtime corpus in 1.5.3, real-product under its own credentials-bearing CI workflow).
+
+Follow-up PRs will address each cluster (catalog generators in 1.5.7, webworker-runtime corpus in 1.5.3, real-product under its own credentials-bearing CI workflow).
 - `pnpm run test:snapshot`, `pnpm run doc-sync`, `pnpm run hygiene` — not yet run on this branch. Both will surface similar upstream-regression noise; tracked for the dependent sub-phase PRs.
+
+## Alternatives considered
+
+### Why not stay on `0.1.1-rc.2` and cherry-pick each blocking PR?
+
+The four BLOCKING upstream PRs (#3074 ptc rename, #2948 profile unification, #2698 → #3054 → #3111 session format, #2977 retire examples) sit on a 1,079-commit stack with hundreds of intermediate fixes the fork's compatibility depends on. Cherry-picking each would force fork-side reimplementation of every intermediate fix (e.g., pi-ai's `CallId` → `ToolCallId` rename in #2731 broke the Phase 1 keyless smoke until the fixture was updated; reproducing that on a cherry-pick would lose the surrounding infrastructure tests). A single wholesale merge preserves intermediate context and lets one conflict-resolution sweep handle the 17 unmerged paths.
+
+### Why not rebase the 40 fork-only commits on top of `upstream/master`?
+
+Rebase rewrites fork commit SHAs, breaks the historical record Phase 0-1 produced (per CLAUDE.md "Choose PR history deliberately": `Rewrites use --force-with-lease, abort on remote movement, never raw --force; preserve an in-progress merge-forward checkpoint before taking a newer base`), and loses the merge semantics that make the 17 conflict resolutions auditable as a single commit. The user explicitly chose option B2 (merge --no-ff) over B1 (rebase) for this reason.
+
+### Why not adopt the Phase 2 accelerators in the same merge?
+
+The projection cache (`#2781`), API gateway cluster (`worktree-apire-*`), and subagent provider (`#2663`) each need a fork-side integration into the App Builder slices (`packages/app-builder/{project,api,subagent-...}`). Bundling them into the merge commit would conflate upstream adoption with fork-side product code, making the 1,079-commit review infeasible and conflating Phase 1.5 with Phase 2. The stacked-PR strategy (1.5.4-1.5.6) preserves the audit boundary.
 
 ## Consequences
 
@@ -91,5 +107,3 @@ Two more fixes landed in a follow-up commit (`515fa46121`):
 - The `dsh-client-store` rename means `packages/runtime-diagnostics/invariants/README.md` still mentions `dsh-client-runtime` historically (frozen archived Agent Notes also reference it). Sub-phase 1.5.7 refreshes the live README; archived notes stay frozen.
 - The `'withhold'` dispositions on the two new pi-ai compat fields are conservative. Profiles that need to set `thinkingTokenBudgetField` or `allowedFallbackModels` will require a small follow-up Agent Note flipping them to `'offer'`.
 - The merge sits on `merge/upstream-v0.1.2-alpha.1`. Sub-phases 1.5.2-1.5.7 land in dependent branches (`examples/.../relocation`, `app-builder/web/reskin`, `feature/cache-integration`, `feature/api-gateway-cluster`, `feature/subagent-provider`, `planning/phase-1.5-record`) as a native GitHub stacked PR stack per the inspect step 19 plan.
-
-<!-- agent-note-format: alternatives-not-recorded (supersedes-merge-baseline note) -->

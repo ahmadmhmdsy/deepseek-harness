@@ -10,8 +10,8 @@
 # repo root .env (gitignored) or exported env:
 #   DEEPSEEK_API_KEY=sk-…
 #   DEEPSEEK_BASE_URL=https://…   # optional; defaults to the public API
-pnpm exec vitest run examples/app-builder/tests/keyless-smoke.spec.ts
-pnpm exec vitest run examples/app-builder/tests/with-key-smoke.spec.ts   # skips without DEEPSEEK_API_KEY
+pnpm exec vitest run apps/cli/config/examples/app-builder/tests/keyless-smoke.spec.ts
+pnpm exec vitest run apps/cli/config/examples/app-builder/tests/with-key-smoke.spec.ts   # skips without DEEPSEEK_API_KEY
 end{sh}
 
 keyless smoke 通过 Loader 启动真实 `cordis.yml`、挂载 mock LLM 适配器，让模型按四回合脚本执行（scaffold → read → write → 最终文本），并断言 scaffold 工具写出了模板文件、随后的 `write` 调用覆盖了 dev 脚本。with-key 版本对真实 DeepSeek 适配器运行相同组装，要求 agent 先 scaffold 一个新项目，再启动 preview dev 服务器。

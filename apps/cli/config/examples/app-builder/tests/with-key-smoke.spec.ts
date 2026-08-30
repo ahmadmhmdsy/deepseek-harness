@@ -6,7 +6,7 @@ import { runLoaderSmoke } from '@deepseek-ai/dsh-loader-smoke'
 
 const binScript = fileURLToPath(new URL('./fixtures/keyless-driver.ts', import.meta.url))
 const configPath = fileURLToPath(new URL('../cordis.yml', import.meta.url))
-const tsconfigPath = fileURLToPath(new URL('../../../tsconfig.json', import.meta.url))
+const tsconfigPath = fileURLToPath(new URL('../../../../../../tsconfig.json', import.meta.url))
 const hasKey = Boolean(process.env.DEEPSEEK_API_KEY)
 
 describe.skipIf(!hasKey)('app-builder with real model', () => {

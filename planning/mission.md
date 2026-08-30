@@ -56,7 +56,7 @@ Goal: prompt -> running app with live preview, locally, no auth.
    - `dsh-app-builder-scaffold` (~150 LOC; composes `dsh-tool-fs` + `dsh-tool-str-replace-editor` + `dsh-tool-bash`).
    - `dsh-app-builder-preview` (readiness probe + optional headless screenshot; composes `dsh-tool-bash` background + `dsh-tool-jobs`).
    - `dsh-app-builder-persona` (App Builder persona via `dsh-persona`).
-3. New example `examples/app-builder/` with keyless + with-key smokes (boots via `dsh-loader-smoke`).
+3. New example `apps/cli/config/examples/app-builder/` with keyless + with-key smokes (boots via `dsh-loader-smoke`).
 4. Update `apps/web` with project list + chat + preview iframe.
 5. Per-package obligations: `tests/`, `./invariant`, README + JSDoc with `Model Experience` + `Known Limitations and Deferred Work`, real-composition test, per-file 100% coverage on `src`, bilingual README, catalog registration, Agent Note.
 6. Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.

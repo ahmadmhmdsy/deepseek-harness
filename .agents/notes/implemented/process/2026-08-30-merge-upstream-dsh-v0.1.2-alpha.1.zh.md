@@ -68,7 +68,8 @@ Phase 1 的 `packages/client/ui-app-builder-{shell,projects}` 脚手架引用了
    - `CHAT_TEMPLATE_VAR_GATE`：补充 `'thinking.budget': true`（与 `'thinking.enabled'`、`'thinking.effort'` 同列）。
    - `OPENAI_COMPAT_GATE`：补充 `thinkingTokenBudgetField: 'withhold'` —— 目录路由自动承载，profile 不配置。
    - `ANTHROPIC_COMPAT_GATE`：补充 `allowedFallbackModels: 'withhold'` —— 同理。
-   两条 `'withhold'` 处置是保守默认；待出现 profile 侧用例后再翻为 `'offer'`。
+
+两条 `'withhold'` 处置是保守默认；待出现 profile 侧用例后再翻为 `'offer'`。
 
 2. **删除 `packages/host/apiproxy/lib/`** —— 171 个被 `.gitignore` 忽略的陈旧构建产物。上游提交 `4f00a8b82a refactor(api): remove ApiProxy package` 已停用该源码包，但工作区未清理其 lib 输出。合并后 `tsdown` 运行期间 `rolldown` 拾取陈旧 emit，对当前源码中根本不存在的符号（`ApiRemoteSessionNotFound`、`createApiRemoteAgentResolver`、`resolveSessionPreset` …）报 `MISSING_EXPORT`。源代码未改动；仅删除了陈旧构件目录。
 
@@ -81,8 +82,23 @@ Phase 1 的 `packages/client/ui-app-builder-{shell,projects}` 脚手架引用了
   - `packages/llm/llm-pi-ai/tests/catalog.spec.ts`（2 项）期望 pi-ai xai 目录同时提供 `openai-completions` 与 `openai-responses` 模型；xai 目录已改为单 API（`xai no longer ships a mixed catalog`）。
   - `packages/subagent/subagent-claude-code/tests/real-product.spec.ts`（1 项）需要本机安装 Claude Agent SDK；无 key CI 已跳过该分支。
   - `scripts/build-exe-for-python-sdk.spec.ts`、`scripts/doc-standard.spec.ts`、`scripts/gen-client-catalog.spec.ts`、`scripts/gen-third-party-notices.spec.ts`、`scripts/gen-tsconfig-paths.spec.ts`、`scripts/oxlint-contract.spec.ts`、`scripts/test-invariants.spec.ts`、`packages/experimental/webworker-packer/tests/image-loadable.spec.ts`、`packages/typert/generator/tests/{cordis-catalog,tools-catalog,type-model}.spec.ts`、`scripts/client-build-environment.client.spec.ts` —— 每项对合并后生成的工件存在一条断言失败；均为上游测试脚本预期，并非消费方回归。
-  后续 PR 分别处理各簇（catalog 生成器在 1.5.7，webworker-runtime corpus 在 1.5.3，real-product 走其自带凭据 CI workflow）。
+
+后续 PR 分别处理各簇（catalog 生成器在 1.5.7，webworker-runtime corpus 在 1.5.3，real-product 走其自带凭据 CI workflow）。
 - `pnpm run test:snapshot`、`pnpm run doc-sync`、`pnpm run hygiene` —— 本分支尚未运行。两者都将暴露类似上游回归噪声；交由依赖子阶段 PR 处理。
+
+## 已考虑的替代方案
+
+### 为何不留在 `0.1.1-rc.2` 并 cherry-pick 各阻塞 PR？
+
+四个 BLOCKING 上游 PR（#3074 ptc 改名、#2948 profile 统一、#2698 → #3054 → #3111 会话格式、#2977 停用 examples）位于 1079 个提交的栈上，数百个中间修复是 fork 兼容性的根基。逐一 cherry-pick 会迫使 fork 侧重新实现每个中间修复（例如 #2731 中 pi-ai 的 `CallId` → `ToolCallId` 改名使 Phase 1 keyless smoke 中断直至 fixture 更新；在 cherry-pick 上复现该修复会丢失周围的基建测试）。单次整体合并保留中间上下文，并让 17 个未合并路径的冲突解决由一轮 sweep 完成。
+
+### 为何不将 40 个 fork-only 提交 rebase 到 `upstream/master` 之上？
+
+rebase 会改写 fork 提交 SHA，破坏 Phase 0-1 产出的历史记录（依据 CLAUDE.md「Choose PR history deliberately」：「Rewrites use --force-with-lease, abort on remote movement, never raw --force; preserve an in-progress merge-forward checkpoint before taking a newer base」），并丢失使 17 个冲突解决可审计为单次提交的合并语义。用户出于该原因明确选择了选项 B2（merge --no-ff）而非 B1（rebase）。
+
+### 为何不在同一次合并中纳入 Phase 2 加速器？
+
+投影缓存（`#2781`）、API 网关簇（`worktree-apire-*`）、子代理 provider（`#2663`）每一项都需要 fork 侧接入 App Builder 切片（`packages/app-builder/{project,api,subagent-...}`）。把三者捆入合并提交会让上游采纳与 fork 侧产品代码混淆，使 1079 个提交的评审不可行，并把 Phase 1.5 与 Phase 2 混淆。堆叠 PR 策略（1.5.4-1.5.6）保留审计边界。
 
 ## 后果
 
@@ -91,5 +107,3 @@ Phase 1 的 `packages/client/ui-app-builder-{shell,projects}` 脚手架引用了
 - `dsh-client-store` 改名意味着 `packages/runtime-diagnostics/invariants/README.md` 仍历史性地提及 `dsh-client-runtime`（冻结的归档 Agent Note 同样提及）。子阶段 1.5.7 刷新活动 README；归档笔记保持冻结。
 - 两个新增 pi-ai 兼容字段的 `'withhold'` 处置是保守的。若 profile 需要设置 `thinkingTokenBudgetField` 或 `allowedFallbackModels`，需要一份小型的后续 Agent Note 将其翻为 `'offer'`。
 - 合并位于 `merge/upstream-v0.1.2-alpha.1`。子阶段 1.5.2-1.5.7 在依赖分支上落地（`examples/.../relocation`、`app-builder/web/reskin`、`feature/cache-integration`、`feature/api-gateway-cluster`、`feature/subagent-provider`、`planning/phase-1.5-record`），按 inspect step 19 计划组成 GitHub 原生堆叠 PR 栈。
-
-<!-- agent-note-format: alternatives-not-recorded (supersedes-merge-baseline note) -->

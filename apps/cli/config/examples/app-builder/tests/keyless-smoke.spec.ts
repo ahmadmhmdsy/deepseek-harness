@@ -7,7 +7,7 @@ import type { SessionEvent } from '@deepseek-ai/dsh-session'
 
 const binScript = fileURLToPath(new URL('./fixtures/keyless-driver.ts', import.meta.url))
 const configPath = fileURLToPath(new URL('./fixtures/keyless.cordis.yml', import.meta.url))
-const tsconfigPath = fileURLToPath(new URL('../../../tsconfig.json', import.meta.url))
+const tsconfigPath = fileURLToPath(new URL('../../../../../../tsconfig.json', import.meta.url))
 
 /**
  * Find the tool call event for one named tool and return its callId.

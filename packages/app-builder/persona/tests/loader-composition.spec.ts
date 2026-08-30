@@ -1,7 +1,7 @@
 /**
  * Unit tests for the App Builder persona plugin. These cover the
  * persona text, the default-text behavior, and the verbatim override;
- * the full scoped-prompt composition lives in `examples/app-builder/tests/e2e/`
+ * the full scoped-prompt composition lives in `apps/cli/config/examples/app-builder/tests/`
  * once the bundle is mounted. This spec keeps the package self-contained
  * at the text and config-merge tier.
  */

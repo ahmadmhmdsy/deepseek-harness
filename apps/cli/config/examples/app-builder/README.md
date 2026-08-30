@@ -10,8 +10,8 @@ This directory owns the App Builder MVP composition: it inlines the three runtim
 # repo root .env (gitignored) or exported env:
 #   DEEPSEEK_API_KEY=sk-…
 #   DEEPSEEK_BASE_URL=https://…   # optional; defaults to the public API
-pnpm exec vitest run examples/app-builder/tests/keyless-smoke.spec.ts
-pnpm exec vitest run examples/app-builder/tests/with-key-smoke.spec.ts   # skips without DEEPSEEK_API_KEY
+pnpm exec vitest run apps/cli/config/examples/app-builder/tests/keyless-smoke.spec.ts
+pnpm exec vitest run apps/cli/config/examples/app-builder/tests/with-key-smoke.spec.ts   # skips without DEEPSEEK_API_KEY
 end{sh}
 
 The keyless smoke boots the real `cordis.yml` through the Loader with a mock LLM adapter, drives the model through a four-turn fixture (scaffold → read → write → final text), and asserts that the scaffold tool wrote template files and the follow-up `write` call overrode the dev script. The with-key twin runs the same composition against the real DeepSeek adapter and asks the agent to scaffold a fresh project then start a preview dev server.

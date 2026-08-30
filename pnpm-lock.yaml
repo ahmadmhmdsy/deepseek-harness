@@ -153,6 +153,15 @@ importers:
       '@deepseek-ai/dsh-app-boot':
         specifier: workspace:^
         version: link:../../packages/boot/app-boot
+      '@deepseek-ai/dsh-app-builder-preview':
+        specifier: workspace:^
+        version: link:../../packages/app-builder/preview
+      '@deepseek-ai/dsh-app-builder-project':
+        specifier: workspace:^
+        version: link:../../packages/app-builder/project
+      '@deepseek-ai/dsh-app-builder-scaffold':
+        specifier: workspace:^
+        version: link:../../packages/app-builder/scaffold
       '@deepseek-ai/dsh-base':
         specifier: workspace:^
         version: link:../../packages/bundle/base

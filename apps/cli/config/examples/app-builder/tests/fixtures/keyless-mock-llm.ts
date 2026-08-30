@@ -1,6 +1,6 @@
 import type { Context } from '@deepseek-ai/cordis'
 import {
-  CallId,
+  ToolCallId,
   LlmAdapter,
   ReasoningEffortId,
   type GenerateOptions,
@@ -70,8 +70,8 @@ class AppBuilderMockAdapter extends LlmAdapter {
         npmInstall: false,
       })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-      yield { type: 'tool-call-delta', index: 0, id: CallId('ab-scaffold-call'), name: 'app_builder_scaffold', argumentsDelta: args }
-      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('ab-scaffold-call'), name: 'app_builder_scaffold', arguments: args } }
+      yield { type: 'tool-call-delta', index: 0, id: ToolCallId('ab-scaffold-call'), name: 'app_builder_scaffold', argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: ToolCallId('ab-scaffold-call'), name: 'app_builder_scaffold', arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 12, outputTokens: 4, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return
@@ -84,8 +84,8 @@ class AppBuilderMockAdapter extends LlmAdapter {
         file_path: SCAFFOLD_PROJECT_NAME + '/package.json',
       })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-      yield { type: 'tool-call-delta', index: 0, id: CallId('ab-read-call'), name: 'read', argumentsDelta: args }
-      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('ab-read-call'), name: 'read', arguments: args } }
+      yield { type: 'tool-call-delta', index: 0, id: ToolCallId('ab-read-call'), name: 'read', argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: ToolCallId('ab-read-call'), name: 'read', arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 9, outputTokens: 3, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return
@@ -104,8 +104,8 @@ class AppBuilderMockAdapter extends LlmAdapter {
         content: devContent,
       })
       yield { type: 'block-start', index: 0, blockType: 'tool-call' }
-      yield { type: 'tool-call-delta', index: 0, id: CallId('ab-write-call'), name: 'write', argumentsDelta: args }
-      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: CallId('ab-write-call'), name: 'write', arguments: args } }
+      yield { type: 'tool-call-delta', index: 0, id: ToolCallId('ab-write-call'), name: 'write', argumentsDelta: args }
+      yield { type: 'block-end', index: 0, block: { type: 'tool-call', id: ToolCallId('ab-write-call'), name: 'write', arguments: args } }
       yield { type: 'usage', usage: { inputTokens: 9, outputTokens: 3, cacheReadTokens: 2 } }
       yield { type: 'finish', reason: { kind: 'tool-calls' } }
       return

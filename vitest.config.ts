@@ -112,6 +112,13 @@ const pwshCoverageExclusions = spawnSync(resolvePwshPath(), ['-NoLogo', '-NoProf
 const testIncludes = [
   'packages/*/*/tests/**/*.spec.{ts,tsx}',
   'apps/*/tests/**/*.spec.ts',
+  // App Builder example (relocated from examples/app-builder/ in Phase 1.5 / 1.5.2) carries its
+  // own keyless + with-key smokes inline under apps/cli/config/examples/app-builder/tests/.
+  // Upstream's other overlays (github-review, schedule, cordis, mcp-memory) have no inline
+  // tests; their coverage lives in apps/cli/tests/ and apps/web/tests/. The inline layout is
+  // a deliberate Phase 1 departure from apps/cli/tests/profiles/AGENTS.md 'product assets, not
+  // test fixtures' and is recorded as a follow-up in the 1.5.2 Agent Note.
+  'apps/cli/config/examples/**/tests/**/*.spec.{ts,tsx}',
   'scripts/**/*.spec.ts',
 ]
 

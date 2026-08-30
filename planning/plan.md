@@ -118,7 +118,7 @@ New bundle `packages/bundle/app-builder/` patches over `packages/bundle/base`. R
 
 ### 3.6 Example
 
-`examples/app-builder/` — `cordis.yml`, `cordis.snapshot.yml`, `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`), `tests/e2e/with-key-smoke.spec.ts` (real prompt + verify scaffold + preview).
+`apps/cli/config/examples/app-builder/` — `cordis.yml`, `cordis.snapshot.yml`, `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`), `tests/e2e/with-key-smoke.spec.ts` (real prompt + verify scaffold + preview).
 
 ### 3.7 Web UI
 
@@ -149,7 +149,7 @@ Next steps in order:
 2. Register the `packages/app-builder/` workspace group (`packages/README.md`, `tsconfig.host.json`, root `tsconfig.json` if needed).
 3. Author the four packages with their full per-package obligations (per `planning/Phase 1 prompt.md §10`).
 4. Author the `packages/bundle/app-builder/cordis.patch.yml` patch over `packages/bundle/base`.
-5. Author `examples/app-builder/` with keyless + with-key smokes.
+5. Author `apps/cli/config/examples/app-builder/` with keyless + with-key smokes.
 6. Re-skin `apps/web` on the existing branch (no parallel `apps/app-builder-web`).
 7. Add web browser snapshot scenarios.
 8. File Agent Notes for each non-trivial change (scaffold, preview, project, persona).
@@ -303,7 +303,7 @@ Don't:
 ## 7. Testing & evaluation
 
 - Test harness: run the App Builder against a fixed suite of prompts (todo app, CRUD, auth, API integration); assert the app builds, runs, and passes basic checks.
-- Snapshot tests via `examples/app-builder/` (keyless + with-key smokes + per-package fixtures).
+- Snapshot tests via `apps/cli/config/examples/app-builder/` (keyless + with-key smokes + per-package fixtures).
 - Per-file 100% coverage on `packages/*/*/src`.
 - Adversarial tests: prompt injection, malicious uploads, resource exhaustion, SSRF, redirect smuggling.
 - Track per-session token + cost, cache-aware, with alerts.

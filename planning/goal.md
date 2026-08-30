@@ -24,7 +24,7 @@
   - `dsh-app-builder-scaffold` (~150 LOC; composes `dsh-tool-fs` + `dsh-tool-bash` + `dsh-tool-str-replace-editor`).
   - `dsh-app-builder-preview` (readiness probe + optional headless screenshot).
   - `dsh-app-builder-persona`.
-- One new example `examples/app-builder/` with keyless + with-key smokes.
+- One new example `apps/cli/config/examples/app-builder/` with keyless + with-key smokes.
 - Re-skin `apps/web` with project list + chat + preview iframe.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
 - Agent Notes: `scaffold-plugin`, `preview-plugin`, `project-entity`, `app-builder-persona`.
