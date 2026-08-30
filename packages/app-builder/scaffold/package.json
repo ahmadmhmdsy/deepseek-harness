@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-app-builder-scaffold",
   "description": "App Builder scaffold tool: create a new project from a template (nextjs-app, nextjs-pages, svelte-spa) under the session workspace, with optional background `npm install`.",
-  "version": "0.1.1-rc.2",
+  "version": "0.1.2-alpha.1",
   "publishConfig": {
     "access": "public"
   },
@@ -22,11 +22,21 @@
       "types": "./lib/types/invariant.d.ts",
       "default": "./lib/invariant.js"
     },
+    "./templates": {
+      "types": "./lib/types/templates.d.ts",
+      "default": "./lib/templates.js"
+    },
+    "./validate": {
+      "types": "./lib/types/validate.d.ts",
+      "default": "./lib/validate.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
     "lib/invariant.js",
+    "lib/templates.js",
+    "lib/validate.js",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
@@ -48,6 +58,7 @@
     "@deepseek-ai/dsh-agent-loop": "workspace:^",
     "@deepseek-ai/dsh-fs": "workspace:^",
     "@deepseek-ai/dsh-fs-local": "workspace:^",
+    "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-jobs": "workspace:^",
     "@deepseek-ai/dsh-jobs-local": "workspace:^",
     "@deepseek-ai/dsh-sandbox-policy": "workspace:^",

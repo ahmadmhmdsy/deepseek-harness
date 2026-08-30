@@ -137,7 +137,7 @@ export const projectProjectionDefinition = {
       owningProjectRootPath: owner.rootPath,
     }
   },
-  apply: (state: ProjectState): ProjectState => state,
+  apply: (state: ProjectState, _event: unknown): ProjectState => state,
   wire: {
     viewSchema: projectViewSchema,
     view: (state: ProjectState): ProjectView => ({

@@ -12,6 +12,8 @@ The App Builder MVP: a prompt-to-running-app surface on top of DeepSeek Harness.
 | [`scaffold/`](scaffold/) | Composes filesystem + bash + str-replace-editor tools to scaffold a template project (nextjs-app, nextjs-pages, svelte-spa) |
 | [`preview/`](preview/) | Composes bash + jobs to start a project dev server with readiness polling; localhost-only |
 | [`persona/`](persona/) | App Builder coding persona over `@deepseek-ai/dsh-persona` |
+| [`snapshot-bridge/`](snapshot-bridge/) | In-memory `{ projects, devServers }` projection served at `/__dsh/app-builder/snapshot.json`; the browser projects pane polls this |
+| [`api/`](api/) | Host BFF Typert Remote service: 13 methods (project CRUD, session lifecycle, SSE event subscription, preview, deploy, usage) auto-discovered by `@deepseek-ai/dsh-api-gateway` |
 
 ## Bundle
 

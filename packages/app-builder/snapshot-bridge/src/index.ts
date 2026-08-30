@@ -110,6 +110,10 @@ export interface AppBuilderPreviewDevState {
 }
 
 declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Read-only accessor the App Builder BFF uses for `getPreview`. */
+    appBuilderSnapshotBridge: AppBuilderSnapshotBridgeAccessor
+  }
   interface Events {
     /** Preview tool → snapshot bridge. Fired on every dev-server state transition. */
     'app-builder-preview/dev-state'(state: AppBuilderPreviewDevState): void
@@ -214,6 +218,12 @@ async function writeSnapshotFile(path: string, snapshot: AppBuilderSnapshot): Pr
   await rename(tmpPath, path)
 }
 
+/** Read-only accessor the App Builder BFF consumes for `getPreview`. */
+export interface AppBuilderSnapshotBridgeAccessor {
+  /** Return the latest in-memory snapshot the HTTP route serves. */
+  snapshot(): AppBuilderSnapshot
+}
+
 /** Send a JSON response. The snapshot endpoint always speaks JSON. */
 function sendJson(res: ServerResponse, status: number, body: string): void {
   res.writeHead(status, {
@@ -285,6 +295,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   // ties to the caller fiber (the plugin entry), so disposing the plugin
   // removes it.
   ctx.on('project/created', () => { flush() })
+  ctx.on('project/deleted', () => { flush() })
 
   // Seed the snapshot once at apply time: a deployment that boots with a
   // pre-existing in-memory registry has projects before any new event fires.
@@ -309,6 +320,11 @@ export function apply(ctx: Context, config: Config = {}): void {
     devServers[projectId] = next
     flush()
   })
+
+  // Expose the in-memory snapshot to the App Builder BFF's `getPreview`
+  // method. The accessor returns the same cache the HTTP route serves,
+  // so a BFF read is coherent with the most recent browser poll.
+  ctx.appBuilderSnapshotBridge = { snapshot: () => cachedSnapshot }
 
   ctx.effect(() => dispose, 'app-builder-snapshot-bridge: route disposer')
 }

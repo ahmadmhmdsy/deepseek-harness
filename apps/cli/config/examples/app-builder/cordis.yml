@@ -98,6 +98,22 @@
 - id: app-builder-preview
   name: '@deepseek-ai/dsh-app-builder-preview'
 
+- id: app-builder-snapshot-bridge
+  name: '@deepseek-ai/dsh-app-builder-snapshot-bridge'
+
+# App Builder Host BFF Typert Remote service. The 13 methods auto-discover
+# through @deepseek-ai/dsh-api-gateway (already in dsh-base). Requires
+# @deepseek-ai/dsh-api-session-controller for the session lifecycle methods
+# and SSE event subscription.
+- id: app-builder-api
+  name: '@deepseek-ai/dsh-app-builder-api'
+
+- id: api-session-controller
+  name: '@deepseek-ai/dsh-api-session-controller'
+
+- id: api-remotes
+  name: '@deepseek-ai/dsh-api-remotes'
+
 - id: persistence
   name: '@deepseek-ai/dsh-session-persistence-jsonl'
   config:

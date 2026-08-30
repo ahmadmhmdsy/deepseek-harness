@@ -13,10 +13,10 @@ import type { Context } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 
-import type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectId } from './types.ts'
+import type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectDeletedEvent, ProjectId } from './types.ts'
 import { bindProjectionContext, projectProjectionDefinition } from './projection.ts'
 
-export type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectId, ProjectStack } from './types.ts'
+export type { CreateProjectInput, Project, ProjectCreatedEvent, ProjectDeletedEvent, ProjectId, ProjectStack } from './types.ts'
 export type { ProjectState, ProjectView } from './projection.ts'
 export { projectProjectionDefinition } from './projection.ts'
 
@@ -26,6 +26,7 @@ declare module '@deepseek-ai/cordis' {
   }
   interface Events {
     'project/created'(event: ProjectCreatedEvent): void
+    'project/deleted'(event: ProjectDeletedEvent): void
   }
 }
 
@@ -68,6 +69,26 @@ export class ProjectRegistry extends Service {
     const event: ProjectCreatedEvent = { type: 'project/created', project }
     this.ctx.emit('project/created', event)
     this.ctx.logger('app-builder-project').info(`project '${project.name}' created at ${project.rootPath}`)
+    return project
+  }
+
+  /**
+   * Remove one project from the in-memory registry and emit `project/deleted`.
+   * The handler removes the record before emitting so a listener that calls
+   * `list()` or `get(id)` observes the post-delete state, mirroring the
+   * add-then-emit ordering of `create()`. File-system cleanup is the
+   * caller's responsibility (the BFF's `deleteProject` does it; the model-
+   * facing `app_builder_scaffold` never calls this method).
+   * @param id - Project id to remove.
+   * @returns the removed project record, or `undefined` when no record exists.
+   */
+  delete(id: ProjectId): Project | undefined {
+    const project = this.projects.get(id)
+    if (project === undefined) return undefined
+    this.projects.delete(id)
+    const event: ProjectDeletedEvent = { type: 'project/deleted', project }
+    this.ctx.emit('project/deleted', event)
+    this.ctx.logger('app-builder-project').info(`project '${project.name}' deleted from ${project.rootPath}`)
     return project
   }
 

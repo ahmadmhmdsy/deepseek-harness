@@ -22,3 +22,22 @@
     # App Builder persona: scopes the agent to project scaffolding + iteration.
     - id: app-builder-persona
       name: '@deepseek-ai/dsh-app-builder-persona'
+
+    # Snapshot bridge: in-memory { projects, devServers } projection the
+    # browser projects pane polls; also feeds the BFF's getPreview method.
+    - id: app-builder-snapshot-bridge
+      name: '@deepseek-ai/dsh-app-builder-snapshot-bridge'
+
+    # BFF Typert Remote: 13 Remote methods (project CRUD, session lifecycle,
+    # SSE event subscription, preview, deploy, usage). Auto-discovered by the
+    # api-gateway mounted in @deepseek-ai/dsh-base. Requires
+    # @deepseek-ai/dsh-api-session-controller for the session methods and the
+    # SSE stream; mounts here so a downstream profile gets the full BFF.
+    - id: app-builder-api
+      name: '@deepseek-ai/dsh-app-builder-api'
+
+    - id: api-session-controller
+      name: '@deepseek-ai/dsh-api-session-controller'
+
+    - id: api-remotes
+      name: '@deepseek-ai/dsh-api-remotes'

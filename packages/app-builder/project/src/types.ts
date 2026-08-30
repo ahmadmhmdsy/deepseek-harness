@@ -31,6 +31,12 @@ export interface ProjectCreatedEvent {
   readonly project: Project
 }
 
+/** Event payload for `project/deleted`; emitted when a durable project record is removed. */
+export interface ProjectDeletedEvent {
+  readonly type: 'project/deleted'
+  readonly project: Project
+}
+
 /** Input shape for `ProjectRegistry.create`; schemastery validates it. */
 export interface CreateProjectInput {
   readonly name: string

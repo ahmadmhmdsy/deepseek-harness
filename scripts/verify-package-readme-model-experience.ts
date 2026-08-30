@@ -36,6 +36,7 @@ const NO_MODEL_EXPERIENCE_SECTION: Readonly<Record<string, string>> = {
   'packages/util/launch-environment': 'The package only resolves host environment values; model-facing consumers own any rendered use.',
   'packages/util/workspace-path': 'The package only formats Workspace paths for browser UI; it never constructs model input.',
   'packages/app-builder/project': 'The project entity + projection unit folds session cwd against the in-memory registry; consumers (listing UI, API gateway) read the persisted cache row, and prompts and tool catalog are owned by the composing agent preset.',
+  'packages/app-builder/api': 'The Typert Remote BFF dispatches 13 host-side methods (project CRUD, session lifecycle, SSE event subscription, preview, deploy, getUsage) to upstream services that own each relation; model-facing rendering is owned by the composing agent preset and the model-facing tools those plugins register.',
 }
 
 /**

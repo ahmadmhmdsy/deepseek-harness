@@ -12,6 +12,8 @@ App Builder MVP：在 DeepSeek Harness 之上的“提示词 → 运行中应用
 | [`scaffold/`](scaffold/) | 组合 filesystem + bash + str-replace-editor 工具以脚手架模板项目（nextjs-app、nextjs-pages、svelte-spa） |
 | [`preview/`](preview/) | 组合 bash + jobs 启动项目开发服务器并轮询就绪；仅 localhost |
 | [`persona/`](persona/) | 基于 `@deepseek-ai/dsh-persona` 的 App Builder 编程 persona |
+| [`snapshot-bridge/`](snapshot-bridge/) | 在 `/__dsh/app-builder/snapshot.json` 提供的内存 `{ projects, devServers }` 投影；浏览器项目面板轮询此接口 |
+| [`api/`](api/) | 宿主 BFF Typert Remote 服务：13 个方法（项目 CRUD、Session 生命周期、SSE 事件订阅、preview、deploy、usage），由 `@deepseek-ai/dsh-api-gateway` 自动发现 |
 
 ## Bundle
 

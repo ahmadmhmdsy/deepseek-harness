@@ -915,6 +915,55 @@ importers:
         specifier: workspace:^
         version: link:../../workspace/workspace
 
+  packages/app-builder/api:
+    dependencies:
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/cordis-plugin-include':
+        specifier: workspace:^
+        version: link:../../../vendor/include
+      '@deepseek-ai/cordis-plugin-loader':
+        specifier: workspace:^
+        version: link:../../../vendor/loader
+      '@deepseek-ai/dsh-api-session-controller':
+        specifier: workspace:^
+        version: link:../../api/session-controller
+      '@deepseek-ai/dsh-app-builder-preview':
+        specifier: workspace:^
+        version: link:../preview
+      '@deepseek-ai/dsh-app-builder-project':
+        specifier: workspace:^
+        version: link:../project
+      '@deepseek-ai/dsh-app-builder-scaffold':
+        specifier: workspace:^
+        version: link:../scaffold
+      '@deepseek-ai/dsh-app-builder-snapshot-bridge':
+        specifier: workspace:^
+        version: link:../snapshot-bridge
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
+      '@deepseek-ai/dsh-typert-registry':
+        specifier: workspace:^
+        version: link:../../typert/registry
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
+      typescript:
+        specifier: ^5.0.0
+        version: 5.9.3
+
   packages/app-builder/persona:
     devDependencies:
       '@deepseek-ai/cordis':
@@ -1187,6 +1236,15 @@ importers:
 
   packages/bundle/app-builder:
     dependencies:
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
+      '@deepseek-ai/dsh-api-session-controller':
+        specifier: workspace:^
+        version: link:../../api/session-controller
+      '@deepseek-ai/dsh-app-builder-api':
+        specifier: workspace:^
+        version: link:../../app-builder/api
       '@deepseek-ai/dsh-app-builder-persona':
         specifier: workspace:^
         version: link:../../app-builder/persona
@@ -1199,13 +1257,22 @@ importers:
       '@deepseek-ai/dsh-app-builder-scaffold':
         specifier: workspace:^
         version: link:../../app-builder/scaffold
+      '@deepseek-ai/dsh-app-builder-snapshot-bridge':
+        specifier: workspace:^
+        version: link:../../app-builder/snapshot-bridge
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-gateway':
+        specifier: workspace:^
+        version: link:../../api/gateway
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-typert-protocol':
+        specifier: workspace:^
+        version: link:../../typert/protocol
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.0
