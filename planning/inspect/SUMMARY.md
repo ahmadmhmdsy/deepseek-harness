@@ -112,7 +112,7 @@ NaN- Session telemetry (OpenTelemetry).
   - `dsh-app-builder-scaffold` (~150 LOC; composes fs + bash + str-replace-editor).
   - `dsh-app-builder-preview` (readiness probe + headless screenshot; composes bash + jobs).
   - `dsh-app-builder-persona` (App Builder persona).
-- New example `examples/app-builder/`:
+- New example `apps/cli/config/examples/app-builder/` (relocated from `examples/app-builder/` in Phase 1.5 per the upstream retirement PR #2977):
   - `cordis.yml` + `cordis.snapshot.yml`.
   - `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`).
   - `tests/e2e/with-key-smoke.spec.ts` (sends a real prompt, verifies scaffold + preview).
@@ -122,6 +122,21 @@ NaN- Session telemetry (OpenTelemetry).
   - Preview iframe pane (binds to the per-project dev server URL).
 - Agent Notes: `scaffold-plugin`, `preview-plugin`, `project-entity`.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
+- Status: in progress on `app-builder-web-reskin`; four packages shipped, shell + projects pane shipped; web reskin pending (lands in Phase 1.5).
+
+**Phase 1.5 (revised) — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)**
+
+Inserted between Phase 1 and Phase 2. Synchronizes the fork to upstream's `dsh-v0.1.2-alpha.1` release (`cd5ef81481`) so Phase 2 starts on top of upstream's chosen app shape (`apps/cli` + `apps/web`) and the up-to-date API / projection infrastructure.
+
+- **Sub-phase 1.5.1 — B2 merge.** `git merge --no-ff upstream/master` on a new branch. Resolves the 25 shared paths (see [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md §3`](19-upstream-v0.1.2-alpha.1-adoption-plan.md)). Regenerates `pnpm-lock.yaml` via `pnpm install`. All 5 gates green. Native stacked PR.
+- **Sub-phase 1.5.2 — Examples relocation.** Move `examples/app-builder/` → `apps/cli/config/examples/app-builder/`. Re-record keyless/with-key snapshots at the new path. 5 gates green. Update `planning/Phase 1 prompt.md §6` and `planning/inspect/18-phase1-start-record.md`. Stacked on 1.5.1.
+- **Sub-phase 1.5.3 — Apps/web reskin.** Integrate `packages/client/ui-app-builder-shell` + `packages/client/ui-app-builder-projects` into upstream's rebuilt `apps/web/` (183 files, 56 first-parent merges past `b150a551b8`). Add slot declarations (`app-builder-shell`, `app-builder.projects`, `app-builder.preview`, `app-builder.conversation`) to upstream's host. Update `apps/web/index.html` title. Re-record web browser snapshots. Stacked on 1.5.2.
+- **Sub-phase 1.5.4 — Projection cache adoption.** Cherry-pick `xtr/projection-per-session-cache` (PR #2781, `53c8f64eed`). Wire `packages/session/session-projection-cache/` into `packages/app-builder/project/` (Phase 2 §4: project projection unit + cache). 5 gates green. Stacked on 1.5.3.
+- **Sub-phase 1.5.5 — API gateway adoption.** Cherry-pick the `worktree-apire-*` cluster (PRs #2911, #2968, #3082, #3083, #3085, #3086, #3217, #3235 + #3148). Scaffold `packages/app-builder/api/` with the 11 methods from Phase 2 §3. Mount via `@deepseek-ai/dsh-api-gateway` + `@deepseek-ai/dsh-api-remotes`. 5 gates green. Stacked on 1.5.4.
+- **Sub-phase 1.5.6 — Subagent provider.** Cherry-pick PR #2663 (`f76a225a7d`). Re-apply our `721c1d6fe1 fix(subagent): route spawned children through parent's live model selection` if the B2 merge clobbered it. 5 gates green. Stacked on 1.5.5.
+- **Sub-phase 1.5.7 — Planning artifacts.** Update `planning/plan.md`, `planning/goal.md`, `planning/Phase 2 prompt.md`, `planning/inspect/INDEX.md` (this entry), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md`. Stacked on 1.5.6.
+
+Detailed per-file conflict map and resolution plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](19-upstream-v0.1.2-alpha.1-adoption-plan.md). Task brief: [`Phase 1.5 prompt.md`](../Phase%201.5%20prompt.md).
 
 **Phase 2 (revised) — Productize control plane (2–4 weeks)**
 

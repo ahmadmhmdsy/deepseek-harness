@@ -25,6 +25,7 @@
 19. [18-phase1-start-record.md](18-phase1-start-record.md) — Phase 1 kickoff log on `app-builder-web-reskin`: per-package status, decisions, residual failures as the App Builder MVP lands
 
 20. [21-app-builder-web-shell.md](21-app-builder-web-shell.md) - App Builder web reskin plan: 3-pane shell (projects | chat | preview), server-state bridge via file snapshot, slot composition contract, test plan, and git sequence for `app-builder-web-reskin`
+21. [19-upstream-v0.1.2-alpha.1-adoption-plan.md](19-upstream-v0.1.2-alpha.1-adoption-plan.md) — Phase 1.5 detailed plan: B2 merge of upstream's 1079 commits past `b150a551b8`, the 25 shared-path conflict map, the `examples/app-builder/` → `apps/cli/config/examples/app-builder/` relocation, the `apps/web/` reskin onto upstream's rebuilt host, the three Phase 2 accelerators (`xtr/projection-per-session-cache`, `worktree-apire-*` cluster, `feat/subagent-provider`), the native GitHub stacked-PR sequence, and the verification gates per sub-phase
 ## Conventions
 
 - Each file ends with a 'Plan mismatches identified (carried to Step 14)' section (steps 1-14).

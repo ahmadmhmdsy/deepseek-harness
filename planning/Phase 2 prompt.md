@@ -2,12 +2,15 @@
 
 Read [docs/PROJECT.md](../../docs/PROJECT.md) first. Goal: a real product around dsh, still single-user but scale-ready.
 
+> **Predecessor**: Phase 1.5 (Upstream sync) merges `dsh-v0.1.2-alpha.1` and re-grounds the fork on upstream's app shape. By the time Phase 2 begins, `apps/web/` is upstream's, `examples/app-builder/` lives at `apps/cli/config/examples/app-builder/`, `packages/session/session-projection-cache/` is wired into `packages/app-builder/project/`, and the `worktree-apire-*` cluster + `feat/subagent-provider` are in our tree. Phase 2 builds the App Builder products on top of that infra — not on top of `0.1.1-rc.2`. The detailed sync plan lives in [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md).
+
 ## 0. Resolved decisions for Phase 2
 
-- **API style**: Typert RPC + JSON-RPC. The control plane exposes REST + SSE endpoints through a Typert Remote service; the underlying transport is JSON-RPC 2.0 over stdio + the Typert RPC HTTP gateway. **Do not add a new HTTP layer.** Re-use `@deepseek-ai/dsh-api-gateway` and `@deepseek-ai/dsh-api-remotes`.
+- **API style**: Typert RPC + JSON-RPC. The control plane exposes REST + SSE endpoints through a Typert Remote service; the underlying transport is JSON-RPC 2.0 over stdio + the Typert RPC HTTP gateway. **Do not add a new HTTP layer.** Re-use `@deepseek-ai/dsh-api-gateway` and `@deepseek-ai/dsh-api-remotes` (both at upstream's `0.1.2-alpha.1` after Phase 1.5 sub-phase 1.5.5).
   - REST endpoints (one-shot request/response): standard Typert method dispatch.
   - SSE endpoints (subscribeEvents, live updates): reuse the existing `session/projection` push frame; SSE is an addition over the same agent-event stream.
   - JSON-RPC over stdio: the existing wire (`@deepseek-ai/dsh-sdk-protocol`); SDK clients (TS + Python) already speak it. Out-of-process clients (CI, automation) drive the App Builder through the same wire.
+- **Projection cache**: `packages/session/session-projection-cache/` (adopted in Phase 1.5 sub-phase 1.5.4) is the Phase 2 §4 cache. `packages/app-builder/project/` already peer-depends on it.
 
 ## 1. Deployment package (`packages/app-builder/deployment/`)
 

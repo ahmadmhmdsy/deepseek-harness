@@ -32,6 +32,22 @@
 
 **Exit criteria**: prompt -> scaffold -> run -> preview -> iterate -> resume works locally, sandboxed; all five verification commands pass.
 
+## Phase 1.5 — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)
+
+**Goal**: synchronize the fork to upstream's tagged release so Phase 2 starts on top of upstream's chosen app shape and up-to-date API / projection infrastructure. The pin moves from `0.1.1-rc.2` to `0.1.2-alpha.1`.
+
+- **Sub-phase 1.5.1 — B2 merge.** `git merge --no-ff upstream/master` on a new branch. Resolve the 25 shared paths. Regenerate `pnpm-lock.yaml`. All 5 gates green.
+- **Sub-phase 1.5.2 — Examples relocation.** Move `examples/app-builder/` → `apps/cli/config/examples/app-builder/`. Re-record snapshots. 5 gates green.
+- **Sub-phase 1.5.3 — Apps/web reskin.** Integrate `ui-app-builder-shell` + `ui-app-builder-projects` into upstream's rebuilt `apps/web/` (183 files). Add slot declarations. Re-record web snapshots. 5 gates green.
+- **Sub-phase 1.5.4 — Projection cache adoption.** Wire `xtr/projection-per-session-cache` (PR #2781) into `packages/app-builder/project/`. 5 gates green.
+- **Sub-phase 1.5.5 — API gateway adoption.** Cherry-pick `worktree-apire-*` cluster. Scaffold `packages/app-builder/api/`. 5 gates green.
+- **Sub-phase 1.5.6 — Subagent provider.** Cherry-pick PR #2663. Re-apply our `721c1d6fe1 fix` if clobbered. 5 gates green.
+- **Sub-phase 1.5.7 — Planning artifacts.** Update `plan.md`, `goal.md`, `Phase 2 prompt.md`, `inspect/INDEX.md`, `inspect/SUMMARY.md`, `docs/PROJECT.md`. `pnpm run doc-sync` PASS.
+
+Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md).
+
+**Exit criteria**: `master` pin = `0.1.2-alpha.1`; `examples/app-builder/` lives at `apps/cli/config/examples/app-builder/`; `apps/web/` is upstream's; `packages/app-builder/api/` scaffolded; `packages/app-builder/project/` uses the cache; `packages/subagent/subagent/` includes both upstream's refactor and our fix; all 5 verification commands PASS; all 7 sub-phase PRs merged via native stacked PRs; `docs/PROJECT.md` reflects the new state.
+
 ## Phase 2 — Productize the control plane (2–4 weeks)
 
 **Goal**: a real product around dsh, still single-user but scale-ready.

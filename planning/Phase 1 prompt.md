@@ -53,6 +53,8 @@ Each package listed in the patch must appear in `bundle/app-builder/package.json
 
 ## 6. Example (`examples/app-builder/`)
 
+> Note: this location moves to `apps/cli/config/examples/app-builder/` in Phase 1.5 (Upstream sync). Upstream's PR #2977 retired top-level `examples/`; the fork aligns with the new shape before Phase 2 begins. Snapshot fixtures and the keyless/with-key smokes re-record at the new path. See [`Phase 1.5 prompt.md §1.2`](Phase%201.5%20prompt.md).
+
 - `cordis.yml` mounting the bundle.
 - `cordis.snapshot.yml` (expected composition output).
 - `tests/e2e/keyless-smoke.spec.ts` — boots via `@deepseek-ai/dsh-loader-smoke`.
