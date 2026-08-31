@@ -26,6 +26,7 @@ import Include from '@deepseek-ai/cordis-plugin-include'
 import SessionStore from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as AppBuilderProjectPlugin from '@deepseek-ai/dsh-app-builder-project'
+import * as AppBuilderDeploymentPlugin from '@deepseek-ai/dsh-app-builder-deployment'
 import * as AppBuilderApi from '@deepseek-ai/dsh-app-builder-api'
 
 let root: string | undefined
@@ -103,14 +104,18 @@ class FakeSessionController extends Service {
   }
 }
 
-async function loadYaml(): Promise<{ ctx: Context; calls: SessionCalls }> {
+async function loadYaml(options: { withDeployment?: boolean } = {}): Promise<{ ctx: Context; calls: SessionCalls }> {
   root = await mkdtemp(join(tmpdir(), 'dsh-app-builder-api-'))
   const configPath = join(root, 'cordis.yml')
-  const yaml = [
+  const yamlLines = [
     "- name: '@deepseek-ai/dsh-session'",
     "- name: '@deepseek-ai/dsh-session-projection'",
     "- name: '@deepseek-ai/dsh-app-builder-project'",
-  ].join('\n')
+  ]
+  if (options.withDeployment === true) {
+    yamlLines.push("- name: '@deepseek-ai/dsh-app-builder-deployment'")
+  }
+  const yaml = yamlLines.join('\n')
   await writeFile(configPath, yaml + '\n', 'utf8')
 
   context = new Context()
@@ -122,6 +127,9 @@ async function loadYaml(): Promise<{ ctx: Context; calls: SessionCalls }> {
     ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
     ['@deepseek-ai/dsh-app-builder-project', AppBuilderProjectPlugin],
   ])
+  if (options.withDeployment === true) {
+    modules.set('@deepseek-ai/dsh-app-builder-deployment', AppBuilderDeploymentPlugin)
+  }
   context.loader.internal = {
     version: 'v2',
     async import(specifier: string) {
@@ -374,6 +382,20 @@ describe('@deepseek-ai/dsh-app-builder-api (real Loader composition)', () => {
       deploy(req: { projectId: string }): Promise<unknown>
     }
     await expect(api.deploy({ projectId: 'phantom' })).rejects.toMatchObject({ failure: { code: 'not-implemented' } })
+  })
+
+  it('deploy wires through ctx.appBuilderDeployment when the deployment plugin is mounted', async () => {
+    const { ctx } = await loadYaml({ withDeployment: true })
+    const projectRoot = await mkdtemp(join(tmpdir(), 'dsh-api-deploy-'))
+    const api = ctx.get('appBuilderApi') as {
+      createProject(req: { name: string; rootPath: string; stack: 'nextjs-app' }): Promise<{ project: { id: string } }>
+      deploy(req: { projectId: string }): Promise<{ projectId: string; deploymentId: string; url?: string }>
+    }
+    const created = await api.createProject({ name: 'demo', rootPath: projectRoot, stack: 'nextjs-app' })
+    const deployed = await api.deploy({ projectId: created.project.id })
+    expect(deployed.projectId).toBe(created.project.id)
+    expect(deployed.deploymentId).toBeTruthy()
+    expect(deployed.url).toBe('https://deploy.local/' + created.project.id + '/' + deployed.deploymentId)
   })
 
   it('getUsage returns the typed not-implemented failure', async () => {

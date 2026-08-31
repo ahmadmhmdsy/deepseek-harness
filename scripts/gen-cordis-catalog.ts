@@ -176,6 +176,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   theme: 'client-side interface-typed browser service — packages/client/ui-theme/README.md owns the API',
   workspaces: 'client-side interface-typed browser service — packages/api/workspace-controller/README.md owns the API',
   appBuilder: 'client-side App Builder shell service accessor — packages/client/ui-app-builder-shell/README.md owns the API',
+  appBuilderDeployment: 'App Builder deployment pipeline registry (SAST / SCA / secrets gates + approval + push) — packages/app-builder/deployment/README.md owns the API',
 }
 
 /**
@@ -233,6 +234,9 @@ export const EVENT_WALK_EXEMPTIONS: Record<string, string> = {
   'slash/input-insert-text': 'client-face slash-input protocol — packages/client/ui-input-trigger/README.md owns the API',
   'slots/changed': 'client-face slot invalidation signal — packages/client/ui-renderer/README.md owns the API',
   'theme/change': 'client-face theme switch signal — packages/client/ui-theme/README.md owns the API',
+  'deployment/started': 'App Builder deployment pipeline start signal — packages/app-builder/deployment/README.md owns the API',
+  'deployment/succeeded': 'App Builder deployment pipeline success signal — packages/app-builder/deployment/README.md owns the API',
+  'deployment/failed': 'App Builder deployment pipeline failure signal — packages/app-builder/deployment/README.md owns the API',
 }
 
 /**

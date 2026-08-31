@@ -33,8 +33,17 @@
     # api-gateway mounted in @deepseek-ai/dsh-base. Requires
     # @deepseek-ai/dsh-api-session-controller for the session methods and the
     # SSE stream; mounts here so a downstream profile gets the full BFF.
+    # The deploy method delegates to ctx.appBuilderDeployment, so the
+    # deployment plugin must be mounted in the same composition.
     - id: app-builder-api
       name: '@deepseek-ai/dsh-app-builder-api'
+
+    # Deployment pipeline: SAST / SCA / secrets gates + approval gate + push
+    # step. The pipeline emits deployment/started|succeeded|failed events and
+    # backs the BFF's `deploy` Typert Remote method. Phase 2.1 ships the
+    # MVP; Phase 2.5 replaces the synthetic local push with a production hook.
+    - id: app-builder-deployment
+      name: '@deepseek-ai/dsh-app-builder-deployment'
 
     - id: api-session-controller
       name: '@deepseek-ai/dsh-api-session-controller'

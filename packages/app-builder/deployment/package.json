@@ -1,6 +1,6 @@
 {
-  "name": "@deepseek-ai/dsh-app-builder-api",
-  "description": "App Builder Host BFF Typert Remote: project CRUD, session lifecycle, transcript replay, SSE event subscription, preview, deploy, and usage surface over the App Builder registries",
+  "name": "@deepseek-ai/dsh-app-builder-deployment",
+  "description": "App Builder deployment pipeline: deterministic SAST / SCA / secrets gates + approval gate + push step. Owns the in-memory DeploymentRegistry and emits `deployment/started|succeeded|failed` events",
   "version": "0.1.2-alpha.1",
   "publishConfig": {
     "access": "public"
@@ -8,7 +8,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/deepseek-ai/deepseek-harness.git",
-    "directory": "packages/app-builder/api"
+    "directory": "packages/app-builder/deployment"
   },
   "type": "module",
   "main": "lib/index.js",
@@ -40,31 +40,15 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-api-session-controller": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-preview": "workspace:^",
     "@deepseek-ai/dsh-app-builder-project": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-scaffold": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-snapshot-bridge": "workspace:^",
-    "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-typert-protocol": "workspace:^",
-    "@deepseek-ai/dsh-typert-registry": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^"
+    "@deepseek-ai/dsh-invariants": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/cordis-plugin-include": "workspace:^",
     "@deepseek-ai/cordis-plugin-loader": "workspace:^",
-    "@deepseek-ai/dsh-api-session-controller": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-preview": "workspace:^",
     "@deepseek-ai/dsh-app-builder-project": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-scaffold": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-snapshot-bridge": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
-    "@deepseek-ai/dsh-session": "workspace:^",
-    "@deepseek-ai/dsh-typert-protocol": "workspace:^",
-    "@deepseek-ai/dsh-typert-registry": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^",
     "@types/node": "^22.0.0",
     "typescript": "^5.0.0"
   }

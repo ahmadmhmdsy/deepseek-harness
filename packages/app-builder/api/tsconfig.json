@@ -16,6 +16,7 @@
     { "path": "../../../packages/app-builder/scaffold" },
     { "path": "../../../packages/app-builder/preview" },
     { "path": "../../../packages/app-builder/snapshot-bridge" },
+    { "path": "../../../packages/app-builder/deployment" },
     { "path": "../../../packages/core/session" },
     { "path": "../../../packages/typert/protocol" },
     { "path": "../../../packages/typert/registry" }

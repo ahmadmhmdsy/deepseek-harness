@@ -104,9 +104,16 @@
 # App Builder Host BFF Typert Remote service. The 13 methods auto-discover
 # through @deepseek-ai/dsh-api-gateway (already in dsh-base). Requires
 # @deepseek-ai/dsh-api-session-controller for the session lifecycle methods
-# and SSE event subscription.
+# and SSE event subscription. The deploy method delegates to
+# ctx.appBuilderDeployment, so the deployment plugin must be in the same
+# composition.
 - id: app-builder-api
   name: '@deepseek-ai/dsh-app-builder-api'
+
+# Deployment pipeline: SAST / SCA / secrets gates + approval gate + push step.
+# Phase 2.1.
+- id: app-builder-deployment
+  name: '@deepseek-ai/dsh-app-builder-deployment'
 
 - id: api-session-controller
   name: '@deepseek-ai/dsh-api-session-controller'
