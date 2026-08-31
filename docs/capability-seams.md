@@ -217,6 +217,12 @@ flowchart LR
   pkg_cordis_host_runner["cordis-host-runner"]
   svc_dynamicCordisRunner["ctx.dynamicCordisRunner<br/>Dynamic Cordis package host runner"]
   svc_cordisInspect["ctx.cordisInspect<br/>Dynamic Cordis inspect registry"]
+  pkg_app_builder_project["app-builder/project"]
+  svc_appBuilderProjects["ctx.appBuilderProjects<br/>App Builder project registry"]
+  pkg_app_builder_api["app-builder/api"]
+  pkg_app_builder_snapshot_bridge["app-builder/snapshot-bridge"]
+  svc_appBuilderSnapshotBridge["ctx.appBuilderSnapshotBridge<br/>App Builder preview snapshot bridge"]
+  pkg_bundle_app_builder["bundle/app-builder"]
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
@@ -229,6 +235,8 @@ flowchart LR
   pkg_api_settings_controller --> svc_settingsController
   pkg_api_workspace_controller --> svc_directoryPickerController
   pkg_api_workspace_controller --> svc_workspaceController
+  pkg_app_builder_project --> svc_appBuilderProjects
+  pkg_app_builder_snapshot_bridge --> svc_appBuilderSnapshotBridge
   pkg_attachment --> svc_attachments
   pkg_attachment_local --> svc_attachments
   pkg_authorization --> svc_authorization
@@ -341,6 +349,10 @@ flowchart LR
   svc_agents --> pkg_acp
   svc_agents --> pkg_agent_loop
   svc_agents --> pkg_subagent_in_process_driver
+  svc_appBuilderProjects --> pkg_app_builder_api
+  svc_appBuilderProjects --> pkg_app_builder_snapshot_bridge
+  svc_appBuilderSnapshotBridge --> pkg_app_builder_api
+  svc_appBuilderSnapshotBridge --> pkg_bundle_app_builder
   svc_approval --> pkg_acp
   svc_approval --> pkg_tool_bash
   svc_approval --> pkg_tools
@@ -532,5 +544,7 @@ flowchart LR
 | `ctx.lsp` | `seam` | [`lsp`](../packages/lsp/lsp) | [`lsp-stdio`](../packages/lsp/lsp-stdio) | [`tool-lsp`](../packages/lsp/tool-lsp) | - | Provider registration and selection plus normalized query execution over exactly four operations; the seam offers no protocol escape hatch, so a backend translates into the normalized request and result. |
 | `ctx.dynamicCordisRunner` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Owns the in-memory definition registry, the vm sandbox for host halves, and the request-run round trip; browser pages reach the same service over the wire through its remote namespace. |
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
+| `ctx.appBuilderProjects` | `core` | `app-builder/project` | - | `app-builder/api`, `app-builder/snapshot-bridge` | - | Process-local registry for App Builder projects; emits project/created and project/deleted events for synchronous consumer refresh. |
+| `ctx.appBuilderSnapshotBridge` | `core` | `app-builder/snapshot-bridge` | - | `app-builder/api`, `bundle/app-builder` | - | Mirrors dev-server lifecycle into a single in-memory snapshot served at /__dsh/app-builder/snapshot.json; the browser projects pane polls it. |
 
 Maintenance mode: hybrid: services are discovered from Cordis declarations; interface/implementation/consumer roles are classified in `scripts/gen-doc-graphs.ts` with a completeness guard.

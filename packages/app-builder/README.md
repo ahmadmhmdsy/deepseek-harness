@@ -21,6 +21,7 @@ The App Builder bundle lives at [`packages/bundle/app-builder/`](../../bundle/ap
 
 ## Reference
 
+- [`docs/subsystems/app-builder.md`](../../docs/subsystems/app-builder.md) - Subsystem reference (Cordis API + service contracts)
 - [`planning/Phase 1 prompt.md`](../../../planning/Phase%201%20prompt.md) - Phase 1 task brief
 - [`planning/plan.md`](../../../planning/plan.md) - App Builder MVP section (Phase 1)
 - [`planning/inspect/18-phase1-start-record.md`](../../../planning/inspect/18-phase1-start-record.md) - Phase 1 kickoff log

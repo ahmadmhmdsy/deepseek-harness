@@ -115,7 +115,13 @@ declare module '@deepseek-ai/cordis' {
     appBuilderSnapshotBridge: AppBuilderSnapshotBridgeAccessor
   }
   interface Events {
-    /** Preview tool → snapshot bridge. Fired on every dev-server state transition. */
+    /**
+     * Preview tool → snapshot bridge. Fired on every dev-server state transition;
+     * the bridge consumes it to mirror the latest dev-server status into the
+     * snapshot served at `/__dsh/app-builder/snapshot.json`.
+     * @param state - the new dev-server state.
+     * @mode emit
+     */
     'app-builder-preview/dev-state'(state: AppBuilderPreviewDevState): void
   }
 }
@@ -220,7 +226,10 @@ async function writeSnapshotFile(path: string, snapshot: AppBuilderSnapshot): Pr
 
 /** Read-only accessor the App Builder BFF consumes for `getPreview`. */
 export interface AppBuilderSnapshotBridgeAccessor {
-  /** Return the latest in-memory snapshot the HTTP route serves. */
+  /**
+   * Return the latest in-memory snapshot the HTTP route serves.
+   * @returns the cached App Builder snapshot (projects + dev-servers).
+   */
   snapshot(): AppBuilderSnapshot
 }
 

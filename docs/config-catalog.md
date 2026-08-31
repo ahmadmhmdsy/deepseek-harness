@@ -322,6 +322,118 @@ export interface Config {
 
 Source: [`packages/api/settings-controller/src/index.ts:41`](../packages/api/settings-controller/src/index.ts)
 
+<a id="deepseek-aidsh-app-builder-persona"></a>
+
+## `@deepseek-ai/dsh-app-builder-persona`
+
+Requires: `systemPrompt`
+
+```ts config-catalog
+/** Plugin-level config: the App Builder identity overrides for one agent preset. */
+export interface Config {
+  /** Persona text rendered as the `deployment:persona` section. Defaults to the App Builder identity. */
+  text?: string
+  /** Make this persona the complete system prompt, suppressing every other section. */
+  complete?: boolean
+  /** Suppress dynamic runtime-context snapshots for this persona's agent scope. */
+  includeRuntimeContext?: boolean
+}
+```
+
+Source: [`packages/app-builder/persona/src/index.ts:30`](../packages/app-builder/persona/src/index.ts)
+
+<a id="deepseek-aidsh-app-builder-preview"></a>
+
+## `@deepseek-ai/dsh-app-builder-preview`
+
+Requires: `tools` · `fs` · `shell` · `systemPrompt` · `sandboxPolicy` · `agents`
+
+```ts config-catalog
+/** Plugin-level config: deployment-time defaults applied when the model omits an input. */
+export interface Config {
+  /** Default readiness poll timeout in milliseconds (default 30000). */
+  defaultReadyTimeoutMs?: number
+  /** Default poll interval in milliseconds (default 250). */
+  defaultPollIntervalMs?: number
+  /** Force a framework choice instead of auto-detecting from package.json. */
+  frameworkOverride?: PreviewFramework
+}
+
+/**
+ * Detected framework for the project dev script. The preview tool
+ * branches on this to pick the right port flag (`-p` for next, `--port`
+ * for vite); `unknown` falls through to running the script verbatim with
+ * `PORT` exposed through the environment.
+ */
+export type PreviewFramework = 'next' | 'vite' | 'unknown'
+```
+
+Source: [`packages/app-builder/preview/src/index.ts:78`](../packages/app-builder/preview/src/index.ts)
+
+<a id="deepseek-aidsh-app-builder-project"></a>
+
+## `@deepseek-ai/dsh-app-builder-project`
+
+Requires: `sessionProjections`
+
+```ts config-catalog
+/** Plugin config — all optional; defaults are the MVP shipped values. */
+export interface Config {
+  /** Default `dshProfile` when a project is created without one. */
+  defaultProfile?: string
+}
+```
+
+Source: [`packages/app-builder/project/src/index.ts:159`](../packages/app-builder/project/src/index.ts)
+
+<a id="deepseek-aidsh-app-builder-scaffold"></a>
+
+## `@deepseek-ai/dsh-app-builder-scaffold`
+
+Requires: `tools` · `fs` · `shell` · `systemPrompt` · `sandboxPolicy` · `agents`
+
+```ts config-catalog
+/** Plugin-level config: deployment-time defaults applied when the model omits an input. */
+export interface Config {
+  /** Default template when the model omits `template` (default: `'nextjs-app'`). */
+  defaultTemplate?: ScaffoldTemplate
+  /** Default `npm install` policy (default: true). */
+  defaultNpmInstall?: boolean
+}
+
+/** Frameworks the scaffold tool can instantiate. */
+export type ScaffoldTemplate = 'nextjs-app' | 'nextjs-pages' | 'svelte-spa'
+```
+
+Source: [`packages/app-builder/scaffold/src/index.ts:41`](../packages/app-builder/scaffold/src/index.ts)
+
+<a id="deepseek-aidsh-app-builder-snapshot-bridge"></a>
+
+## `@deepseek-ai/dsh-app-builder-snapshot-bridge`
+
+Requires: `webServer` · `appBuilderProjects`
+
+```ts config-catalog
+/** Plugin-level config (all optional; the defaults match the inspect step 21 contract). */
+export interface Config {
+  /**
+   * Override the snapshot file path. By default the bridge writes to
+   * `$DSH_HOME/state/app-builder-snapshot.json`; an absolute path here is used
+   * verbatim (useful for tests). An empty string disables the file projection —
+   * the HTTP route still serves the in-memory state.
+   */
+  snapshotPath?: string
+  /**
+   * Override the served snapshot URL path. Default `/__dsh/app-builder/snapshot.json`.
+   * The route handler is registered on `ctx.webServer` at this exact path;
+   * the bundle patch's `snapshotUrl` config on the projects pane must match.
+   */
+  snapshotUrlPath?: string
+}
+```
+
+Source: [`packages/app-builder/snapshot-bridge/src/index.ts:136`](../packages/app-builder/snapshot-bridge/src/index.ts)
+
 <a id="deepseek-aidsh-attachment-local"></a>
 
 ## `@deepseek-ai/dsh-attachment-local`
@@ -3407,10 +3519,14 @@ These load from a `cordis.yml` entry with no `config:` block; they declare no co
 - `@deepseek-ai/dsh-agent` ([`packages/core/agent/src/index.ts`](../packages/core/agent/src/index.ts))
 - `@deepseek-ai/dsh-api-remotes` — requires `typertGateway` ([`packages/api/remotes/src/index.ts`](../packages/api/remotes/src/index.ts))
 - `@deepseek-ai/dsh-api-workspace-controller` — requires `typert` · `workspaceRegistry` ([`packages/api/workspace-controller/src/index.ts`](../packages/api/workspace-controller/src/index.ts))
+- `@deepseek-ai/dsh-app-builder` ([`packages/bundle/app-builder/src/index.ts`](../packages/bundle/app-builder/src/index.ts))
+- `@deepseek-ai/dsh-app-builder-api` — requires `appBuilderProjects` · `sessionController` ([`packages/app-builder/api/src/index.ts`](../packages/app-builder/api/src/index.ts))
 - `@deepseek-ai/dsh-authorization` — requires `credentials` ([`packages/credentials/authorization/src/index.ts`](../packages/credentials/authorization/src/index.ts))
 - `@deepseek-ai/dsh-client-locale` ([`packages/client/locale/src/index.ts`](../packages/client/locale/src/index.ts))
 - `@deepseek-ai/dsh-client-modules` — requires `webServer` · `loader` ([`packages/client/modules/src/index.ts`](../packages/client/modules/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-agent-preset` ([`packages/client/ui-agent-preset/src/index.ts`](../packages/client/ui-agent-preset/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-app-builder-projects` ([`packages/client/ui-app-builder-projects/src/index.ts`](../packages/client/ui-app-builder-projects/src/index.ts))
+- `@deepseek-ai/dsh-client-ui-app-builder-shell` ([`packages/client/ui-app-builder-shell/src/index.ts`](../packages/client/ui-app-builder-shell/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-approval` ([`packages/client/ui-approval/src/index.ts`](../packages/client/ui-approval/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-attachment` ([`packages/client/ui-attachment/src/index.ts`](../packages/client/ui-attachment/src/index.ts))
 - `@deepseek-ai/dsh-client-ui-brand-official` ([`packages/client/ui-brand-official/src/index.ts`](../packages/client/ui-brand-official/src/index.ts))

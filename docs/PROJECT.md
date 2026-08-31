@@ -11,7 +11,7 @@ Turn DeepSeek Harness (dsh) — already a working developer preview of a coding-
 ## 2. Constraints
 
 1. **Local + single-user first.** Design every seam for later multi-user scale, but do not build multi-user features yet.
-2. **Extend dsh via plugins. NEVER fork it.** Pin the version (0.1.1-rc.2); dsh ships breaking changes and does not accept external PRs.
+2. **Extend dsh via plugins. NEVER fork it.** Pin the version (0.1.2-alpha.1); dsh ships breaking changes and does not accept external PRs.
 3. **Safety is a system property, not a model property.** Landlock/bwrap/Seatbelt/Windows-ACL sandboxing, least privilege, and approval gates are required, not optional.
 4. **Never expose dsh's local RPC to end users.** The control plane is the auth boundary.
 5. **All work stays inside the authorized workspace.** Never touch credentials, home-dir config, or other projects.
@@ -159,14 +159,14 @@ A new bundle that patches over `packages/bundle/base`. Adds: App Builder persona
 
 ### Phase 0 — Acceptance gate, no new code (0.5 day)
 
-- Pin the dsh version (`0.1.1-rc.2`); record release cadence.
+- Pin the dsh version (`0.1.2-alpha.1`); record release cadence.
 - Verify Node 22.19+ + pnpm 11.7.0.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`. Capture the JSONL.
 - Run `pnpm run doc-sync` + `pnpm run hygiene` to confirm zero gate failures on the current tree.
 - Relocate this file: `planning/PROJECT.md` -> `docs/PROJECT.md` (already done).
 - Decide bundle location: `packages/bundle/app-builder/` (recommended).
 
-### Phase 1 — App Builder MVP (1–2 weeks)
+### Phase 1 — App Builder MVP (1–2 weeks) ✓ accepted
 
 Goal: prompt -> running app with live preview, locally, no auth.
 
@@ -184,7 +184,27 @@ Goal: prompt -> running app with live preview, locally, no auth.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
 - Agent Notes: one per non-trivial package.
 
-### Phase 2 — Productize the control plane (2–4 weeks)
+
+### Phase 1.5 — Adopt upstream v0.1.2-alpha.1 into the worktree (1–2 weeks) ✓ accepted
+
+Goal: every package listed under `packages/app-builder/` and `packages/bundle/app-builder/` in upstream's `v0.1.2-alpha.1` ships in this tree, on a fresh worktree, with the local projection-cache, gateway-cluster, and subagent-provider changes adopted in-place. No new product features; planning artifacts + regression fixes only.
+
+Sub-phases (each landed as a native GitHub stacked PR atop `origin/adopt/api-gateway-cluster`):
+
+- **1.5.1** — Merge upstream `v0.1.2-alpha.1` (`f7386f0f97`).
+- **1.5.2** — Relocate `examples/app-builder/` to `apps/cli/config/examples/app-builder/` (`58ad73791e`).
+- **1.5.3** — Re-skin `apps/web` App Builder 3-pane shell on upstream web (`098f7cad1c`).
+- **1.5.4** — Adopt `xtr/projection-per-session-cache` (`8a28421e02`).
+- **1.5.5** — Adopt App Builder Host BFF cluster (`8994998859`).
+- **1.5.6** — Adopt upstream `subagent` provider (`1bc7a6b9f7`).
+- **1.5.7** — Planning artifacts + 1.5.5 regression fixes (in progress on `docs/phase1.5-record`).
+
+Per-package reality after 1.5.5: `packages/app-builder/{project,scaffold,preview,persona,snapshot-bridge,api}` and `packages/bundle/app-builder/` exist with bilingual READMEs, Agent Notes, and snapshot tests; `packages/app-builder/api` mounts a Typert Remote service through `packages/api/gateway`; `packages/session/session-projection-cache` is the projection cache; `packages/subagent/subagent` includes both `f76a225a7d` (PR #2663) and `721c1d6fe1` (fork fix).
+
+Version pin after this phase: `0.1.2-alpha.1` (matches upstream). The Phase 0 pin of `0.1.1-rc.2` is obsolete.
+
+
+### Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 Goal: a real product around dsh, still single-user but scale-ready.
 

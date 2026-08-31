@@ -11,6 +11,7 @@
 
 import { TypertRemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
 import type { Context } from '@deepseek-ai/cordis'
+import type { SessionFollowFrame } from '@deepseek-ai/dsh-api-session-controller'
 import type { SubscribeEventsFrame, SubscribeEventsRequest } from './types.ts'
 
 /**
@@ -29,7 +30,7 @@ export async function* subscribeEventsRemote(
 ): AsyncIterable<SubscribeEventsFrame> {
   const controller = ctx.get('sessionController') as
     | {
-      follow(req: { sessionId: string; afterSeq?: number }, signal: AbortSignal): AsyncIterable<unknown>
+      follow(req: { sessionId: string; afterSeq?: number }, signal: AbortSignal): AsyncIterable<SessionFollowFrame>
     }
     | undefined
   if (controller === undefined) {
@@ -48,22 +49,18 @@ export async function* subscribeEventsRemote(
   )
   try {
     for await (const frame of source) {
-      const typed = frame as Record<string, unknown>
+      const typed = frame as SessionFollowFrame
       if (typed.type === 'snapshot') {
         yield {
           type: 'snapshot',
           header: typed.header,
-          cursor: typeof typed.cursor === 'number' ? typed.cursor : 0,
-          records: Array.isArray(typed.records) ? typed.records : [],
-          hasMore: typed.hasMore === true,
+          cursor: typed.cursor,
+          records: typed.records,
+          hasMore: typed.hasMore,
         }
         continue
       }
-      if (typed.type === 'event') {
-        yield { type: 'event', seq: typeof typed.seq === 'number' ? typed.seq : 0, event: typed.event ?? typed }
-        continue
-      }
-      yield { type: 'event', seq: 0, event: typed }
+      yield { type: 'event', seq: typed.event.seq, event: typed.event }
     }
   } catch (error: unknown) {
     if (signal.aborted && error instanceof Error && error.name === 'AbortError') {

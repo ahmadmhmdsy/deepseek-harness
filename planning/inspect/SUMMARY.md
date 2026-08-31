@@ -97,7 +97,7 @@ NaN- Session telemetry (OpenTelemetry).
 
 **Phase 0 (revised) — Acceptance gate, no new code (0.5 day)**
 
-- Pin version (0.1.1-rc.2) + record release cadence in PROJECT.md.
+- Pin version (0.1.2-alpha.1` post-Phase-1.5; the original Phase 0 pin of `0.1.1-rc.2` is obsolete) + record release cadence in PROJECT.md.
 - Verify Node 22.19+ + pnpm 11.7.0.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`. Capture the JSONL.
 - Run `pnpm run doc-sync` to confirm zero gate failures on the current tree.
@@ -134,11 +134,13 @@ Inserted between Phase 1 and Phase 2. Synchronizes the fork to upstream's `dsh-v
 - **Sub-phase 1.5.4 — Projection cache adoption.** Cherry-pick `xtr/projection-per-session-cache` (PR #2781, `53c8f64eed`). Wire `packages/session/session-projection-cache/` into `packages/app-builder/project/` (Phase 2 §4: project projection unit + cache). 5 gates green. Stacked on 1.5.3.
 - **Sub-phase 1.5.5 — API gateway adoption.** Cherry-pick the `worktree-apire-*` cluster (PRs #2911, #2968, #3082, #3083, #3085, #3086, #3217, #3235 + #3148). Scaffold `packages/app-builder/api/` with the 11 methods from Phase 2 §3. Mount via `@deepseek-ai/dsh-api-gateway` + `@deepseek-ai/dsh-api-remotes`. 5 gates green. Stacked on 1.5.4.
 - **Sub-phase 1.5.6 — Subagent provider.** Cherry-pick PR #2663 (`f76a225a7d`). Re-apply our `721c1d6fe1 fix(subagent): route spawned children through parent's live model selection` if the B2 merge clobbered it. 5 gates green. Stacked on 1.5.5.
-- **Sub-phase 1.5.7 — Planning artifacts.** Update `planning/plan.md`, `planning/goal.md`, `planning/Phase 2 prompt.md`, `planning/inspect/INDEX.md` (this entry), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md`. Stacked on 1.5.6.
+- **Sub-phase 1.5.7 — Planning artifacts.** Update `planning/plan.md`, `planning/goal.md`, `planning/Phase 2 prompt.md`, `planning/inspect/INDEX.md` (this entry), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md`. Land 1.5.5-introduced cordis-catalog regression fixes (unique symbol + unknown in Typert Remote boundary, JSDoc completeness on Cordis events, type-link exemptions, SERVICE_PAGE/EVENT_SCOPE_PAGE entries, gen-doc-graphs SERVICE_ROLES entries, gen-config-catalog `as const` unwrap, new `docs/subsystems/app-builder.{md,zh.md,i18n.yaml}`). Stacked on 1.5.6.
+
+**Phase 1.5 status — accepted.** Sub-phases 1.5.1 (`f7386f0f97`), 1.5.2 (`58ad73791e`), 1.5.3 (`098f7cad1c`), 1.5.4 (`8a28421e02`), 1.5.5 (`8994998859`), 1.5.6 (`1bc7a6b9f7`) all merged via native GitHub stacked PRs atop `origin/adopt/api-gateway-cluster`. 1.5.7 lands as the docs-only commit on `docs/phase1.5-record`. `pnpm run doc-sync` returns 25 PASS / 7 FAIL; the 7 FAIL are documented §9 backlog (translation pairing divergences in `capability-seams`/`event-producer-consumer`/`config-catalog` from 1.5.4/1.5.5 adoption + pre-existing 1.5.1-inherited gates that were failing before this branch).
 
 Detailed per-file conflict map and resolution plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](19-upstream-v0.1.2-alpha.1-adoption-plan.md). Task brief: [`Phase 1.5 prompt.md`](../Phase%201.5%20prompt.md).
 
-**Phase 2 (revised) — Productize control plane (2–4 weeks)**
+**Phase 2 (revised) — Productize control plane (2–4 weeks) — in progress**
 
 - New packages:
   - `packages/app-builder/deployment` (Deployment entity + `deploy` tool + SAST/SCA/secrets gates).

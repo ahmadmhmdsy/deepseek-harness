@@ -25,7 +25,21 @@ declare module '@deepseek-ai/cordis' {
     appBuilderProjects: ProjectRegistry
   }
   interface Events {
+    /**
+     * Emitted once per durable project record after the registry adds it. Listeners
+     * see the new project on the next `list()` / `get(id)` call; the snapshot bridge
+     * flushes synchronously on this signal.
+     * @param event - the newly-created project payload.
+     * @mode emit
+     */
     'project/created'(event: ProjectCreatedEvent): void
+    /**
+     * Emitted when a durable project record is removed from the registry. The
+     * directory tree has already been removed before the signal fires; the
+     * snapshot bridge re-flushes so the projects pane stops listing the row.
+     * @param event - the deleted project payload.
+     * @mode emit
+     */
     'project/deleted'(event: ProjectDeletedEvent): void
   }
 }
@@ -112,6 +126,7 @@ export class ProjectRegistry extends Service {
   /**
    * Whether the registry has a record for the given id.
    * @param id - Project id.
+   * @returns true when the registry has the record.
    */
   has(id: ProjectId): boolean {
     return this.projects.has(id)
@@ -121,6 +136,7 @@ export class ProjectRegistry extends Service {
    * Enumerate session ids whose `cwd` lives under the project's canonical
    * root. Returns an empty array when no `ctx.sessions` service is mounted.
    * @param id - Project id.
+   * @returns the session ids whose cwd lives under the project's root.
    */
   listSessionIds(id: ProjectId): readonly string[] {
     const project = this.projects.get(id)

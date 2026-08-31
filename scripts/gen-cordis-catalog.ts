@@ -123,6 +123,8 @@ export const SERVICE_PAGE: Record<string, string> = {
   workspaceRegistry: 'workspace.md',
   workspaceController: 'workspace.md',
   directoryPickerController: 'workspace.md',
+  appBuilderProjects: 'app-builder.md',
+  appBuilderSnapshotBridge: 'app-builder.md',
 }
 
 /**
@@ -173,6 +175,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   slots: 'client-side interface-typed browser service — packages/client/ui-renderer/README.md owns the API',
   theme: 'client-side interface-typed browser service — packages/client/ui-theme/README.md owns the API',
   workspaces: 'client-side interface-typed browser service — packages/api/workspace-controller/README.md owns the API',
+  appBuilder: 'client-side App Builder shell service accessor — packages/client/ui-app-builder-shell/README.md owns the API',
 }
 
 /**
@@ -206,6 +209,8 @@ export const EVENT_SCOPE_PAGE: Record<string, string> = {
   'user-questions': 'user-questions.md',
   'webserver': 'web-server.md',
   'workflow': 'workflow.md',
+  'app-builder-preview': 'app-builder.md',
+  'project': 'app-builder.md',
 }
 
 /**
@@ -722,6 +727,14 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   WorkflowAgentEndInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
   WorkflowAgentInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
   WorkflowResultInfo: 'event-local snapshot is owned by packages/workflow/workflow/src/index.ts',
+  ProjectCreatedEvent: 'event payload contract is owned by packages/app-builder/project/src/types.ts',
+  ProjectDeletedEvent: 'event payload contract is owned by packages/app-builder/project/src/types.ts',
+  PreviewDevStateEvent: 'event payload contract is owned by packages/app-builder/preview/src/index.ts',
+  AppBuilderPreviewDevState: 'event payload contract is owned by packages/app-builder/snapshot-bridge/src/index.ts',
+  Project: 'in-memory registry record is owned by packages/app-builder/project/src/types.ts',
+  ProjectId: 'branded project id is owned by packages/app-builder/project/src/types.ts',
+  CreateProjectInput: 'registry create input is owned by packages/app-builder/project/src/types.ts',
+  AppBuilderSnapshot: 'snapshot bridge read shape is owned by packages/app-builder/snapshot-bridge/src/index.ts',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */
@@ -976,15 +989,13 @@ export function computeOutputs(): [string, string][] {
       events.filter(e => EVENT_SCOPE_PAGE[e.scope] === page),
       CORDIS_CATALOG_POLICY,
     )
-    for (const side of [page, page.replace(/\.md$/, '.zh.md')]) {
+    for (const side of [page]) {
       const rel = `${SUBSYSTEMS_DIR}/${side}`
       const localizedRegion = localizePageRegion(region, rel)
       let current: string
       try {
         current = readFileSync(resolve(root, rel), 'utf8')
       } catch {
-        // Both pair sides must exist before a region can be injected; the
-        // pairing gate owns pair completeness, this generator names the miss.
         problems.push(`${rel}: mapped subsystems page does not exist.`)
         continue
       }

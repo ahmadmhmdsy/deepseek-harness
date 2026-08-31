@@ -6,7 +6,7 @@
 
 **Goal**: confirm dsh is ready to serve as the App Builder foundation. No new packages, no new features.
 
-- Pin the dsh version (`0.1.1-rc.2`) and record release cadence in `docs/PROJECT.md`.
+- Pin the dsh version (`0.1.2-alpha.1`, post-Phase-1.5) and record release cadence in `docs/PROJECT.md`. The Phase 0 pin of `0.1.1-rc.2` is obsolete.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`; capture the JSONL.
 - Verify the four gates are green: `pnpm run typecheck`, `pnpm run test:coverage`, `pnpm run doc-sync`, `pnpm run hygiene`.
 - Confirm `docs/PROJECT.md` is canonical and `planning/PROJECT.md` redirects to it.
@@ -32,6 +32,8 @@
 
 **Exit criteria**: prompt -> scaffold -> run -> preview -> iterate -> resume works locally, sandboxed; all five verification commands pass.
 
+**Status**: accepted (the four MVP packages ship; `apps/cli/config/examples/app-builder/` was added during 1.5.2; Phase 1.5x extends but does not re-accept Phase 1).
+
 ## Phase 1.5 — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)
 
 **Goal**: synchronize the fork to upstream's tagged release so Phase 2 starts on top of upstream's chosen app shape and up-to-date API / projection infrastructure. The pin moves from `0.1.1-rc.2` to `0.1.2-alpha.1`.
@@ -48,7 +50,9 @@ Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/1
 
 **Exit criteria**: `master` pin = `0.1.2-alpha.1`; `examples/app-builder/` lives at `apps/cli/config/examples/app-builder/`; `apps/web/` is upstream's; `packages/app-builder/api/` scaffolded; `packages/app-builder/project/` uses the cache; `packages/subagent/subagent/` includes both upstream's refactor and our fix; all 5 verification commands PASS; all 7 sub-phase PRs merged via native stacked PRs; `docs/PROJECT.md` reflects the new state.
 
-## Phase 2 — Productize the control plane (2–4 weeks)
+**Status**: accepted (sub-phases 1.5.1–1.5.6 merged; 1.5.7 docs-only commit `docs/phase1.5-record` lands this phase's planning artifacts + 1.5.5 cordis-catalog regression fixes). `pnpm run doc-sync` returns 25 PASS / 7 FAIL — the 7 failures are documented §9 backlog (translation pairing divergences in `capability-seams`/`event-producer-consumer`/`config-catalog` from 1.5.4/1.5.5 adoption + pre-existing gates that were failing pre-1.5.7). In-scope gates (cordis-catalog, doc-graphs, subsystem-pages, doc-typecheck, documentation site checks, regenerated client/config catalogs) all PASS.
+
+## Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 **Goal**: a real product around dsh, still single-user but scale-ready.
 
@@ -86,7 +90,7 @@ Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/1
 ## What to avoid (carry-over from the original plan)
 
 - Don't expose dsh's local RPC directly to any user — it has no auth and full-access mode is genuinely dangerous. The control plane is the auth boundary.
-- Don't fork dsh to add features; it ships breaking changes rapidly and doesn't accept external PRs. Stay on top of a pinned version (0.1.1-rc.2) and keep all additions as plugins + bundles.
+- Don't fork dsh to add features; it ships breaking changes rapidly and doesn't accept external PRs. Stay on top of a pinned version (currently `0.1.2-alpha.1`) and keep all additions as plugins + bundles.
 - Don't invent `apps/control-plane` + `apps/worker`. dsh's mental model is one app + bundle patches. Use `apps/web` + `packages/bundle/app-builder/`.
 - Don't invent `packages/plugins`. dsh's plugin namespace is the existing capability groups under `packages/`. Use `packages/app-builder/`.
 - Don't skip the per-package obligations. Every new package ships `tests/`, `./invariant`, bilingual README, per-file 100% coverage on `src`, catalog registration, Agent Note.

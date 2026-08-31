@@ -10,7 +10,9 @@
  * @module @deepseek-ai/dsh-app-builder-api/types
  */
 
-import type { ProjectId, ProjectStack } from '@deepseek-ai/dsh-app-builder-project'
+import type { SessionHeader } from '@deepseek-ai/dsh-session'
+import type { SessionHistoryRecord, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller'
+import type { ProjectStack } from '@deepseek-ai/dsh-app-builder-project'
 
 /**
  * JSON-safe projection of the in-memory `Project` record. `ProjectId` is a
@@ -56,7 +58,7 @@ export interface CreateProjectValue {
 
 /** Request for `getProject`. */
 export interface GetProjectRequest {
-  readonly id: ProjectId | string
+  readonly id: string
 }
 
 /** Value returned from `getProject`. */
@@ -66,12 +68,12 @@ export interface GetProjectValue {
 
 /** Request for `deleteProject`. */
 export interface DeleteProjectRequest {
-  readonly id: ProjectId | string
+  readonly id: string
 }
 
 /** Value returned from `deleteProject`; empty body on success. */
 export interface DeleteProjectValue {
-  readonly id: ProjectId | string
+  readonly id: string
   readonly deleted: true
 }
 
@@ -79,7 +81,7 @@ export interface DeleteProjectValue {
 
 /** Request for `startSession`. */
 export interface StartSessionRequest {
-  readonly projectId: ProjectId | string
+  readonly projectId: string
   /** Optional preset id to mount as the Agent preset. */
   readonly presetId?: string
   /** Optional caller-supplied Session id; one is generated when absent. */
@@ -89,7 +91,7 @@ export interface StartSessionRequest {
 /** Value returned from `startSession`. */
 export interface StartSessionValue {
   readonly sessionId: string
-  readonly projectId: ProjectId | string
+  readonly projectId: string
   readonly cwd: string
 }
 
@@ -121,9 +123,9 @@ export interface GetTranscriptRequest {
 /** Value returned from `getTranscript`. */
 export interface GetTranscriptValue {
   readonly sessionId: string
-  readonly header: unknown
+  readonly header: SessionHeader
   readonly cursor: number
-  readonly records: readonly unknown[]
+  readonly records: readonly SessionHistoryRecord[]
   readonly hasMore: boolean
 }
 
@@ -149,7 +151,7 @@ export interface ResumeSessionRequest {
 /** Value returned from `resumeSession`. */
 export interface ResumeSessionValue {
   readonly sessionId: string
-  readonly header: unknown
+  readonly header: SessionHeader
   readonly resumed: true
 }
 
@@ -166,22 +168,22 @@ export interface SubscribeEventsRequest {
 export interface SubscribeEventsFrame {
   readonly type: 'snapshot' | 'event' | 'closed'
   readonly seq?: number
-  readonly header?: unknown
+  readonly header?: SessionHeader
   readonly cursor?: number
-  readonly records?: readonly unknown[]
+  readonly records?: readonly SessionHistoryRecord[]
   readonly hasMore?: boolean
-  readonly event?: unknown
+  readonly event?: SessionWireEvent
   readonly reason?: string
 }
 
 /** Request for `getPreview`. */
 export interface GetPreviewRequest {
-  readonly projectId: ProjectId | string
+  readonly projectId: string
 }
 
 /** Value returned from `getPreview`. */
 export interface GetPreviewValue {
-  readonly projectId: ProjectId | string
+  readonly projectId: string
   readonly status: 'idle' | 'starting' | 'ready' | 'failed' | 'stopped' | 'unknown'
   readonly url?: string
   readonly port: number
@@ -193,21 +195,21 @@ export interface GetPreviewValue {
 
 /** Request for `deploy` (currently throws `not-implemented`). */
 export interface DeployRequest {
-  readonly projectId: ProjectId | string
+  readonly projectId: string
   /** Optional deployment target override. */
   readonly target?: string
 }
 
 /** Value returned from `deploy` when the implementation lands. */
 export interface DeployValue {
-  readonly projectId: ProjectId | string
+  readonly projectId: string
   readonly deploymentId: string
   readonly url?: string
 }
 
 /** Request for `getUsage` (currently throws `not-implemented`). */
 export interface GetUsageRequest {
-  readonly projectId?: ProjectId | string
+  readonly projectId?: string
   readonly sessionId?: string
 }
 

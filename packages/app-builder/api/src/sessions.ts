@@ -12,6 +12,8 @@
 import { TypertRemoteFailure } from '@deepseek-ai/dsh-typert-protocol'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ProjectId } from '@deepseek-ai/dsh-app-builder-project'
+import type { SessionHeader } from '@deepseek-ai/dsh-session'
+import type { SessionPage } from '@deepseek-ai/dsh-api-session-controller'
 import type {
   ForkSessionRequest,
   ForkSessionValue,
@@ -114,23 +116,31 @@ export async function getTranscriptRemote(
   signal: AbortSignal,
 ): Promise<GetTranscriptValue> {
   const controller = sessionControllerOf(ctx) as {
+    inspect(sessionId: string, signal?: AbortSignal): Promise<{ meta: SessionHeader; events: readonly { seq: number }[] }>
     page(
       req: { sessionId: string; fromSeq?: number; maxMessages?: number },
       signal: AbortSignal,
-    ): Promise<{ header: unknown; cursor: number; records: readonly unknown[]; hasMore: boolean }>
+    ): Promise<SessionPage>
   }
-  const page = await controller.page(
-    {
-      sessionId: request.sessionId,
-      ...(request.fromSeq !== undefined ? { fromSeq: request.fromSeq } : {}),
-      ...(request.maxMessages !== undefined ? { maxMessages: request.maxMessages } : {}),
-    },
-    signal,
-  )
+  const [inspection, page]: [
+    { meta: SessionHeader; events: readonly { seq: number }[] },
+    SessionPage,
+  ] = await Promise.all([
+    controller.inspect(request.sessionId),
+    controller.page(
+      {
+        sessionId: request.sessionId,
+        ...(request.fromSeq !== undefined ? { fromSeq: request.fromSeq } : {}),
+        ...(request.maxMessages !== undefined ? { maxMessages: request.maxMessages } : {}),
+      },
+      signal,
+    ),
+  ])
+  const cursor = inspection.events.at(-1)?.seq ?? -1
   return {
     sessionId: request.sessionId,
-    header: page.header,
-    cursor: page.cursor,
+    header: inspection.meta,
+    cursor,
     records: page.records,
     hasMore: page.hasMore,
   }
@@ -174,7 +184,7 @@ export async function resumeSessionRemote(
   request: ResumeSessionRequest,
 ): Promise<ResumeSessionValue> {
   const controller = sessionControllerOf(ctx) as {
-    inspect(sessionId: string, signal?: AbortSignal): Promise<{ meta: unknown }>
+    inspect(sessionId: string, signal?: AbortSignal): Promise<{ meta: SessionHeader }>
   }
   const inspection = await controller.inspect(request.sessionId)
   return {

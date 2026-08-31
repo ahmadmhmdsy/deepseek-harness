@@ -59,7 +59,11 @@ interface PreviewDevStateEvent {
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
-    /** Preview tool → snapshot bridge. Fired on every dev-server state transition. */
+    /**
+     * Preview tool → snapshot bridge. Fired on every dev-server state transition.
+     * @param state - the new dev-server state (status, url, port, sinceMs, etc.).
+     * @mode emit
+     */
     'app-builder-preview/dev-state'(state: PreviewDevStateEvent): void
   }
 }

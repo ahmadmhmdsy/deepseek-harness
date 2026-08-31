@@ -430,6 +430,62 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'appBuilderProjects',
+    summary: 'Process-local project registry.',
+    description: 'Process-local project registry. Phase 1 keeps every project in memory and emits one `project/created` event per durable record; a Phase 2 follow-up replaces this with a `dsh-storage-domain` backed implementation.',
+    methods: [
+      {
+        signature: 'async create(input: CreateProjectInput): Promise<Project>',
+        description: 'Create one project. Canonicalizes the path, validates the root exists and is a directory, adds the record to the in-memory registry, then emits `project/created`. Adding before emitting lets listeners observe a consistent `list()`/`get(id)` view (the snapshot bridge relies on this).',
+        parameters: [{ name: 'input', description: 'Validated project input.' }],
+        returns: 'the new project.',
+      },
+      {
+        signature: 'delete(id: ProjectId): Project | undefined',
+        description: 'Remove one project from the in-memory registry and emit `project/deleted`. The handler removes the record before emitting so a listener that calls `list()` or `get(id)` observes the post-delete state, mirroring the add-then-emit ordering of `create()`. File-system cleanup is the caller\'s responsibility (the BFF\'s `deleteProject` does it; the model- facing `app_builder_scaffold` never calls this method).',
+        parameters: [{ name: 'id', description: 'Project id to remove.' }],
+        returns: 'the removed project record, or `undefined` when no record exists.',
+      },
+      {
+        signature: 'get(id: ProjectId): Project | undefined',
+        description: 'Look up a project by id.',
+        parameters: [{ name: 'id', description: 'Project id.' }],
+        returns: 'the project, or `undefined` when unknown.',
+      },
+      {
+        signature: 'list(): readonly Project[]',
+        description: 'Project list in creation order. Process-local: no persistence yet.',
+        parameters: [],
+        returns: 'all registered projects.',
+      },
+      {
+        signature: 'has(id: ProjectId): boolean',
+        description: 'Whether the registry has a record for the given id.',
+        parameters: [{ name: 'id', description: 'Project id.' }],
+        returns: 'true when the registry has the record.',
+      },
+      {
+        signature: 'listSessionIds(id: ProjectId): readonly string[]',
+        description: 'Enumerate session ids whose `cwd` lives under the project\'s canonical root. Returns an empty array when no `ctx.sessions` service is mounted.',
+        parameters: [{ name: 'id', description: 'Project id.' }],
+        returns: 'the session ids whose cwd lives under the project\'s root.',
+      },
+    ],
+  },
+  {
+    key: 'appBuilderSnapshotBridge',
+    summary: 'Read-only accessor the App Builder BFF consumes for `getPreview`.',
+    description: 'Read-only accessor the App Builder BFF consumes for `getPreview`.',
+    methods: [
+      {
+        signature: 'snapshot(): AppBuilderSnapshot',
+        description: 'Return the latest in-memory snapshot the HTTP route serves.',
+        parameters: [],
+        returns: 'the cached App Builder snapshot (projects + dev-servers).',
+      },
+    ],
+  },
+  {
     key: 'approval',
     summary: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session.',
     description: 'Approval service that applies session policy before answerers and logs every ask/outcome pair to the requesting session. It exposes deterministic policy changes to the model through the runtime-context snapshot and switch notices.',
@@ -3011,6 +3067,22 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'sessionId', description: 'Agent and Session identity.' }, { name: 'running', description: 'whether the Agent is running.' }],
   },
   {
+    name: 'app-builder-preview/dev-state',
+    mode: 'emit',
+    signature: '\'app-builder-preview/dev-state\'(state: PreviewDevStateEvent): void',
+    summary: 'Preview tool → snapshot bridge.',
+    description: 'Preview tool → snapshot bridge. Fired on every dev-server state transition.',
+    parameters: [{ name: 'state', description: 'the new dev-server state (status, url, port, sinceMs, etc.).' }],
+  },
+  {
+    name: 'app-builder-preview/dev-state',
+    mode: 'emit',
+    signature: '\'app-builder-preview/dev-state\'(state: AppBuilderPreviewDevState): void',
+    summary: 'Preview tool → snapshot bridge.',
+    description: 'Preview tool → snapshot bridge. Fired on every dev-server state transition; the bridge consumes it to mirror the latest dev-server status into the snapshot served at `/__dsh/app-builder/snapshot.json`.',
+    parameters: [{ name: 'state', description: 'the new dev-server state.' }],
+  },
+  {
     name: 'approval/request',
     mode: 'waterfall',
     signature: '\'approval/request\'( this: Scoped<Agent>, req: ApprovalRequestEvent, next: () => Promise<ApprovalOutcome>, ): Promise<ApprovalOutcome>',
@@ -3153,6 +3225,22 @@ export const EVENT_API: readonly EventApiEntry[] = [
     summary: 'Waterfall around every streaming model call (retry, replay, routing).',
     description: 'Waterfall around every streaming model call (retry, replay, routing). Bound to the LlmRuntime; call `next()` to reach the resolved adapter\'s stream, or yield your own chunks to short-circuit.',
     parameters: [{ name: 'options', description: 'the full request. A LOOP-built request carries the process-local {@link markAgentLoopRequest} identity and arrives deep-frozen (mutation throws): its content is a pure function of the session log (the reconstructability Agent Note), so listeners read it, never rewrite it. Hand-built calls do not carry that marker; their messages already obey the immutable creation contract.' }],
+  },
+  {
+    name: 'project/created',
+    mode: 'emit',
+    signature: '\'project/created\'(event: ProjectCreatedEvent): void',
+    summary: 'Emitted once per durable project record after the registry adds it.',
+    description: 'Emitted once per durable project record after the registry adds it. Listeners see the new project on the next `list()` / `get(id)` call; the snapshot bridge flushes synchronously on this signal.',
+    parameters: [{ name: 'event', description: 'the newly-created project payload.' }],
+  },
+  {
+    name: 'project/deleted',
+    mode: 'emit',
+    signature: '\'project/deleted\'(event: ProjectDeletedEvent): void',
+    summary: 'Emitted when a durable project record is removed from the registry.',
+    description: 'Emitted when a durable project record is removed from the registry. The directory tree has already been removed before the signal fires; the snapshot bridge re-flushes so the projects pane stops listing the row.',
+    parameters: [{ name: 'event', description: 'the deleted project payload.' }],
   },
   {
     name: 'session-telemetry/record',
@@ -3449,6 +3537,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ApiSessionAgentResult',
     declaration: 'export type ApiSessionAgentResult = {\n    readonly agent: Agent;\n} | {\n    readonly error: ApiSessionAgentError;\n};',
+  },
+  {
+    name: 'AppBuilderPreviewDevState',
+    declaration: 'export interface AppBuilderPreviewDevState {\n    rootPath: string;\n    framework: \'next\' | \'vite\' | \'unknown\';\n    status: DevServerStatus;\n    url?: string;\n    port?: number;\n    message?: string;\n    reason?: string;\n    sinceMs: number;\n}',
+  },
+  {
+    name: 'AppBuilderSnapshot',
+    declaration: 'export interface AppBuilderSnapshot {\n    ts: number;\n    projects: readonly SnapshotProject[];\n    devServers: Readonly<Record<string, SnapshotDevServer>>;\n}',
   },
   {
     name: 'ApprovalOutcome',
@@ -3803,6 +3899,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface CreateGoalResult {\n    readonly ref: GoalRef;\n}',
   },
   {
+    name: 'CreateProjectInput',
+    declaration: 'export interface CreateProjectInput {\n    readonly name: string;\n    readonly rootPath: string;\n    readonly stack: ProjectStack;\n    readonly gitUrl?: string | null;\n    readonly dshProfile?: string;\n}',
+  },
+  {
     name: 'CreateSessionOptions',
     declaration: 'export interface CreateSessionOptions {\n    readonly seed?: readonly SessionEvent[];\n    readonly meta?: {\n        readonly cwd?: string;\n        readonly parentSession?: SessionId;\n        readonly createdAt?: number;\n        readonly seedLength?: number;\n        readonly origin?: \'subagent\';\n        readonly delegationDepth?: number;\n        readonly agentPreset?: string;\n    };\n}',
   },
@@ -3849,6 +3949,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'DeepSeekLlmApiJson',
     declaration: 'export type DeepSeekLlmApiJson = null | boolean | number | string | DeepSeekLlmApiJson[] | {\n    [key: string]: DeepSeekLlmApiJson;\n};',
+  },
+  {
+    name: 'DevServerStatus',
+    declaration: 'export type DevServerStatus = \'idle\' | \'starting\' | \'ready\' | \'failed\' | \'stopped\';',
   },
   {
     name: 'DiffCallView',
@@ -4531,6 +4635,22 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type PreToolDecision = {\n    kind: \'allow\';\n} | {\n    kind: \'deny\';\n    reason: string;\n} | {\n    kind: \'ask\';\n    reason?: string;\n};',
   },
   {
+    name: 'Project',
+    declaration: 'export interface Project {\n    readonly id: ProjectId;\n    readonly name: string;\n    readonly rootPath: string;\n    readonly stack: ProjectStack;\n    readonly gitUrl: string | null;\n    readonly dshProfile: string;\n    readonly createdAt: string;\n}',
+  },
+  {
+    name: 'ProjectCreatedEvent',
+    declaration: 'export interface ProjectCreatedEvent {\n    readonly type: \'project/created\';\n    readonly project: Project;\n}',
+  },
+  {
+    name: 'ProjectDeletedEvent',
+    declaration: 'export interface ProjectDeletedEvent {\n    readonly type: \'project/deleted\';\n    readonly project: Project;\n}',
+  },
+  {
+    name: 'ProjectId',
+    declaration: 'export type ProjectId = string & {\n    readonly __projectIdBrand: unique symbol;\n};',
+  },
+  {
     name: 'ProjectionChangeListener',
     declaration: 'export type ProjectionChangeListener = (session: Session, key: Extract<keyof SessionProjectionMap, string>, value: unknown, seq: number) => void;',
   },
@@ -4549,6 +4669,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ProjectionSnapshot',
     declaration: 'export interface ProjectionSnapshot {\n    asOfSeq: number;\n    values: Partial<SessionProjectionMap>;\n}',
+  },
+  {
+    name: 'ProjectStack',
+    declaration: 'export type ProjectStack = \'nextjs-app\' | \'nextjs-pages\' | \'svelte-spa\';',
   },
   {
     name: 'PromptAssembly',
@@ -5305,6 +5429,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'SkillViewOptions',
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
+  },
+  {
+    name: 'SnapshotDevServer',
+    declaration: 'export interface SnapshotDevServer {\n    url?: string;\n    port: number;\n    status: DevServerStatus;\n    message?: string;\n    updatedAt: number;\n}',
+  },
+  {
+    name: 'SnapshotProject',
+    declaration: 'export interface SnapshotProject {\n    id: string;\n    name: string;\n    rootPath: string;\n    stack?: string;\n    createdAt: number;\n}',
   },
   {
     name: 'SpawnTeammateRequest',

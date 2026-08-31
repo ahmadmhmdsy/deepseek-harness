@@ -139,9 +139,9 @@ Every new package ships: `tests/`, `./invariant`, README + JSDoc with `Model Exp
 - Resume a session after restart.
 - Sandbox enforced (mode = `workspace-write`); approvals gate destructive ops.
 - All five verification commands pass.
-### Status — started (commit `abc87d4df1`)
+### Status — accepted (commit `58ad73791e` at end of Phase 1.2; Phase 1.3/1.4/1.5 extend but do not accept Phase 1 anew)
 
-Phase 1 work begins on branch `app-builder-web-reskin` at `9d99c4788e`. The first action is a docs-only commit that adds a standing workflow rule to root `AGENTS.md` (`## Project process and maintained artifacts`) so every later commit/PR in this phase obeys the same-PR artifact-update discipline.
+Phase 1 work ran across branches `app-builder-web-reskin`, `relocate/examples-app-builder`, and the 1.5.x adoption stack. The four MVP packages (`project`, `scaffold`, `preview`, `persona`) ship with bilingual READMEs, Agent Notes, and snapshot tests; `apps/cli/config/examples/app-builder/` was added during 1.5.2.
 
 Next steps in order:
 
@@ -189,14 +189,20 @@ Sub-phases (native GitHub stacked PRs; each is one PR stacked on the one below):
 
 Guardrails: do not start any Phase 2 work (`packages/app-builder/{deployment,tool-policy}`) until Phase 1.5 is accepted.
 
-### Status — planned (research complete)
+### Status — accepted (commit `1bc7a6b9f7` after 1.5.6; 1.5.7 docs-only commit `docs/phase1.5-record` in progress)
 
 - Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md).
 - Task brief: [`Phase 1.5 prompt.md`](Phase%201.5%20prompt.md).
-- Decisions captured from research: B2 bump, examples/ relocate, apps/web adopt, three Phase 2 accelerators.
-- No edits applied yet; awaiting the user's start signal.
+- All seven sub-phases land via native GitHub stacked PRs atop `origin/adopt/api-gateway-cluster`:
+  - 1.5.1 `f7386f0f97` merge upstream v0.1.2-alpha.1
+  - 1.5.2 `58ad73791e` relocate examples/app-builder
+  - 1.5.3 `098f7cad1c` apps/web re-skin
+  - 1.5.4 `8a28421e02` projection cache adoption
+  - 1.5.5 `8994998859` API gateway cluster adoption
+  - 1.5.6 `1bc7a6b9f7` subagent provider adoption
+  - 1.5.7 `docs/phase1.5-record` planning artifacts + 1.5.5 regression fixes (this branch)
 
-## 5. Phase 2 — Productize the control plane (2–4 weeks)
+## 5. Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 Goal: a real product around dsh, still single-user but scale-ready.
 

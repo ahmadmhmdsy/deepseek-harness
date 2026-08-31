@@ -664,6 +664,22 @@ const SERVICE_ROLES: ServiceRole[] = [
     consumers: ['tool-cordis'],
     note: 'Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport.',
   },
+  {
+    key: 'appBuilderProjects',
+    pkg: 'app-builder/project',
+    title: 'App Builder project registry',
+    mode: 'core',
+    consumers: ['app-builder/api', 'app-builder/snapshot-bridge'],
+    note: 'Process-local registry for App Builder projects; emits project/created and project/deleted events for synchronous consumer refresh.',
+  },
+  {
+    key: 'appBuilderSnapshotBridge',
+    pkg: 'app-builder/snapshot-bridge',
+    title: 'App Builder preview snapshot bridge',
+    mode: 'core',
+    consumers: ['app-builder/api', 'bundle/app-builder'],
+    note: 'Mirrors dev-server lifecycle into a single in-memory snapshot served at /__dsh/app-builder/snapshot.json; the browser projects pane polls it.',
+  },
 ]
 
 function generatedHeader(title: string): string[] {
