@@ -45,6 +45,14 @@
     - id: app-builder-deployment
       name: '@deepseek-ai/dsh-app-builder-deployment'
 
+    # ToolPolicy manifest: typed per-tool ToolPolicy schema + tools/pre-execute
+    # listener + audit toolPolicy/decision event. Falls back to
+    # ctx.permissionPresets.current(events) for tools without a declared
+    # policy. Intent + audit, NOT authority — real authority comes from
+    # sandbox-mode fences and capability seams. Phase 2.2.
+    - id: app-builder-tool-policy
+      name: '@deepseek-ai/dsh-app-builder-tool-policy'
+
     - id: api-session-controller
       name: '@deepseek-ai/dsh-api-session-controller'
 

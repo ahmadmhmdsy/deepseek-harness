@@ -275,6 +275,7 @@
     { "path": "./packages/app-builder/persona" },
     { "path": "./packages/app-builder/snapshot-bridge" },
     { "path": "./packages/app-builder/api" },
+    { "path": "./packages/app-builder/tool-policy" },
     { "path": "./packages/boot/app-boot" },
     { "path": "./packages/boot/cmdline" },
     { "path": "./packages/sdk/server" },

@@ -177,6 +177,7 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   workspaces: 'client-side interface-typed browser service — packages/api/workspace-controller/README.md owns the API',
   appBuilder: 'client-side App Builder shell service accessor — packages/client/ui-app-builder-shell/README.md owns the API',
   appBuilderDeployment: 'App Builder deployment pipeline registry (SAST / SCA / secrets gates + approval + push) — packages/app-builder/deployment/README.md owns the API',
+  toolPolicy: 'App Builder ToolPolicy registry (typed per-tool ToolPolicy schema + tools/pre-execute listener + audit toolPolicy/decision event) — packages/app-builder/tool-policy/README.md owns the API',
 }
 
 /**
