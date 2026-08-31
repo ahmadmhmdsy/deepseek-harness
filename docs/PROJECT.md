@@ -208,13 +208,17 @@ Version pin after this phase: `0.1.2-alpha.1` (matches upstream). The Phase 0 pi
 
 Goal: a real product around dsh, still single-user but scale-ready.
 
-- Add `packages/app-builder/deployment` (Deployment entity + `deploy` tool + SAST/SCA/secrets gates).
-- Add `packages/app-builder/tool-policy` (typed `ToolPolicy` schema + `tools/pre-execute` listener).
-- Add `packages/app-builder/api` (Typert Remote service: REST + SSE).
-- Mount the API via existing `dsh-api-gateway` + `dsh-api-remotes`.
-- Add a `Project` projection unit + projection cache for the projects list pane.
-- Update `apps/web` with project list, deployment status pane, preview iframe with `EventSource` for live updates.
-- Snapshot scenarios: `deploy-local`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
+Lands as six native GitHub stacked sub-phases plus one docs-only closure on `docs/phase2-record` (branched from `origin/docs/phase1.5-record` = `26bf01ba4a`):
+
+- **2.0 plan-only** — Updates `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, this §8 to add the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority**. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. Docs-only commit lands on `docs/phase2-record` after 2.1–2.5 code PRs merge.
+
+Stack base: `origin/docs/phase1.5-record` = `26bf01ba4a`. Per-sub-phase PRs: `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource`.
 
 ### Phase 3 — Multi-user scale (2–4 weeks)
 
@@ -253,7 +257,7 @@ Per-package invariants:
 - Real-composition tests (Loader-driven `cordis.yml` boots, not unit-style mocks).
 - Snapshot test for every non-trivial model- or product-user-visible change.
 - Agent Note for every non-trivial change (only mechanical/local edits exempt).
-- Bilingual docs (zh.md + i18n.yaml).
+- English-only docs (per `docs/AGENTS.md` writing rules; English sources are canonical since 1.5.7; no `*.zh.md` files or re-recorded `*.i18n.yaml` sidecars).
 - Per-package `./invariant` companion (registers manifest name + event/data relation check).
 
 ### Adversarial test suite

@@ -206,31 +206,19 @@ Guardrails: do not start any Phase 2 work (`packages/app-builder/{deployment,too
 
 Goal: a real product around dsh, still single-user but scale-ready.
 
-### 5.1 Deployment package
+Sub-phases (each lands as a native GitHub stacked PR atop `docs/phase2-record`, which itself sits on `origin/docs/phase1.5-record` = `26bf01ba4a`):
 
-`packages/app-builder/deployment/` — `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates. Approval via `ctx.approval`. Emit `deployment/{started,succeeded,failed}`.
+- **2.0 plan-only** — Update `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md` §8 with the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority** — real authority is sandbox-mode fences. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. This docs-only commit lands on `docs/phase2-record` after the 2.1–2.5 code PRs merge.
 
-### 5.2 ToolPolicy manifest
+Branches: `docs/phase2-record` carries 2.0 + 2.6; `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource` carry 2.1–2.5 code. Stack base `origin/docs/phase1.5-record`.
 
-`packages/app-builder/tool-policy/` — typed `ToolPolicy` schema + `tools/pre-execute` listener. Falls back to `ctx.permissionPresets.current(events)`. Audit event `toolPolicy/decision`. **Intent + audit, not authority** — real authority is sandbox-mode fences.
-
-### 5.3 API surface
-
-`packages/app-builder/api/` — Typert Remote service exposing REST + SSE endpoints. Mount via existing `dsh-api-gateway` + `dsh-api-remotes`. **Do not add a new HTTP layer.**
-
-### 5.4 Projection unit + cache
-
-Add a `project` projection unit in `packages/app-builder/project/` (extends Phase 1). Wire cache via `dsh-session-projection-cache`.
-
-### 5.5 Web UI
-
-Update `apps/web` with project list pane, deployment status pane, preview iframe with `EventSource`.
-
-### 5.6 Snapshot scenarios
-
-`deploy-local`, `deploy-blocked-by-gates`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
-
-### 5.7 Acceptance criteria
+### Acceptance criteria
 
 - Chat UI drives the full loop end-to-end.
 - Sessions resume/fork/replay from the event log.

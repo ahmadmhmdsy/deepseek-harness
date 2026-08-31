@@ -10,7 +10,8 @@ Read [docs/PROJECT.md](../../docs/PROJECT.md) first. Goal: a real product around
   - REST endpoints (one-shot request/response): standard Typert method dispatch.
   - SSE endpoints (subscribeEvents, live updates): reuse the existing `session/projection` push frame; SSE is an addition over the same agent-event stream.
   - JSON-RPC over stdio: the existing wire (`@deepseek-ai/dsh-sdk-protocol`); SDK clients (TS + Python) already speak it. Out-of-process clients (CI, automation) drive the App Builder through the same wire.
-- **Projection cache**: `packages/session/session-projection-cache/` (adopted in Phase 1.5 sub-phase 1.5.4) is the Phase 2 §4 cache. `packages/app-builder/project/` already peer-depends on it.
+- **Projection cache**: `packages/session/session-projection-cache/` (adopted in Phase 1.5 sub-phase 1.5.4) is the Phase 2 §4 cache. `packages/app-builder/project/` already peer-depends on it. Verified by sub-phase 2.4.
+- **Sub-phase stack**: Phase 2 lands as six native GitHub stacked sub-phases plus one docs-only closure on `docs/phase2-record`. See §11 below.
 
 ## 1. Deployment package (`packages/app-builder/deployment/`)
 
@@ -110,3 +111,19 @@ Update the canonical source of truth with any schema/API/event-type changes.
 ## Report
 
 Report: new packages + versions, API surface mounted, snapshot scenarios, Agent Notes, gate results. Do NOT proceed to Phase 3 until this is accepted.
+
+## 11. Sub-phase stack (native GitHub stacked PRs)
+
+Phase 2 lands as six native GitHub stacked sub-phases plus one docs-only closure on `docs/phase2-record`. Each code sub-phase ships as a native GitHub stacked PR. The 2.6 closure docs commit lands on `docs/phase2-record` after the 2.1–2.5 code PRs merge.
+
+| Sub-phase | Branch | Commit class | Notes |
+|---|---|---|---|
+| 2.0 plan-only | `docs/phase2-record` | docs | Updates planning artifacts + Agent Note + `docs/PROJECT.md` §8; `pnpm run doc-sync` PASS |
+| 2.1 Deployment package | `feat/phase2-1-deployment` | code | New `packages/app-builder/deployment/`; wires `deploy` Typert Remote placeholder |
+| 2.2 ToolPolicy manifest | `feat/phase2-2-tool-policy` | code | New `packages/app-builder/tool-policy/`; fallback to `ctx.permissionPresets.current(events)` |
+| 2.3 API completion | `feat/phase2-3-api-completion` | code | `getUsage` → `@deepseek-ai/dsh-token-meter`; `deploy` is 2.1's deliverable |
+| 2.4 Projection unit + Web UI project list | `feat/phase2-4-projection-ui` | code | Verify 1.5.4 projection unit; add project list pane |
+| 2.5 Web UI deployment status + EventSource preview iframe | `feat/phase2-5-ui-eventsource` | code | Deployment status pane; `EventSource` preview; update `cordis.patch.yml` |
+| 2.6 closure docs | `docs/phase2-record` | docs | Phase 2 Agent Note final + planning artifacts final |
+
+Stack base: `origin/docs/phase1.5-record` = `26bf01ba4a`. Each code sub-phase PR's base is the previous code sub-phase's branch (2.1 on `docs/phase2-record`; 2.2 on 2.1; 2.3 on 2.2; ... 2.5 on 2.4); 2.6 rebases `docs/phase2-record` atop the merged 2.5 head.
