@@ -41,30 +41,32 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-api-session-controller": "workspace:^",
+    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^",
     "@deepseek-ai/dsh-app-builder-preview": "workspace:^",
     "@deepseek-ai/dsh-app-builder-project": "workspace:^",
     "@deepseek-ai/dsh-app-builder-scaffold": "workspace:^",
     "@deepseek-ai/dsh-app-builder-snapshot-bridge": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-token-meter": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
-    "@deepseek-ai/dsh-typert-registry": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^"
+    "@deepseek-ai/dsh-typert-registry": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/cordis-plugin-include": "workspace:^",
     "@deepseek-ai/cordis-plugin-loader": "workspace:^",
     "@deepseek-ai/dsh-api-session-controller": "workspace:^",
+    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^",
     "@deepseek-ai/dsh-app-builder-preview": "workspace:^",
     "@deepseek-ai/dsh-app-builder-project": "workspace:^",
     "@deepseek-ai/dsh-app-builder-scaffold": "workspace:^",
     "@deepseek-ai/dsh-app-builder-snapshot-bridge": "workspace:^",
     "@deepseek-ai/dsh-invariants": "workspace:^",
     "@deepseek-ai/dsh-session": "workspace:^",
+    "@deepseek-ai/dsh-token-meter": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
     "@deepseek-ai/dsh-typert-registry": "workspace:^",
-    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^",
     "@types/node": "^22.0.0",
     "typescript": "^5.0.0"
   }

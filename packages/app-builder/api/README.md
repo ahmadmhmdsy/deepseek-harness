@@ -2,7 +2,7 @@
 
 English | [中文](README.zh.md)
 
-The App Builder Host BFF as a Typert Remote service. The 13 Remote methods listed in planning/Phase 2 prompt.md section 3 are grouped into project CRUD (4), session lifecycle (5), SSE event subscription (1), preview (1), and two Phase-2-deferred placeholders (deploy, getUsage).
+The App Builder Host BFF as a Typert Remote service. The 13 Remote methods listed in planning/Phase 2 prompt.md section 3 are grouped into project CRUD (4), session lifecycle (5), SSE event subscription (1), preview (1), deploy (wired through @deepseek-ai/dsh-app-builder-deployment, Phase 2.1), and getUsage (wired through @deepseek-ai/dsh-token-meter, Phase 2.3).
 
 ## What it does
 
@@ -23,8 +23,8 @@ Every implemented Remote method delegates to an upstream service that already pr
 | resumeSession | unary | ctx.sessionController.inspect | Returns the header without re-attaching the Agent. |
 | subscribeEvents | stream | ctx.sessionController.follow | Yields a snapshot frame then gap-free event frames; gateway transports the AsyncIterable as SSE. |
 | getPreview | unary | ctx.appBuilderSnapshotBridge (optional) | Returns the bridge in-memory dev-server state. Returns status: unknown when the bridge is unmounted. |
-| deploy | unary | - | Phase 2 deferred. Throws a typed not-implemented failure. |
-| getUsage | unary | - | Phase 2 deferred. Throws a typed not-implemented failure. |
+| deploy | unary | ctx.appBuilderDeployment (optional) | Delegates to the deployment registry and projects the record into the public `DeployValue` shape. Returns a typed `not-implemented` failure when the deployment plugin is not mounted. |
+| getUsage | unary | ctx.tokenMeter + ctx.sessions | Reads `ctx.tokenMeter.measure(session)` for the addressed live Session and projects the resulting `TokenMeasurement` into the public `GetUsageValue` shape (`tokensIn` + `tokensOut` + `cacheHitRate`). The `projectId`-only aggregation path returns a typed `not-implemented` failure until the Phase 2.4 projection unit lands. |
 
 ## Required services (injection)
 
@@ -32,7 +32,9 @@ Every implemented Remote method delegates to an upstream service that already pr
 |---|---|---|
 | appBuilderProjects | yes | @deepseek-ai/dsh-app-builder-project |
 | sessionController | yes | @deepseek-ai/dsh-api-session-controller |
+| tokenMeter | yes | @deepseek-ai/dsh-token-meter |
 | appBuilderSnapshotBridge | optional | @deepseek-ai/dsh-app-builder-snapshot-bridge (only needed for getPreview to return real state) |
+| appBuilderDeployment | optional | @deepseek-ai/dsh-app-builder-deployment (only needed for deploy to succeed; unmounted returns not-implemented) |
 
 ## Mounting
 
@@ -49,8 +51,9 @@ The Gateway picks up the BFF automatically — no patch row or extra registratio
 
 ## Known Limitations and Deferred Work
 
-- deploy returns code: not-implemented because @deepseek-ai/dsh-app-builder-deployment is not in this fork. Lands when Phase 2 adopts the deployment package.
-- getUsage returns code: not-implemented because token / cost accounting policy is Phase 2 deferred (no @deepseek-ai/dsh-tool-policy in tree yet).
+- `getUsage` only measures live Sessions (a cold Session returns `not-found` from `ctx.sessions.get`). Cold-replay measurement lands with the Phase 2.4 projection unit; until then the BFF surfaces the typed `not-found` failure so a missing owner never silently succeeds.
+- `getUsage` answers the `projectId`-only aggregation path with a typed `not-implemented` failure; aggregating per-session measurements into one project total requires enumerating the project's Sessions, which is the Phase 2.4 projection unit's job.
+- `costUsd` is reported as `0` in `getUsage` because Phase 2.3 ships without a per-route price table. The DeepSeek price table lands in Phase 2.5 and is projected into the same field without changing the wire shape.
 - The projection cache for a Session whose owning project was deleted retains the stale project ownership until the Session restarts. The session-controller own inspect() reads the fresh log; the projection apply is identity (cwd-immutability invariant), so the cached view diverges from the registry until restart. Lands when Phase 2 introduces a project/deleted event hook into the projection fold.
 - deleteProject is irreversible: the directory removal is non-transactional, and a partial failure leaves the registry without its directory.
 
@@ -61,3 +64,5 @@ The Gateway picks up the BFF automatically — no patch row or extra registratio
 - packages/api/session-controller/ — upstream Remote service the BFF forwards to
 - packages/app-builder/snapshot-bridge/ — in-memory snapshot the getPreview method reads
 - packages/app-builder/project/ — durable project registry the project CRUD methods wrap
+- packages/llm/token-meter/ — replay-aware token meter the getUsage method reads
+- packages/app-builder/deployment/ — deployment pipeline the deploy method reads

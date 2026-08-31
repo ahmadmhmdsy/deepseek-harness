@@ -102,6 +102,72 @@ snapshot(): AppBuilderSnapshot
 
 Source: [`packages/app-builder/snapshot-bridge/src/index.ts`](../../packages/app-builder/snapshot-bridge/src/index.ts)
 
+<a id="ctxtoolpolicy--toolpolicyregistry"></a>
+
+### `ctx.toolPolicy` — `ToolPolicyRegistry`
+
+Process-local ToolPolicy registry. The registry stores the typed manifest, mounts a `tools/pre-execute` listener that converts the declared policy into a PreToolDecision, and appends a log-only `toolPolicy/decision` event for every evaluation. The decision vocabulary mirrors the upstream pipeline (`allow` / `deny` / `ask`) plus a `fallback` audit outcome recorded when no per-tool policy matched and the listener delegated to the permission-presets default.
+
+```ts cordis-catalog
+/**
+ * Register one ToolPolicy. A duplicate `id` replaces the previous
+ * registration; a duplicate `tool` name shadows the previous policy
+ * so a tool with overlapping manifests resolves to the latest one.
+ * @param policy - The ToolPolicy to register.
+ * @returns The exact disposer that unregisters the policy.
+ */
+register(policy: ToolPolicy): () => void
+
+/**
+ * Look up the policy registered against a tool name. Returns the
+ * most recent registration when multiple policies name the same tool.
+ * @param toolName - The tool name the lookup matches.
+ * @returns The matching policy, or `undefined` when none is registered.
+ */
+for(toolName: string): ToolPolicy | undefined
+
+/**
+ * Look up a policy by its stable id. The id is the registry map key,
+ * not the tool name; use {@link for} for tool-name lookups.
+ * @param id - The policy id the lookup matches.
+ * @returns The matching policy, or `undefined` when none is registered.
+ */
+get(id: string): ToolPolicy | undefined
+
+/**
+ * Every registered policy in registration order (oldest first).
+ * @returns A frozen snapshot of the registry contents.
+ */
+list(): readonly ToolPolicy[]
+
+/**
+ * Classify a tool name into a {@link ToolAction}. Returns the registered
+ * classification; absent an entry, returns `undefined` so the listener
+ * can apply the catch-all `execute` rule (the most conservative default
+ * for tools the registry has not been told about).
+ * @param toolName - The tool name to classify.
+ * @returns The classified action, or `undefined` when unclassified.
+ */
+actionOf(toolName: string): ToolAction | undefined
+
+/**
+ * Evaluate one `tools/pre-execute` call. The method is the canonical
+ * decision function: it looks up the policy by tool name, falls back
+ * to the permission-presets current preset on a miss, appends one
+ * `toolPolicy/decision` audit event to the owning session, and returns
+ * the {@link PreToolDecision} the upstream pipeline should observe.
+ *
+ * @param exec - The tool execution the listener is evaluating.
+ * @param next - The delegate that returns the default PreToolDecision.
+ * @returns The decision the upstream pipeline should observe.
+ */
+async evaluate(exec: ToolExecution, next: () => Promise<PreToolDecision>): Promise<PreToolDecision>
+```
+
+Types: [PreToolDecision](tools.md) · [ToolExecution](tools.md)
+
+Source: [`packages/app-builder/tool-policy/src/index.ts`](../../packages/app-builder/tool-policy/src/index.ts)
+
 <a id="app-builder-preview-events"></a>
 
 ### `app-builder-preview/*` events

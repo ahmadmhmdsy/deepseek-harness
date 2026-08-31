@@ -3,8 +3,10 @@
  *
  * App Builder Host BFF as a Typert Remote service. The 13 Remote methods
  * listed in `planning/Phase 2 prompt.md §3` are grouped into project CRUD
- * (4), session lifecycle (5), SSE event subscription (1), preview (1), and
- * two Phase-2-deferred placeholders (deploy, getUsage). The service mounts
+ * (4), session lifecycle (5), SSE event subscription (1), preview (1),
+ * deploy (wired through @deepseek-ai/dsh-app-builder-deployment in
+ * Phase 2.1), and getUsage (wired through @deepseek-ai/dsh-token-meter in
+ * Phase 2.3). The service mounts
  * inside `@deepseek-ai/dsh-api-gateway` automatically — the gateway
  * auto-discovers every TypertRemoteService via reflection on
  * `ctx.reflect.props` and exposes its methods over its own transport.
@@ -12,9 +14,13 @@
  * Every implemented Remote method delegates to an existing service that
  * already proves its own relation: `ctx.appBuilderProjects` for project
  * CRUD, `ctx.sessionController` for the session lifecycle and the SSE
- * event stream, and `ctx.appBuilderSnapshotBridge` for preview state. The
- * two deferred methods return a typed `not-implemented` failure so a
- * missing owner never silently succeeds.
+ * event stream, and `ctx.appBuilderSnapshotBridge` for preview state.
+ * Phase 2.1 wires `deploy` through @deepseek-ai/dsh-app-builder-deployment and
+ * returns the typed `not-implemented` failure when that plugin is not
+ * mounted; `getUsage` is wired through @deepseek-ai/dsh-token-meter in
+ * Phase 2.3 and answers with a typed `not-implemented` only for the
+ * projectId-only aggregation path that lands with the Phase 2.4
+ * projection unit. A missing owner never silently succeeds.
  */
 
 import { Service } from '@deepseek-ai/cordis'
@@ -59,7 +65,8 @@ import {
 } from './sessions.ts'
 import { getPreviewRemote } from './preview.ts'
 import { subscribeEventsRemote } from './events.ts'
-import { deployRemote, getUsageRemote } from './deferred.ts'
+import { deployRemote } from './deferred.ts'
+import { getUsageRemote } from './usage.ts'
 
 export type {
   CreateProjectRequest,
@@ -109,7 +116,7 @@ export class AppBuilderApi extends TypertRemoteService {
    * preserves the runtime check on `super` so a missing required
    * injection throws at construction rather than at the first Remote call.
    */
-  static inject = ['appBuilderProjects', 'sessionController'] as const
+  static inject = ['appBuilderProjects', 'sessionController', 'tokenMeter'] as const
 
   /**
    * @param ctx - Host context carrying App Builder registries + session controller.
@@ -254,9 +261,15 @@ export class AppBuilderApi extends TypertRemoteService {
   }
 
   /**
-   * `getUsage` placeholder. Returns a typed `not-implemented` failure.
-   * @param request - usage query (projectId and / or sessionId).
-   * @returns never — throws the typed `not-implemented` failure.
+   * Read current token / cache pressure for one Session (or, once the
+   * Phase 2.4 projection unit lands, aggregate over every Session of a
+   * project). Delegates to `ctx.tokenMeter.measure(session)` and projects
+   * the resulting `TokenMeasurement` into the public `GetUsageValue`
+   * shape. Returns a typed `not-implemented` failure for the
+   * projectId-only aggregation path until that lands.
+   * @param request - usage query (sessionId required today; projectId
+   *   aggregation lands in Phase 2.4).
+   * @returns the public `GetUsageValue` shape.
    */
   @Remote('getUsage')
   getUsage(request: GetUsageRequest): Promise<GetUsageValue> {

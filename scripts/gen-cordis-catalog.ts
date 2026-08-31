@@ -125,6 +125,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   directoryPickerController: 'workspace.md',
   appBuilderProjects: 'app-builder.md',
   appBuilderSnapshotBridge: 'app-builder.md',
+  toolPolicy: 'app-builder.md',
 }
 
 /**
@@ -177,7 +178,6 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   workspaces: 'client-side interface-typed browser service — packages/api/workspace-controller/README.md owns the API',
   appBuilder: 'client-side App Builder shell service accessor — packages/client/ui-app-builder-shell/README.md owns the API',
   appBuilderDeployment: 'App Builder deployment pipeline registry (SAST / SCA / secrets gates + approval + push) — packages/app-builder/deployment/README.md owns the API',
-  toolPolicy: 'App Builder ToolPolicy registry (typed per-tool ToolPolicy schema + tools/pre-execute listener + audit toolPolicy/decision event) — packages/app-builder/tool-policy/README.md owns the API',
 }
 
 /**
@@ -711,6 +711,10 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   CommandExecution: 'executor return contract is owned by packages/interaction/commands/src/index.ts',
   'z.core.JSONSchema.BaseSchema': 'zod projection output is owned by the zod v4 API',
   'z.core.ToJSONSchemaParams': 'zod projection parameters are owned by the zod v4 API',
+  ToolAction: 'App Builder ToolPolicy action vocabulary is owned by packages/app-builder/tool-policy/README.md',
+  ToolPolicy: 'App Builder ToolPolicy manifest interface is owned by packages/app-builder/tool-policy/README.md',
+  ToolPolicyScope: 'App Builder ToolPolicy scope record is owned by packages/app-builder/tool-policy/README.md',
+  ToolPolicyDecision: 'App Builder ToolPolicy decision payload is owned by packages/app-builder/tool-policy/README.md',
   TypertDisposer: 'Typert lifecycle contract is owned by packages/typert/protocol/README.md',
   InvokeRemoteRequest: 'gateway invocation contract is owned by packages/api/gateway/README.md',
   LocaleDict: 'service-local dictionary fields are owned by packages/client/i18n/src/index.ts',

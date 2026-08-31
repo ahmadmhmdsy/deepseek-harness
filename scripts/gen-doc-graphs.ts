@@ -680,6 +680,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     consumers: ['app-builder/api', 'bundle/app-builder'],
     note: 'Mirrors dev-server lifecycle into a single in-memory snapshot served at /__dsh/app-builder/snapshot.json; the browser projects pane polls it.',
   },
+  {
+    key: 'toolPolicy',
+    pkg: 'app-builder/tool-policy',
+    title: 'App Builder ToolPolicy registry',
+    mode: 'core',
+    consumers: ['app-builder/tool-policy/invariant'],
+    note: 'Owns the typed per-tool ToolPolicy manifest, a tools/pre-execute listener that converts declared policies into PreToolDecision, and a log-only toolPolicy/decision audit event. Falls back to ctx.permissionPresets.current(events) when no per-tool policy matches. Intent + audit, NOT authority.',
+  },
 ]
 
 function generatedHeader(title: string): string[] {

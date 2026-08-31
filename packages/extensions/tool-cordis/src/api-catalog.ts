@@ -2520,6 +2520,54 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'toolPolicy',
+    summary: 'Process-local ToolPolicy registry.',
+    description: 'Process-local ToolPolicy registry. The registry stores the typed manifest, mounts a `tools/pre-execute` listener that converts the declared policy into a PreToolDecision, and appends a log-only `toolPolicy/decision` event for every evaluation. The decision vocabulary mirrors the upstream pipeline (`allow` / `deny` / `ask`) plus a `fallback` audit outcome recorded when no per-tool policy matched and the listener delegated to the permission-presets default.',
+    methods: [
+      {
+        signature: 'readonly config: Config',
+        description: 'The registry effective configuration. Resolved by apply().',
+        parameters: [],
+      },
+      {
+        signature: 'register(policy: ToolPolicy): () => void',
+        description: 'Register one ToolPolicy. A duplicate `id` replaces the previous registration; a duplicate `tool` name shadows the previous policy so a tool with overlapping manifests resolves to the latest one.',
+        parameters: [{ name: 'policy', description: 'The ToolPolicy to register.' }],
+        returns: 'The exact disposer that unregisters the policy.',
+      },
+      {
+        signature: 'for(toolName: string): ToolPolicy | undefined',
+        description: 'Look up the policy registered against a tool name. Returns the most recent registration when multiple policies name the same tool.',
+        parameters: [{ name: 'toolName', description: 'The tool name the lookup matches.' }],
+        returns: 'The matching policy, or `undefined` when none is registered.',
+      },
+      {
+        signature: 'get(id: string): ToolPolicy | undefined',
+        description: 'Look up a policy by its stable id. The id is the registry map key, not the tool name; use for for tool-name lookups.',
+        parameters: [{ name: 'id', description: 'The policy id the lookup matches.' }],
+        returns: 'The matching policy, or `undefined` when none is registered.',
+      },
+      {
+        signature: 'list(): readonly ToolPolicy[]',
+        description: 'Every registered policy in registration order (oldest first).',
+        parameters: [],
+        returns: 'A frozen snapshot of the registry contents.',
+      },
+      {
+        signature: 'actionOf(toolName: string): ToolAction | undefined',
+        description: 'Classify a tool name into a ToolAction. Returns the registered classification; absent an entry, returns `undefined` so the listener can apply the catch-all `execute` rule (the most conservative default for tools the registry has not been told about).',
+        parameters: [{ name: 'toolName', description: 'The tool name to classify.' }],
+        returns: 'The classified action, or `undefined` when unclassified.',
+      },
+      {
+        signature: 'async evaluate(exec: ToolExecution, next: () => Promise<PreToolDecision>): Promise<PreToolDecision>',
+        description: 'Evaluate one `tools/pre-execute` call. The method is the canonical decision function: it looks up the policy by tool name, falls back to the permission-presets current preset on a miss, appends one `toolPolicy/decision` audit event to the owning session, and returns the PreToolDecision the upstream pipeline should observe.',
+        parameters: [{ name: 'exec', description: 'The tool execution the listener is evaluating.' }, { name: 'next', description: 'The delegate that returns the default PreToolDecision.' }],
+        returns: 'The decision the upstream pipeline should observe.',
+      },
+    ],
+  },
+  {
     key: 'toolResultPruner',
     summary: 'Deterministic head/middle/tail pruning for current tool-result surface nodes.',
     description: 'Deterministic head/middle/tail pruning for current tool-result surface nodes.',
@@ -5795,6 +5843,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    totalTokens?: number;\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}',
   },
   {
+    name: 'ToolAction',
+    declaration: 'export type ToolAction = \'read\' | \'write\' | \'execute\' | \'network\' | \'credential\';',
+  },
+  {
     name: 'ToolCallKind',
     declaration: 'export type ToolCallKind = \'read\' | \'edit\' | \'delete\' | \'move\' | \'search\' | \'execute\' | \'fetch\' | \'other\';',
   },
@@ -5857,6 +5909,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'ToolOutputDefinition',
     declaration: 'export interface ToolOutputDefinition {\n    readonly schema: JsonSchemaNode;\n    render(args: unknown, value: JsonValue): ContentBlock[];\n    presentationMeta?(args: unknown, value: JsonValue): JsonValue;\n}',
+  },
+  {
+    name: 'ToolPolicy',
+    declaration: 'export interface ToolPolicy {\n    readonly id: string;\n    readonly tool: string;\n    readonly allow: readonly ToolAction[];\n    readonly ask: readonly ToolAction[];\n    readonly scope?: ToolPolicyScope;\n}',
+  },
+  {
+    name: 'ToolPolicyScope',
+    declaration: 'export interface ToolPolicyScope {\n    readonly paths?: readonly string[];\n    readonly commands?: readonly string[];\n    readonly hosts?: readonly string[];\n    readonly credentials?: readonly string[];\n}',
   },
   {
     name: 'ToolPresentationMode',

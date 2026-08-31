@@ -223,6 +223,9 @@ flowchart LR
   pkg_app_builder_snapshot_bridge["app-builder/snapshot-bridge"]
   svc_appBuilderSnapshotBridge["ctx.appBuilderSnapshotBridge<br/>App Builder preview snapshot bridge"]
   pkg_bundle_app_builder["bundle/app-builder"]
+  pkg_app_builder_tool_policy["app-builder/tool-policy"]
+  svc_toolPolicy["ctx.toolPolicy<br/>App Builder ToolPolicy registry"]
+  pkg_app_builder_tool_policy_invariant["app-builder/tool-policy/invariant"]
   pkg_agent --> svc_agents
   pkg_agent_default_model --> svc_agentDefaultModel
   pkg_agent_loop --> svc_agentLoop
@@ -237,6 +240,7 @@ flowchart LR
   pkg_api_workspace_controller --> svc_workspaceController
   pkg_app_builder_project --> svc_appBuilderProjects
   pkg_app_builder_snapshot_bridge --> svc_appBuilderSnapshotBridge
+  pkg_app_builder_tool_policy --> svc_toolPolicy
   pkg_attachment --> svc_attachments
   pkg_attachment_local --> svc_attachments
   pkg_authorization --> svc_authorization
@@ -447,6 +451,7 @@ flowchart LR
   svc_systemPrompt --> pkg_tools
   svc_terminals --> pkg_tool_terminal
   svc_tokenMeter --> pkg_compaction_basic
+  svc_toolPolicy --> pkg_app_builder_tool_policy_invariant
   svc_toolResultPruner --> pkg_compaction_basic
   svc_tools --> pkg_agent_loop
   svc_tools --> pkg_tool_ask_user
@@ -546,5 +551,6 @@ flowchart LR
 | `ctx.cordisInspect` | `core` | [`cordis-host-runner`](../packages/extensions/cordis-host-runner) | - | [`tool-cordis`](../packages/extensions/tool-cordis) | - | Registers host inspect providers, mirrors the client provider manifest, and routes client queries through the dynamic Cordis transport. |
 | `ctx.appBuilderProjects` | `core` | `app-builder/project` | - | `app-builder/api`, `app-builder/snapshot-bridge` | - | Process-local registry for App Builder projects; emits project/created and project/deleted events for synchronous consumer refresh. |
 | `ctx.appBuilderSnapshotBridge` | `core` | `app-builder/snapshot-bridge` | - | `app-builder/api`, `bundle/app-builder` | - | Mirrors dev-server lifecycle into a single in-memory snapshot served at /__dsh/app-builder/snapshot.json; the browser projects pane polls it. |
+| `ctx.toolPolicy` | `core` | `app-builder/tool-policy` | - | `app-builder/tool-policy/invariant` | - | Owns the typed per-tool ToolPolicy manifest, a tools/pre-execute listener that converts declared policies into PreToolDecision, and a log-only toolPolicy/decision audit event. Falls back to ctx.permissionPresets.current(events) when no per-tool policy matches. Intent + audit, NOT authority. |
 
 Maintenance mode: hybrid: services are discovered from Cordis declarations; interface/implementation/consumer roles are classified in `scripts/gen-doc-graphs.ts` with a completeness guard.

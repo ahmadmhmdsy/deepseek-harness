@@ -9,10 +9,13 @@
  * 3. Project CRUD round-trips through `ctx.appBuilderProjects`.
  * 4. `startSession` delegates to the upstream `ctx.sessionController`.
  * 5. `subscribeEvents` returns an `AsyncIterable`.
- * 6. `deploy` and `getUsage` throw the typed `not-implemented` failure.
+ * 6. `deploy` and the projectId-only `getUsage` path throw the typed
+ *    `not-implemented` failure when their backing plugin is unmounted.
  *
  * Mocked: only `ctx.sessionController` (the upstream session lifecycle the
- * BFF forwards to); the App Builder registries and the BFF itself are real.
+ * BFF forwards to); the App Builder registries, the BFF, and the
+ * token-meter are real. The token-meter is required for `getUsage`'s
+ * sessionId path so the test rig mounts it through cordis.yml.
  */
 
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -28,6 +31,9 @@ import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import * as AppBuilderProjectPlugin from '@deepseek-ai/dsh-app-builder-project'
 import * as AppBuilderDeploymentPlugin from '@deepseek-ai/dsh-app-builder-deployment'
 import * as AppBuilderApi from '@deepseek-ai/dsh-app-builder-api'
+import * as TokenMeterPlugin from '@deepseek-ai/dsh-token-meter'
+import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { canonicalHeader } from '@deepseek-ai/dsh-session'
 
 let root: string | undefined
 let context: Context | undefined
@@ -110,6 +116,7 @@ async function loadYaml(options: { withDeployment?: boolean } = {}): Promise<{ c
   const yamlLines = [
     "- name: '@deepseek-ai/dsh-session'",
     "- name: '@deepseek-ai/dsh-session-projection'",
+    "- name: '@deepseek-ai/dsh-token-meter'",
     "- name: '@deepseek-ai/dsh-app-builder-project'",
   ]
   if (options.withDeployment === true) {
@@ -125,6 +132,7 @@ async function loadYaml(options: { withDeployment?: boolean } = {}): Promise<{ c
   const modules = new Map<string, unknown>([
     ['@deepseek-ai/dsh-session', SessionStore],
     ['@deepseek-ai/dsh-session-projection', SessionProjectionRegistry],
+    ['@deepseek-ai/dsh-token-meter', TokenMeterPlugin],
     ['@deepseek-ai/dsh-app-builder-project', AppBuilderProjectPlugin],
   ])
   if (options.withDeployment === true) {
@@ -398,11 +406,71 @@ describe('@deepseek-ai/dsh-app-builder-api (real Loader composition)', () => {
     expect(deployed.url).toBe('https://deploy.local/' + created.project.id + '/' + deployed.deploymentId)
   })
 
-  it('getUsage returns the typed not-implemented failure', async () => {
+  it('getUsage rejects a request with neither sessionId nor projectId', async () => {
     const { ctx } = await loadYaml()
     const api = ctx.get('appBuilderApi') as {
       getUsage(req: Record<string, never>): Promise<unknown>
     }
-    await expect(api.getUsage({})).rejects.toMatchObject({ failure: { code: 'not-implemented' } })
+    await expect(api.getUsage({})).rejects.toMatchObject({ failure: { code: 'bad-request' } })
+  })
+
+  it('getUsage returns the typed not-implemented failure for projectId-only aggregation', async () => {
+    const { ctx } = await loadYaml()
+    const api = ctx.get('appBuilderApi') as {
+      getUsage(req: { projectId: string }): Promise<unknown>
+    }
+    await expect(api.getUsage({ projectId: 'phantom-project' }))
+      .rejects.toMatchObject({ failure: { code: 'not-implemented' } })
+  })
+
+  it('getUsage returns a not-found failure when the Session is not live', async () => {
+    const { ctx } = await loadYaml()
+    const api = ctx.get('appBuilderApi') as {
+      getUsage(req: { sessionId: string }): Promise<unknown>
+    }
+    await expect(api.getUsage({ sessionId: 'unattached-session' }))
+      .rejects.toMatchObject({ failure: { code: 'not-found' } })
+  })
+
+  it('getUsage delegates to ctx.tokenMeter.measure and projects a live Session\'s TokenMeasurement', async () => {
+    const { ctx } = await loadYaml()
+    // Populate a live Session in the real SessionStore so the meter can
+    // replay the durable tail. The BFF\'s getUsage goes through
+    // ctx.sessions.get(sessionId) and then ctx.tokenMeter.measure(session).
+    const sessionId = 'usage-session-1'
+    const session = ctx.sessions.create(sessionId as never)
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'tell me about the harness' }],
+      source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    session.append('request/header', {
+      header: canonicalHeader({ config: { provider: 'mock', model: 'mock' } }),
+      reason: 'initial',
+    })
+    session.append('step/start', { turn: 1, step: 1 })
+    session.append('assistant/message', {
+      turn: 1,
+      step: 1,
+      message: {
+        role: 'assistant',
+        content: [{ type: 'text', text: 'the harness is a Cordis plugin graph' }],
+        source: { kind: 'model', provider: 'mock', model: 'mock' },
+      } as never,
+    }, { surfaceOp: 'append' })
+    session.append('step/end', { turn: 1, step: 1 })
+
+    const api = ctx.get('appBuilderApi') as {
+      getUsage(req: { sessionId: string }): Promise<{
+        tokensIn: number
+        tokensOut: number
+        costUsd: number
+        cacheHitRate: number
+      }>
+    }
+    const usage = await api.getUsage({ sessionId })
+    expect(usage.tokensIn).toBeGreaterThan(0)
+    expect(usage.tokensOut).toBe(0) // no provider-reported usage for the mock model
+    expect(usage.costUsd).toBe(0) // Phase 2.3 ships without a price table
+    expect(usage.cacheHitRate).toBe(0)
   })
 })
