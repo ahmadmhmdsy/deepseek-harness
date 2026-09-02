@@ -387,3 +387,114 @@ pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts   #
 
 When the user signals "go" on the UI panes, resume at task 1 with the
 `ui-app-builder-deployments` scaffold.
+
+---
+
+# Phase 2.5 — Session 2 Update (option 2 BFF done; UI panes still pending)
+
+> Appended by the same workflow on the `feat/phase2-5-ui-eventsource`
+> branch after the user said "continue/resume also include subscribePreview
+> BFF Remote method". The original handoff above is still authoritative
+> for the UI surface; this section records what changed in the second
+> session and what the next session should pick up.
+
+## 0. Branch state at session-2 close
+
+| Key | Value |
+|---|---|
+| Working branch | `feat/phase2-5-ui-eventsource` |
+| Tip | `831bfb1f5e0c5cd81a35e3baecb3588ec81c8a8b` (option 2 commit) |
+| BFF option 1 | already on `0abc84c892` (prior session) |
+| Working tree | clean |
+| UI panes | not started in this session |
+| Branch pushes | both commits on `origin/feat/phase2-5-ui-eventsource` |
+
+## 1. What was delivered in session 2
+
+### 1.1 Option 2 BFF: `subscribePreview` Remote method
+
+| File | Change |
+|---|---|
+| `packages/app-builder/api/src/types.ts` | Appended `PreviewStreamRecord`, `SubscribePreviewRequest`, `PreviewStreamEvent`, `SubscribePreviewFrame` (last 32 lines). |
+| `packages/app-builder/api/src/preview.ts` | Imported `AppBuilderPreviewDevState` from the snapshot-bridge; added `bridgeEntryToRecord`, `devStateToRecord`, `readBridge`, `projectIdForRootPath`, and the `subscribePreviewRemote` async generator. |
+| `packages/app-builder/api/src/index.ts` | Added 2 new imports + 1 method, extended the re-export block. |
+| `packages/app-builder/api/tests/preview-stream.host.spec.ts` | NEW; 10 tests PASS. |
+
+### 1.2 Test + typecheck status (session 2)
+
+```sh
+$ pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts
+ PASS  packages/app-builder/api/tests/preview-stream.host.spec.ts (10 tests) 680ms
+ Test Files  1 passed (1)
+      Tests  10 passed (10)
+```
+
+```sh
+$ pnpm run typecheck
+build:lib:host: PASS
+typecheck:contracts-ready: PASS
+```
+
+- All 18 BFF tests pass (8 deployments + 10 preview-stream).
+- 1 pre-existing failure in `api-methods.host.spec.ts > getTranscript` — confirmed on the clean prior commit, unrelated to this session.
+- Lefthook pre-commit on the option 2 commit: lint + whitespace + vendor-manifest-guard all green.
+- Pre-push typecheck on the option 2 commit: PASS.
+
+### 1.3 BFF surface after session 2 (15 Remote methods)
+
+13 prior + 2 new in Phase 2.5 (option 1: `listDeployments`, `subscribeDeploymentEvents`; option 2: `subscribePreview`). The BFF now exposes every upstream event surface the UI panes need.
+
+## 2. Architecture context (carried over)
+
+The async generator in `subscribePreviewRemote` mirrors the canonical
+`sessionController.follow` pattern: a buffered queue + a wake-up
+resolver + an AbortSignal-driven close path. The single
+`app-builder-preview/dev-state` listener disposes in `finally` so a
+signalled carrier does not leak the upstream subscription.
+
+The snapshot frame is derived from
+`appBuilderSnapshotBridge.snapshot().devServers` filtered by `projectId`.
+The stream frame is the `rootPath -> projectId` resolution at call
+time (the bridge uses the same resolution for its own snapshot).
+
+The test rig applies the snapshot-bridge plugin **directly** (not via
+YAML) so the FakeWebServer Service (mounted in the same fiber as the
+bridge `apply`) satisfies the bridge `ctx.webServer` inject check. A
+YAML-loaded bridge does not see the FakeWebServer because the Loader
+runs each plugin in a child fiber and the Service `reflect.provide`
+is rooted in the parent.
+
+## 3. Files to write in the next session (UI panes — UNCHANGED)
+
+The original handoff section 4 is still the source of truth. The only
+difference is that the BFF prerequisites are now both done (option 1
++ option 2). The next session can resume directly at handoff section
+8 task 1.
+
+## 4. Known issues / carry-forward (UNCHANGED from session 1)
+
+The latent `verify-cordis-inspect-catalog` bug
+(`packages/client/ui-approval/src/client/contract/slots.ts:71` missing
+`readonly kind: 'approval'` annotation) still exists and will re-fire
+when task 8 (tsconfig.client.json references) lands. Defer to a
+follow-up PR per AGENTS.md "no-silent-unrelated-fix"; document in the
+Agent Note section 9.
+
+The pre-existing `getTranscript` test failure in `api-methods.host.spec.ts`
+is unrelated to Phase 2.5. Document and defer to the Phase 2.x
+follow-up that fixes `getTranscriptRemote` `inspection.events.at(-1)` access.
+
+## 5. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git checkout feat/phase2-5-ui-eventsource
+git log --oneline -3 feat/phase2-5-ui-eventsource
+pnpm run typecheck
+pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts
+pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts
+# then start the section 8 todo list using todo_write
+```
+
+When the user signals go on the UI panes, resume at task 1 with the
+`ui-app-builder-deployments` scaffold.
