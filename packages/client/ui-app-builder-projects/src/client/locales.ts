@@ -17,6 +17,8 @@ export type AppBuilderProjectsKey =
   | 'previewReady'
   | 'previewIdle'
   | 'previewFailed'
+  | 'sessionCountOne'
+  | 'sessionCountOther'
 
 export const en: Record<AppBuilderProjectsKey, string> = {
   paneTitle: 'Projects',
@@ -30,6 +32,8 @@ export const en: Record<AppBuilderProjectsKey, string> = {
   previewReady: 'Preview ready',
   previewIdle: 'No preview',
   previewFailed: 'Preview failed',
+  sessionCountOne: '1 session',
+  sessionCountOther: '{count} sessions',
 }
 
 export const zh: Record<AppBuilderProjectsKey, string> = {
@@ -44,4 +48,6 @@ export const zh: Record<AppBuilderProjectsKey, string> = {
   previewReady: '预览就绪',
   previewIdle: '暂无预览',
   previewFailed: '预览失败',
+  sessionCountOne: '1 个会话',
+  sessionCountOther: '{count} 个会话',
 }

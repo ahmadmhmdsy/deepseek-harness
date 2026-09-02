@@ -76,6 +76,17 @@ export interface AppBuilderSnapshot {
   projects: readonly SnapshotProject[]
   /** Per-project preview state; absent keys mean no preview has run yet. */
   devServers: Readonly<Record<string, SnapshotDevServer>>
+  /**
+   * Per-project session count, derived from the `project` projection unit
+   * (Phase 1.5.4): for each live session whose `project` value resolves to a
+   * registered project, increment the matching id. Sessions outside any
+   * project are ignored. The count is always non-negative; a zero count is
+   * not surfaced as a key (the projects pane omits the badge for zero). The
+   * bridge walks `ctx.sessions.list()` once per flush and consults the
+   * projection cache first, falling back to the live projection registry
+   * when no cached row exists for the session header.
+   */
+  sessionCounts: Readonly<Record<string, number>>
 }
 
 /** Initial empty snapshot used before the first host write. */
@@ -83,6 +94,7 @@ export const EMPTY_SNAPSHOT: AppBuilderSnapshot = {
   ts: 0,
   projects: [],
   devServers: {},
+  sessionCounts: {},
 }
 
 /**
@@ -191,9 +203,10 @@ function toSnapshotProject(p: { id: string; name: string; rootPath: string; stac
 function buildSnapshot(
   projects: readonly SnapshotProject[],
   devServers: Readonly<Record<string, SnapshotDevServer>>,
+  sessionCounts: Readonly<Record<string, number>>,
   ts: number,
 ): AppBuilderSnapshot {
-  return { ts, projects, devServers }
+  return { ts, projects, devServers, sessionCounts }
 }
 
 /**
@@ -209,6 +222,86 @@ function projectIdForRootPath(
     if (project.rootPath === rootPath) return project.id
   }
   return undefined
+}
+
+/**
+ * Read-only accessor the snapshot-bridge uses for the `sessionProjectionCache`
+ * service. Narrower than the real type so the bridge stays a soft-dep on the
+ * cache (a deployment without the cache mounts the bridge, and `sessionCounts`
+ * falls back to the live projection registry walk).
+ */
+interface CachedProjection {
+  cachedSnapshot(
+    meta: { id: string; createdAt: number; cwd?: string },
+    keys: readonly ['project'],
+  ): { values: { project?: { owningProjectId: string | null } } } | undefined
+}
+
+/**
+ * Read-only accessor for the live session-projection registry. Narrower than
+ * the real type so the bridge stays a soft-dep on the registry (a deployment
+ * without the projection cache still resolves through it).
+ */
+interface SessionProjectionRegistryShape {
+  snapshot(session: { header: { id: string; createdAt: number; cwd?: string } }): {
+    values: { project?: { owningProjectId: string | null } }
+  }
+}
+
+/**
+ * Resolve one session's owning project id through the projection cache first
+ * (zero I/O, durable value), falling back to the live projection registry
+ * when the cache is unmounted or the session has no checkpoint row yet.
+ * Returns `null` when the session has no cwd or its cwd lives outside any
+ * registered project.
+ * @param ctx - the host Cordis context.
+ * @param session - the live Session whose owning project to look up.
+ * @returns the owning project id, or null when the session is unowned.
+ */
+function sessionOwningProjectId(
+  ctx: Context,
+  session: { id: string; header: { id: string; createdAt: number; cwd?: string } },
+): string | null {
+  const cache = ctx.get('sessionProjectionCache') as CachedProjection | undefined
+  if (cache !== undefined) {
+    const cached = cache.cachedSnapshot(session.header, ['project'])
+    const owning = cached?.values.project?.owningProjectId
+    if (owning !== undefined) return owning
+  }
+  const registry = ctx.get('sessionProjections') as SessionProjectionRegistryShape | undefined
+  if (registry === undefined) return null
+  return registry.snapshot(session).values.project?.owningProjectId ?? null
+}
+
+/**
+ * Compute the per-project session count map for the current host state.
+ * Walks `ctx.sessions.list()` once (no I/O), resolves each session's
+ * `project` projection, and increments the matching project's counter.
+ * Sessions whose projection resolves to `null` (cwd outside any project,
+ * no registry mounted, or both) do not contribute to any count. The walk
+ * is O(N sessions) per flush; the bridge flushes on `project/created`,
+ * `project/deleted`, `session/created`, `session/disposed`, and
+ * `app-builder-preview/dev-state`.
+ * @param ctx - the host Cordis context.
+ * @returns the count map keyed by project id; never undefined.
+ */
+function computeSessionCounts(ctx: Context): Readonly<Record<string, number>> {
+  const counts: Record<string, number> = {}
+  const sessions = ctx.get('sessions') as
+    | {
+      list(): readonly {
+        id: string
+        header: { id: string; createdAt: number; cwd?: string }
+      }[]
+    }
+    | undefined
+  if (sessions === undefined) return counts
+  for (const session of sessions.list()) {
+    const owning = sessionOwningProjectId(ctx, session)
+    if (owning === null) continue
+    counts[owning] = (counts[owning] ?? 0) + 1
+  }
+  return counts
 }
 
 /**
@@ -267,11 +360,21 @@ export function apply(ctx: Context, config: Config = {}): void {
    * Recompute the snapshot and write it both to disk (when configured) and
    * to the in-memory cache. The in-memory cache is what the HTTP handler
    * reads; the file write is best-effort and serialized through the queue.
+   *
+   * `sessionCounts` is computed by walking `ctx.sessions.list()` once and
+   * resolving each session's `project` projection through the projection
+   * cache (preferred: zero I/O) or the live registry (fallback when the
+   * cache is unmounted or the session has no checkpoint row yet). A session
+   * whose projection resolves to `null` (cwd outside any project) does not
+   * contribute to any count. The walk runs on every `flush` because the
+   * count is derived, not stored; an empty `ctx.sessions` (a deployment
+   * that mounts the bridge without sessions) yields an empty record.
    */
   const flush = (): void => {
     const projects = registry.list().map(toSnapshotProject)
+    const sessionCounts = computeSessionCounts(ctx)
     const ts = Date.now()
-    cachedSnapshot = buildSnapshot(projects, devServers, ts)
+    cachedSnapshot = buildSnapshot(projects, devServers, sessionCounts, ts)
     const path = filePath
     if (path === undefined) return
     writeQueue = writeQueue.then(() => writeSnapshotFile(path, cachedSnapshot)).catch((error: unknown) => {
@@ -306,6 +409,17 @@ export function apply(ctx: Context, config: Config = {}): void {
   ctx.on('project/created', () => { flush() })
   ctx.on('project/deleted', () => { flush() })
 
+  // Per-project session counts depend on session lifecycle: a new session
+  // may resolve to a project the registry already owns (or to no project);
+  // a disposed session removes its contribution. The `session/event`
+  // listener also fires on every committed event, but the projection unit's
+  // `apply` is the identity on state for the project unit (cwd is set
+  // once at session creation), so the count is stable across in-turn events.
+  // Re-flushing on each event would burn CPU for zero semantic gain;
+  // bridge re-flushes on lifecycle boundaries only.
+  ctx.on('session/created', () => { flush() })
+  ctx.on('session/disposed', () => { flush() })
+
   // Seed the snapshot once at apply time: a deployment that boots with a
   // pre-existing in-memory registry has projects before any new event fires.
   flush()
@@ -333,7 +447,7 @@ export function apply(ctx: Context, config: Config = {}): void {
   // Expose the in-memory snapshot to the App Builder BFF's `getPreview`
   // method. The accessor returns the same cache the HTTP route serves,
   // so a BFF read is coherent with the most recent browser poll.
-  ctx.appBuilderSnapshotBridge = { snapshot: () => cachedSnapshot }
+  ctx.reflect.provide('appBuilderSnapshotBridge', { snapshot: () => cachedSnapshot })
 
   ctx.effect(() => dispose, 'app-builder-snapshot-bridge: route disposer')
 }
