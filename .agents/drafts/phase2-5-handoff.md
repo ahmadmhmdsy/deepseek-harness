@@ -707,3 +707,66 @@ When the user signals go on the UI panes, resume at task 1 (Phase A: BFF
 browser Remote wiring). Phase A MUST complete before any UI pane code is
 written - the pane code references @deepseek-ai/dsh-app-builder-api/remote
 which does not exist until Phase A task 2 emits it.
+
+---
+
+## Session 4 update — Phase A attempted, BFF wiring blocked by TS2878 cascade
+
+**Branch**: `feat/phase2-5-ui-eventsource` @ `831bfb1f5e` (clean, no changes from prior session).
+
+**Goal**: Execute Phase A tasks 1-5 per section 7 above.
+
+### What worked (Phase A.1 + A.2 PASS)
+
+- Modified `packages/app-builder/api/package.json` to add `./typert` + `./remote` exports and `lib/typert.*.{js,d.ts}` to `files` list. Validator in `packages/typert/generator/src/workspace.ts:validateExport` accepts this.
+- Ran `pnpm run build:lib:host` -> typert artifacts emitted to `packages/app-builder/api/lib/`:
+  - `typert.host.js` (36671 bytes), `typert.host.d.ts` (123 bytes)
+  - `typert.remote-client.js` (36611 bytes), `typert.remote-client.d.ts` (4614 bytes)
+  - `typert.remote-client.d.ts.map` (706 bytes, never published)
+
+### What broke (Phase A.3 BLOCKED)
+
+Wired `appBuilderApiRemote` into `packages/api/remotes/src/client/index.ts` -> `tsc -b tsconfig.client.json` -> 40 TS2878 errors on clean base.
+
+**Root cause**: TS2878 fires because `tsc -b` resolves `@deepseek-ai/dsh-app-builder-api/remote` from api/remotes/src/client/index.ts and tries to rewrite the workspace import to a relative path between the consumers and the targets output files. The typert emitter writes artifacts to `lib/typert.remote-client.d.ts` (root of `lib/`), but each package s `tsconfig.json` declares `outDir: lib/types` -> relative output path does not match source path.
+
+### Why message-feedback, session-controller etc. do not trip this
+
+1. They are listed in `packages/api/remotes/tsconfig.client.json` `references` array.
+2. Once listed as a project reference, `tsc -b` uses the referenced project s `tsconfig.json` to compute the relative path between outputs -> short-circuits the rewrite attempt.
+
+### Why adding the reference for app-builder/api cascades
+
+Adding `{"path": "../../app-builder/api"}` -> 40 TS2878 -> 0, BUT causes SessionStore cascade:
+
+- `packages/app-builder/api/tsconfig.json` references `packages/api/session-controller/tsconfig.host.json`.
+- TS uses session-controller s HOST output -> redeclares `interface Context { sessions: SessionStore }`.
+- The CLIENT face augmentation from `packages/api/session-controller/src/client/sessions/service.ts:182` is overridden by the Host declaration.
+- Downstream UI packages (`ui-approval`, `ui-chat`, `ui-conversation`, `ui-model-selection`, etc.) that access `ctx.sessions` as `ISessions`/`ClientSessions` fail with TS2352 / TS2339 / TS2345 errors.
+
+### Strategies tried that did not work
+
+1. Add `tsconfig.client.json` to app-builder/api referencing only `lib/typert.remote-client.d.ts` with `noEmit: true`. Result: TS walks via `.d.ts.map` -> source -> vendor/cordis. Tried base + base.client.json extends -> various cascading errors. Tried `noResolve: true` -> TS requires `composite: true`.
+2. Add `disableSourceOfProjectReferenceRedirect: true` to `tsconfig.base.json` -> eliminates TS2878 but breaks project-reference architecture.
+3. Split root `tsconfig.json` into solution-only + `tsconfig.host.json` + `tsconfig.client.json` -> `tsc -b` wrote source files into `lib/` across many packages. Catastrophic. Required `git clean -fd` to recover.
+
+### What is needed to unblock Phase A.3
+
+A clean fix requires ONE of:
+
+**Option A** (structural): Change the typert generator to emit artifacts to `lib/types/typert.*` instead of `lib/typert.*`. Affects 10+ packages. High blast radius; should land as a separate PR on its own branch.
+
+**Option B** (bypass): Mount `appBuilderApiRemote` directly inside the UI panes own `apply`. The UI pane would do `ctx.remote.$mount(appBuilderApiRemote)` before reading `ctx.remote.appBuilder.*`. Trade-off: app-builder remote is the only Remote contribution not mounted by `api/remotes`.
+
+**Option C** (workaround): Use a `paths` entry in `tsconfig.base.json` to map `@deepseek-ai/dsh-app-builder-api/remote` to the artifact source via paths.
+
+### Recommended next step
+
+Take **Option B** (bypass). It keeps the rest of Phase 2.5 unblocked and isolates the workaround to the two new UI packages.
+
+### Status snapshot
+
+- Branch: `feat/phase2-5-ui-eventsource` @ `831bfb1f5e` (clean)
+- Typecheck: PASS (clean 2.5 base)
+- Tests: 18 BFF tests PASS (10 preview-stream + 8 deployments)
+- Skipped work: Phase A.3-A.5 + Phase B/C/D/E
