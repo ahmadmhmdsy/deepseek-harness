@@ -32,25 +32,29 @@ import type {
   CreateProjectValue,
   DeleteProjectRequest,
   DeleteProjectValue,
+  DeployRequest,
+  DeployValue,
   ForkSessionRequest,
   ForkSessionValue,
   GetPreviewRequest,
   GetPreviewValue,
+  GetProjectRequest,
+  GetProjectValue,
   GetTranscriptRequest,
   GetTranscriptValue,
   GetUsageRequest,
   GetUsageValue,
-  DeployRequest,
-  DeployValue,
+  ListDeploymentsRequest,
+  ListDeploymentsValue,
   ListProjectsValue,
-  GetProjectRequest,
-  GetProjectValue,
   ResumeSessionRequest,
   ResumeSessionValue,
   SendMessageRequest,
   SendMessageValue,
   StartSessionRequest,
   StartSessionValue,
+  SubscribeDeploymentEventsFrame,
+  SubscribeDeploymentEventsRequest,
   SubscribeEventsFrame,
   SubscribeEventsRequest,
 } from './types.ts'
@@ -67,12 +71,15 @@ import { getPreviewRemote } from './preview.ts'
 import { subscribeEventsRemote } from './events.ts'
 import { deployRemote } from './deferred.ts'
 import { getUsageRemote } from './usage.ts'
+import { listDeploymentsRemote, subscribeDeploymentEventsRemote } from './deployments.ts'
 
 export type {
   CreateProjectRequest,
   CreateProjectValue,
   DeleteProjectRequest,
   DeleteProjectValue,
+  DeploymentShape,
+  DeploymentStreamEvent,
   DeployRequest,
   DeployValue,
   ForkSessionRequest,
@@ -85,6 +92,8 @@ export type {
   GetTranscriptValue,
   GetUsageRequest,
   GetUsageValue,
+  ListDeploymentsRequest,
+  ListDeploymentsValue,
   ListProjectsValue,
   ListProjectsRequest,
   ProjectShape,
@@ -94,6 +103,8 @@ export type {
   SendMessageValue,
   StartSessionRequest,
   StartSessionValue,
+  SubscribeDeploymentEventsFrame,
+  SubscribeDeploymentEventsRequest,
   SubscribeEventsFrame,
   SubscribeEventsRequest,
 } from './types.ts'
@@ -274,6 +285,35 @@ export class AppBuilderApi extends TypertRemoteService {
   @Remote('getUsage')
   getUsage(request: GetUsageRequest): Promise<GetUsageValue> {
     return getUsageRemote(this.ctx, request)
+  }
+
+  // ---- Deployment stream + list (Phase 2.5) ----
+
+  /**
+   * List every deployment in creation order, optionally filtered by
+   * projectId. Reads the in-memory deployment registry.
+   * @param request - optional projectId filter.
+   * @returns the public value.
+   */
+  @Remote('listDeployments')
+  listDeployments(request: ListDeploymentsRequest): Promise<ListDeploymentsValue> {
+    return listDeploymentsRemote(this.ctx, request)
+  }
+
+  /**
+   * Stream deployment lifecycle events. Yields one `snapshot` frame
+   * first (the current registry state) then `event` frames as new
+   * transitions land. Listeners dispose on stream end.
+   * @param request - optional projectId filter.
+   * @param signal - caller / transport cancellation.
+   * @returns the frame iterable.
+   */
+  @Remote({ mode: 'stream' })
+  subscribeDeploymentEvents(
+    request: SubscribeDeploymentEventsRequest,
+    signal: AbortSignal,
+  ): AsyncIterable<SubscribeDeploymentEventsFrame> {
+    return subscribeDeploymentEventsRemote(this.ctx, request, signal)
   }
 }
 

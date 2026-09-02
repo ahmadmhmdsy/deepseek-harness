@@ -13,6 +13,7 @@
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
 import type { SessionHistoryRecord, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller'
 import type { ProjectStack } from '@deepseek-ai/dsh-app-builder-project'
+import type { DeploymentStatus, GateFindingSeverity, GateKind } from '@deepseek-ai/dsh-app-builder-deployment'
 
 /**
  * JSON-safe projection of the in-memory `Project` record. `ProjectId` is a
@@ -220,3 +221,66 @@ export interface GetUsageValue {
   readonly costUsd: number
   readonly cacheHitRate: number
 }
+// ---- Deployment stream + list (Phase 2.5) ----
+
+/** Public, JSON-safe projection of a `Deployment` record. The branded deployment id is erased to a plain `string` for the wire shape. */
+export interface DeploymentShape {
+  readonly id: string
+  readonly projectId: string
+  readonly target: string
+  readonly status: DeploymentStatus
+  readonly gateResults: readonly DeploymentGateResultShape[]
+  readonly url?: string
+  readonly reason?: string
+  readonly createdAt: string
+  readonly updatedAt: string
+}
+
+/** JSON-safe per-gate result projection. */
+export interface DeploymentGateResultShape {
+  readonly kind: GateKind
+  readonly passed: boolean
+  readonly findings: readonly DeploymentGateFindingShape[]
+  readonly durationMs: number
+}
+
+/** JSON-safe gate-finding projection. */
+export interface DeploymentGateFindingShape {
+  readonly kind: GateKind
+  readonly severity: GateFindingSeverity
+  readonly message: string
+  readonly file?: string
+  readonly line?: number
+}
+
+/** Re-export the closed source-of-truth unions so callers typecheck against one set. */
+export type { DeploymentStatus, GateKind, GateFindingSeverity }
+
+/** Empty request — lists every durable deployment in creation order. */
+export interface ListDeploymentsRequest {
+  /** Optional projectId filter; absent means every project. */
+  readonly projectId?: string
+}
+
+/** Value returned from `listDeployments`. */
+export interface ListDeploymentsValue {
+  readonly deployments: readonly DeploymentShape[]
+}
+
+/** Request for `subscribeDeploymentEvents`. */
+export interface SubscribeDeploymentEventsRequest {
+  /** Optional projectId filter; absent means every project. */
+  readonly projectId?: string
+}
+
+/** One lifecycle transition the deployment stream surfaces. */
+export type DeploymentStreamEvent =
+  | { readonly type: 'started'; readonly deployment: DeploymentShape }
+  | { readonly type: 'succeeded'; readonly deployment: DeploymentShape }
+  | { readonly type: 'failed'; readonly deployment: DeploymentShape; readonly reason: string }
+
+/** Frame emitted by the `subscribeDeploymentEvents` stream. */
+export type SubscribeDeploymentEventsFrame =
+  | { readonly type: 'snapshot'; readonly cursor: number; readonly records: readonly DeploymentShape[] }
+  | { readonly type: 'event'; readonly seq: number; readonly event: DeploymentStreamEvent }
+  | { readonly type: 'closed'; readonly reason: 'cancelled' | 'source-closed' }
