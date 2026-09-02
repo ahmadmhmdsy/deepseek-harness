@@ -498,3 +498,212 @@ pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts
 
 When the user signals go on the UI panes, resume at task 1 with the
 `ui-app-builder-deployments` scaffold.
+
+
+## 6. Session 3 — UI panes inspection (no code written)
+
+Branch: `feat/phase2-5-ui-eventsource` @ `831bfb1f5e` (unchanged from session 2 tip).
+Working tree clean. No commits added in session 3 — only inspection.
+
+### 6.1 Critical prerequisite discovered (must be done BEFORE task 1)
+
+The BFF currently exposes its Remote methods on the host side but has NO
+browser-side Remote contribution. The UI panes cannot call BFF Remote
+methods until the BFF package gets `./typert` + `./remote` exports. This
+was missing from the original session 1 handoff. Without it, the pane
+code will fail typecheck (`Cannot find module '@deepseek-ai/dsh-app-builder-api/remote'`)
+and runtime (`ctx.remote.appBuilder` namespace not registered).
+
+### 6.2 How the browser reaches the BFF
+
+`packages/api/remotes/src/client/index.ts` imports each Remote namespace
+via a `/remote` subpath and passes it to `ctx.remote.$mount(...)`. Example:
+```ts
+import sessionRemote from '@deepseek-ai/dsh-api-session-controller/remote'
+...
+for (const contribution of [agentPresetsRemote, ..., sessionRemote, ...]) {
+  disposers.push(await ctx.remote.$mount(contribution))
+}
+```
+After mount, browser code calls `ctx.remote.<namespace>.<method>(args)` where
+`<namespace>` is the second argument of `TypertRemoteService(ctx, name, { namespace: 'appBuilder' })`
+(see `packages/app-builder/api/src/index.ts:141`). The namespace here is `appBuilder`.
+Call shape: `ctx.remote.appBuilder.listDeployments({})` returns
+`Promise<ClientResult<ListDeploymentsValue>>`; `ctx.remote.appBuilder.subscribeDeploymentEvents({ projectId: filter }, signal)`
+returns `AsyncIterable<SubscribeDeploymentEventsFrame>`.
+
+### 6.3 Typert generation pipeline
+
+Root `tsdown.config.ts` wires `typertPlugin({ mode: 'workspace', faces: ['host'] })`.
+When `pnpm run build:lib:host` runs (tsc + `tsdown --env.DSH_BUILD_FACE host`),
+the plugin emits per-package `lib/typert.host.{js,d.ts}` (Host reflection) and
+`lib/typert.remote-client.{js,d.ts}` (browser Remote contribution) for any
+package whose `package.json` declares `./typert` or `./remote` exports.
+
+Required per `packages/typert/generator/src/workspace.ts:validateExport`:
+- `./typert` export must point to `./lib/typert.host.{js,d.ts}`
+- `./remote` export must point to `./lib/typert.remote-client.{js,d.ts}`
+- `files` must include `lib/typert.host.{js,d.ts}`, `lib/typert.remote-client.{js,d.ts}`
+
+`pnpm run typecheck` calls `build:lib:host` first, so the artifacts are
+rebuilt automatically before typecheck runs.
+
+### 6.4 UI pane wiring pattern (from `packages/client/ui-deliverables`)
+
+Each pane plugin declares its dependencies via `inject = ['connection', 'remote', ...]`.
+The `connection` is `ConnectionHandle` (transport); the `remote` is `ClientRemote`
+(typed namespace map from api-gateway/client).
+
+Browser calls: `const result = await ctx.remote.appBuilder.listDeployments({}); if (result.ok) ... else ...error`.
+Streaming: `for await (const frame of ctx.remote.appBuilder.subscribeDeploymentEvents({}, signal)) ...`.
+Use `signal.addEventListener('abort', ...)` and dispose upstream in `finally`.
+Mirror the canonical async-generator pattern from `packages/api/session-controller/src/history.ts:87`
+(`follow()`): buffered queue + wakeup resolver + ctx listeners + `finally` dispose.
+
+### 6.5 Shell changes (must add 4th slot)
+
+`packages/client/ui-app-builder-shell/src/client/contract/slots.ts` adds to
+SlotMap: `'app-builder.deployments': { kind: 'single', scope: 'root', owner: AppBuilderDeploymentsOwnerProps }`.
+New interface: `AppBuilderDeploymentsOwnerProps { children?: never; selectedProjectId?: string }`.
+
+`Shell.tsx` adds 4th slot rendering: `<aside data-pane='deployments'>{renderSlot('app-builder.deployments', { selectedProjectId })}</aside>`.
+
+`Shell.module.css` adds `grid-template-areas` row `'projects chat deployments preview'`
+and corresponding `grid-template-columns: 260px minmax(0, 1fr) 260px minmax(0, 1fr)`.
+New `.deployments { grid-area: deployments; border-right: 1px solid; ... }` selector.
+
+### 6.6 Test patterns
+
+Mirror `packages/client/ui-app-builder-projects/tests/projects-list.client.spec.tsx`
+(15 tests): jsdom env, mock snapshot store via `createSnapshotStore(initialState)`,
+build props with `useSnapshot: selector => selector(store.getSnapshot())`,
+declare `LocaleNamespaceMap` locally so `t` resolves to `TranslateNS<...>`.
+
+For the SSE pane, the test mocks `ctx.remote.appBuilder.subscribeDeploymentEvents`
+returning an async iterable driven by a manual queue (push frames, dispose on `signal.aborted`).
+Verify: snapshot frame populates store, event frame appends records, abort closes the stream,
+projectId filter drops non-matching events, `selectedDeploymentId` mirror toggles `aria-pressed`.
+
+## 7. Revised task list (Session 3 - supersedes session 1 section 8)
+
+Numbered 1-14. Resume at task 1 in a fresh session.
+
+### Phase A - BFF browser Remote wiring (prerequisite)
+
+1. Add BFF exports - edit packages/app-builder/api/package.json:
+   - Add "./typert" entry to exports (types: ./lib/typert.host.d.ts, default: ./lib/typert.host.js).
+   - Add "./remote" entry to exports (types: ./lib/typert.remote-client.d.ts, default: ./lib/typert.remote-client.js).
+   - Add to files: lib/typert.host.js, lib/typert.host.d.ts, lib/typert.remote-client.js, lib/typert.remote-client.d.ts.
+   - Confirm peer/dev: dsh-typert-protocol and dsh-typert-registry are present (they already are).
+2. Generate typert artifacts - run pnpm run build:lib:host. Expected: packages/app-builder/api/lib/typert.host.{js,d.ts} and lib/typert.remote-client.{js,d.ts,d.ts.map} appear.
+3. Mount appBuilderApiRemote - edit packages/api/remotes/src/client/index.ts:
+   - Add import appBuilderApiRemote from @deepseek-ai/dsh-app-builder-api/remote
+   - Add appBuilderApiRemote to the $mount array (alphabetic order).
+4. Add bundle dependency - edit packages/bundle/web-app/package.json:
+   - Add @deepseek-ai/dsh-app-builder-api as workspace dependency (alphabetic).
+   - Run pnpm install.
+5. Validate Phase A - run pnpm run typecheck. Expected: PASS.
+
+### Phase B - ui-app-builder-deployments package
+
+6. Scaffold - create 8 skeleton files in packages/client/ui-app-builder-deployments/:
+   - package.json (mirror ui-app-builder-projects/package.json; replace projects with deployments; deps: add @deepseek-ai/dsh-api-remotes to peer+dev).
+   - tsconfig.json (mirror projects/tsconfig.json; references: add ../api/remotes/tsconfig.client.json).
+   - tsdown.config.ts (mirror projects/tsdown.config.ts exactly).
+   - src/index.ts (empty apply, mirror projects/src/index.ts docstring).
+   - src/invariant.ts (PACKAGE_NAME equals the deployments package).
+   - src/css-modules.d.ts (verbatim from projects).
+   - README.md (mirror projects; EN-only per agent-note directive - skip zh.md + .i18n.yaml).
+7. Source files - create in src/client/:
+   - index.ts (apply body; opens SSE stream via ctx.remote.appBuilder.subscribeDeploymentEvents; mirrors signal abort listener + finally dispose pattern; registers slot).
+   - app-builder.ts (re-declare AppBuilderShellService shape - copy from projects verbatim).
+   - snapshot.ts (export DeploymentStatus, DeploymentShape, DeploymentStreamEvent, SubscribeDeploymentEventsFrame, EMPTY_DEPLOYMENTS).
+   - stores.ts (export createAppBuilderDeploymentsSnapshotStore; shape records, cursor, status, error).
+   - locales.ts (bilingual keys: paneTitle, paneSubtitle, noDeploymentsTitle, noDeploymentsHint, streamUnavailable, streamClosed, statusPending, statusRunning, statusSucceeded, statusFailed, statusCancelled).
+   - DeploymentsList.tsx (per-row: deployment.id, projectId, target, status badge, createdAt; aria-pressed when owner.selectedProjectId equals deployment.projectId).
+   - DeploymentsList.module.css (status badge styles for pending, running, succeeded, failed, cancelled).
+   - contract/slots.ts (re-declare slot map fragment; AppBuilderDeploymentsComponentProps = PropsRuntime + PropsLocale + AppBuilderDeploymentsHooks; Context merge for appBuilder).
+8. Add tests - create packages/client/ui-app-builder-deployments/tests/deployments-list.client.spec.tsx (12 tests). Cover: empty stream, snapshot 3 records, status badges, event frame appends, abort closes stream, projectId filter, locale en+zh, aria-pressed mirror, row click navigates to project, error frame surfaces banner.
+9. Wire tsconfig.client.json - add a references entry for ui-app-builder-deployments (after ui-app-builder-projects).
+10. Wire bundle - edit packages/bundle/web-app/cordis.patch.yml (add app-builder-deployments row after app-builder-projects, no snapshotUrl config) and packages/bundle/web-app/package.json (add @deepseek-ai/dsh-client-ui-app-builder-deployments as workspace dependency).
+
+### Phase C - ui-app-builder-preview-iframe package
+
+11. Scaffold and implement - same 7 source files + 1 test file as Phase B. Differences:
+    - index.ts opens ctx.remote.appBuilder.subscribePreview, accumulates PreviewStreamRecord keyed by projectId, plus initial ctx.remote.appBuilder.getPreview to seed URL.
+    - PreviewIframe.tsx renders iframe with src and sandbox=allow-scripts; re-renders when PreviewStreamRecord.url changes.
+    - locales.ts keys: paneTitle, previewIdle, previewStarting, previewReady, previewFailed, previewStopped, previewNoProject, previewUrlLabel.
+    - CSS: empty-state, error state with retry button (no-op), loading skeleton.
+    - tests (12): empty shows previewIdle, snapshot ready renders iframe with URL, failed shows error, selectedProjectId triggers getPreview re-seed, abort closes stream, sandbox allow-scripts only, URL transition on event.
+12. Wire - same tsconfig.client.json + bundle edits. The iframe fills the existing app-builder.preview shell-declared slot (its package id is preview-iframe).
+
+### Phase D - Shell + bundle updates
+
+13. Shell - edit packages/client/ui-app-builder-shell/src/client/{contract/slots.ts,Shell.tsx,Shell.module.css}:
+    - slots.ts: add AppBuilderDeploymentsOwnerProps interface; add app-builder.deployments to SlotMap; extend PropsRenderSlots in AppBuilderShellComponentProps.
+    - Shell.tsx: render 4th aside with data-pane=deployments and renderSlot(app-builder.deployments, { selectedProjectId }).
+    - Shell.module.css: extend grid template to 4 columns (260 + 1fr + 260 + 1fr), grid-template-areas header+projects+chat+deployments+preview, add .deployments selector.
+14. Update shell test - packages/client/ui-app-builder-shell/tests/shell.client.spec.tsx: extend RenderSlotCall slot union to include app-builder.deployments; add 2 tests (deployments slot receives selectedProjectId; renders 4 panes).
+
+### Phase E - Validation + commit
+
+15. Typecheck - pnpm run typecheck. Expected: PASS. If verify-cordis-inspect-catalog fails on packages/client/ui-approval/src/client/contract/slots.ts:71, document and defer.
+16. Targeted tests - run:
+    - pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts (10/10 PASS unchanged).
+    - pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts (8/8 PASS unchanged).
+    - pnpm exec vitest run packages/client/ui-app-builder-deployments (12/12 new).
+    - pnpm exec vitest run packages/client/ui-app-builder-preview-iframe (12/12 new).
+    - pnpm exec vitest run packages/client/ui-app-builder-shell (existing + 2 new = ~8 PASS).
+    - pnpm exec vitest run packages/client/ui-app-builder-projects (15/15 unchanged).
+17. Lefthook pre-commit - commit message: feat(client): add ui-app-builder-deployments + ui-app-builder-preview-iframe (Phase 2.5 panes). Expected: PASS.
+18. Lefthook pre-push - runs pnpm run typecheck. Expected: PASS.
+19. Push - git push origin feat/phase2-5-ui-eventsource. Expected: success.
+
+## 8. Files modified or created (expected diff size)
+
+Phase A: 3 files modified (packages/app-builder/api/package.json, packages/api/remotes/src/client/index.ts, packages/bundle/web-app/package.json).
+
+Phase B: 10 files created (packages/client/ui-app-builder-deployments/{package.json,tsconfig.json,tsdown.config.ts,README.md}, src/{index,invariant}.ts, src/css-modules.d.ts, src/client/{index,app-builder,snapshot,stores,locales}.ts, src/client/{DeploymentsList.tsx,DeploymentsList.module.css}, src/client/contract/slots.ts, tests/deployments-list.client.spec.tsx).
+
+Phase C: 10 files created (same shape, names: ui-app-builder-preview-iframe, PreviewIframe, preview-iframe).
+
+Phase D: 3 files modified (packages/client/ui-app-builder-shell/src/client/{contract/slots.ts,Shell.tsx,Shell.module.css}), 1 test extended (packages/client/ui-app-builder-shell/tests/shell.client.spec.tsx).
+
+Wiring: 1 line added to tsconfig.client.json, 2 rows added to packages/bundle/web-app/cordis.patch.yml, 3 deps added to packages/bundle/web-app/package.json.
+
+Total: 24 files modified/created, roughly 2,500 lines.
+
+## 9. Critical patterns (MUST follow)
+
+- Trailing newline: exactly one \n (not two). Lefthook pre-commit git diff --cached --check rejects trailing blanks.
+- Max line length: 140 chars. Use named interfaces, not inline casts.
+- Locale ownership: typed LocaleNamespaceMap declaration per pane; ctx.locale.register(NS, { zh, en }) in apply().
+- Empty package apply() body for node-half (the pane is browser-only).
+- Slot registration via ctx.slots.inject(<slot-name>, () => ctx.slots.register({ name, locale, inject: () => ({...}) }, Component)) - never ctx.slots.register directly when filling another package slot.
+- Stream transport: for await (const frame of ctx.remote.<ns>.<streamMethod>({}, signal)), abort on signal, dispose in finally.
+- Snapshot store: createSnapshotStore<AppBuilderDeploymentsState>(INITIAL_STATE), write via set/update, read via useSnapshot(selector).
+- React: no ctx access in components; data arrives through the four props shares.
+- Component-localization keys: keep en+zh identical keys; never hardcoded copy.
+- tsdown.config.ts mirrors clientBundle(package, [lib/types/index.js, lib/types/invariant.js]) exactly.
+- package.json exports must include ., ./invariant, ./client, ./src/*, ./package.json for client UI plugins.
+- dsh.client block must declare platform: web and inject: [...] with package-name dependency edges (informational only - Cordis inject waits on services).
+
+## 10. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git checkout feat/phase2-5-ui-eventsource
+git pull origin feat/phase2-5-ui-eventsource  # if push unblock lands during session
+cat .agents/drafts/phase2-5-handoff.md  # read this document
+git fetch origin phase2-5-handoff-draft:phase2-5-handoff-draft
+git checkout phase2-5-handoff-draft -- .agents/drafts/phase2-5-handoff.md
+pnpm run typecheck  # confirm baseline green
+pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts
+pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts
+# then start task 1 from section 7 above using todo_write
+```
+
+When the user signals go on the UI panes, resume at task 1 (Phase A: BFF
+browser Remote wiring). Phase A MUST complete before any UI pane code is
+written - the pane code references @deepseek-ai/dsh-app-builder-api/remote
+which does not exist until Phase A task 2 emits it.
