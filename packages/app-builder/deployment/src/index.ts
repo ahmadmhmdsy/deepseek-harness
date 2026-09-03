@@ -32,6 +32,7 @@ export type {
   DeploymentId,
   DeploymentRequest,
   DeploymentStartedEvent,
+  DeploymentStatus,
   DeploymentSucceededEvent,
   DeploymentValue,
   GateFinding,

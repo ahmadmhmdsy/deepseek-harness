@@ -92,6 +92,8 @@
     { "path": "./packages/client/ui-trajectory" },
     { "path": "./packages/client/ui-app-builder-shell" },
     { "path": "./packages/client/ui-app-builder-projects" },
+    { "path": "./packages/client/ui-app-builder-deployments" },
+    { "path": "./packages/client/ui-app-builder-preview-iframe" },
     { "path": "./packages/session-query/session-log-export/tsconfig.client.json" },
     { "path": "./packages/client/ui-theme" },
     { "path": "./packages/client/ui-settings" },
