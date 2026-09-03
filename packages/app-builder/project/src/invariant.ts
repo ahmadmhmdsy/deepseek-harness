@@ -18,9 +18,18 @@ export const name = 'app-builder-project-invariant'
 export const inject = ['invariants']
 
 /**
- * No runtime invariant: Phase 1 keeps the registry in process memory and
- * persists the durable truth through the `project/created` session-log event;
- * a later phase adds the registry-vs-log relation check this companion will own.
+ * No runtime invariant: the package owns a single pure projection fold whose
+ * wire payload is schema-validated by the projection registry at every
+ * snapshot and change-feed emission. The cwd → owning-project relation the
+ * fold consumes is owned and runtime-checked by `ProjectRegistry.create()`
+ * (which validates the rootPath is a directory) and by
+ * `ProjectRegistry.listSessionIds()` (which derives the prefix-match set); the
+ * persisted projection cache checkpoints the unit's state on its throttled
+ * write-behind and a stale or version-mismatched row is discarded on read
+ * (no migration). The event relations the registry relies on
+ * (`project/created` exactly once per durable record, the `add-then-emit`
+ * ordering the snapshot bridge depends on) are owned here and asserted by
+ * the snapshot-bridge test.
  */
 const install: InvariantInstaller = () => {}
 

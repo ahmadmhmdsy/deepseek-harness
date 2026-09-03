@@ -97,7 +97,7 @@ NaN- Session telemetry (OpenTelemetry).
 
 **Phase 0 (revised) — Acceptance gate, no new code (0.5 day)**
 
-- Pin version (0.1.1-rc.2) + record release cadence in PROJECT.md.
+- Pin version (0.1.2-alpha.1` post-Phase-1.5; the original Phase 0 pin of `0.1.1-rc.2` is obsolete) + record release cadence in PROJECT.md.
 - Verify Node 22.19+ + pnpm 11.7.0.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`. Capture the JSONL.
 - Run `pnpm run doc-sync` to confirm zero gate failures on the current tree.
@@ -112,7 +112,7 @@ NaN- Session telemetry (OpenTelemetry).
   - `dsh-app-builder-scaffold` (~150 LOC; composes fs + bash + str-replace-editor).
   - `dsh-app-builder-preview` (readiness probe + headless screenshot; composes bash + jobs).
   - `dsh-app-builder-persona` (App Builder persona).
-- New example `examples/app-builder/`:
+- New example `apps/cli/config/examples/app-builder/` (relocated from `examples/app-builder/` in Phase 1.5 per the upstream retirement PR #2977):
   - `cordis.yml` + `cordis.snapshot.yml`.
   - `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`).
   - `tests/e2e/with-key-smoke.spec.ts` (sends a real prompt, verifies scaffold + preview).
@@ -122,18 +122,41 @@ NaN- Session telemetry (OpenTelemetry).
   - Preview iframe pane (binds to the per-project dev server URL).
 - Agent Notes: `scaffold-plugin`, `preview-plugin`, `project-entity`.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
+- Status: in progress on `app-builder-web-reskin`; four packages shipped, shell + projects pane shipped; web reskin pending (lands in Phase 1.5).
 
-**Phase 2 (revised) — Productize control plane (2–4 weeks)**
+**Phase 1.5 (revised) — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)**
 
-- New packages:
-  - `packages/app-builder/deployment` (Deployment entity + `deploy` tool + SAST/SCA/secrets gates).
-  - `packages/app-builder/tool-policy` (typed `ToolPolicy` schema + `tools/pre-execute` listener).
-  - `packages/app-builder/api` (Typert Remote service: REST + SSE).
-- Mount the API via existing `dsh-api-gateway` + `dsh-api-remotes` (no new HTTP layer).
-- Add a `Project` projection unit + projection cache for the projects list pane.
-- Update `apps/web` with project list, deployment status pane, preview iframe with `EventSource` for live updates.
-- Agent Notes: `deployment-pipeline`, `tool-policy-typed-schema`, `control-plane-api`.
-- Snapshot scenarios: `deploy-local`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
+Inserted between Phase 1 and Phase 2. Synchronizes the fork to upstream's `dsh-v0.1.2-alpha.1` release (`cd5ef81481`) so Phase 2 starts on top of upstream's chosen app shape (`apps/cli` + `apps/web`) and the up-to-date API / projection infrastructure.
+
+- **Sub-phase 1.5.1 — B2 merge.** `git merge --no-ff upstream/master` on a new branch. Resolves the 25 shared paths (see [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md §3`](19-upstream-v0.1.2-alpha.1-adoption-plan.md)). Regenerates `pnpm-lock.yaml` via `pnpm install`. All 5 gates green. Native stacked PR.
+- **Sub-phase 1.5.2 — Examples relocation.** Move `examples/app-builder/` → `apps/cli/config/examples/app-builder/`. Re-record keyless/with-key snapshots at the new path. 5 gates green. Update `planning/Phase 1 prompt.md §6` and `planning/inspect/18-phase1-start-record.md`. Stacked on 1.5.1.
+- **Sub-phase 1.5.3 — Apps/web reskin.** Integrate `packages/client/ui-app-builder-shell` + `packages/client/ui-app-builder-projects` into upstream's rebuilt `apps/web/` (183 files, 56 first-parent merges past `b150a551b8`). Add slot declarations (`app-builder-shell`, `app-builder.projects`, `app-builder.preview`, `app-builder.conversation`) to upstream's host. Update `apps/web/index.html` title. Re-record web browser snapshots. Stacked on 1.5.2.
+- **Sub-phase 1.5.4 — Projection cache adoption.** Cherry-pick `xtr/projection-per-session-cache` (PR #2781, `53c8f64eed`). Wire `packages/session/session-projection-cache/` into `packages/app-builder/project/` (Phase 2 §4: project projection unit + cache). 5 gates green. Stacked on 1.5.3.
+- **Sub-phase 1.5.5 — API gateway adoption.** Cherry-pick the `worktree-apire-*` cluster (PRs #2911, #2968, #3082, #3083, #3085, #3086, #3217, #3235 + #3148). Scaffold `packages/app-builder/api/` with the 11 methods from Phase 2 §3. Mount via `@deepseek-ai/dsh-api-gateway` + `@deepseek-ai/dsh-api-remotes`. 5 gates green. Stacked on 1.5.4.
+- **Sub-phase 1.5.6 — Subagent provider.** Cherry-pick PR #2663 (`f76a225a7d`). Re-apply our `721c1d6fe1 fix(subagent): route spawned children through parent's live model selection` if the B2 merge clobbered it. 5 gates green. Stacked on 1.5.5.
+- **Sub-phase 1.5.7 — Planning artifacts.** Update `planning/plan.md`, `planning/goal.md`, `planning/Phase 2 prompt.md`, `planning/inspect/INDEX.md` (this entry), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md`. Land 1.5.5-introduced cordis-catalog regression fixes (unique symbol + unknown in Typert Remote boundary, JSDoc completeness on Cordis events, type-link exemptions, SERVICE_PAGE/EVENT_SCOPE_PAGE entries, gen-doc-graphs SERVICE_ROLES entries, gen-config-catalog `as const` unwrap, new `docs/subsystems/app-builder.{md,zh.md,i18n.yaml}`). Stacked on 1.5.6.
+
+**Phase 1.5 status — accepted.** Sub-phases 1.5.1 (`f7386f0f97`), 1.5.2 (`58ad73791e`), 1.5.3 (`098f7cad1c`), 1.5.4 (`8a28421e02`), 1.5.5 (`8994998859`), 1.5.6 (`1bc7a6b9f7`) all merged via native GitHub stacked PRs atop `origin/adopt/api-gateway-cluster`. 1.5.7 lands as the docs-only commit on `docs/phase1.5-record`. `pnpm run doc-sync` returns 25 PASS / 7 FAIL; the 7 FAIL are documented §9 backlog (translation pairing divergences in `capability-seams`/`event-producer-consumer`/`config-catalog` from 1.5.4/1.5.5 adoption + pre-existing 1.5.1-inherited gates that were failing before this branch).
+
+Detailed per-file conflict map and resolution plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](19-upstream-v0.1.2-alpha.1-adoption-plan.md). Task brief: [`Phase 1.5 prompt.md`](../Phase%201.5%20prompt.md).
+
+**Phase 2 (revised) — Productize control plane (2–4 weeks) — in progress**
+
+Lands as six native GitHub stacked sub-phases plus one docs-only closure on `docs/phase2-record` (branched from `origin/docs/phase1.5-record` = `26bf01ba4a`):
+
+- **2.0 plan-only** — Updates `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md` §8 to add the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority**. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. Docs-only commit lands on `docs/phase2-record` after 2.1–2.5 code PRs merge.
+
+Stack base: `origin/docs/phase1.5-record` = `26bf01ba4a`. Per-sub-phase PRs: `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource`.
+
+**Phase 2 status — in progress.** 2.0 plan-only commit lands on `docs/phase2-record`. 2.1 Deployment package is the next code sub-phase.
+
+Detailed per-sub-phase records: 29–35 above. Task brief: [`Phase 2 prompt.md`](../Phase%202%20prompt.md). Agent Note: `.agents/notes/implemented/process/2026-08-31-phase-2-productize-control-plane-record.md`.
 
 **Phase 3 (revised) — Multi-user scale (2–4 weeks)**
 

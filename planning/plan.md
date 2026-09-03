@@ -118,7 +118,7 @@ New bundle `packages/bundle/app-builder/` patches over `packages/bundle/base`. R
 
 ### 3.6 Example
 
-`examples/app-builder/` — `cordis.yml`, `cordis.snapshot.yml`, `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`), `tests/e2e/with-key-smoke.spec.ts` (real prompt + verify scaffold + preview).
+`apps/cli/config/examples/app-builder/` — `cordis.yml`, `cordis.snapshot.yml`, `tests/e2e/keyless-smoke.spec.ts` (boots via `dsh-loader-smoke`), `tests/e2e/with-key-smoke.spec.ts` (real prompt + verify scaffold + preview).
 
 ### 3.7 Web UI
 
@@ -139,9 +139,9 @@ Every new package ships: `tests/`, `./invariant`, README + JSDoc with `Model Exp
 - Resume a session after restart.
 - Sandbox enforced (mode = `workspace-write`); approvals gate destructive ops.
 - All five verification commands pass.
-### Status — started (commit `abc87d4df1`)
+### Status — accepted (commit `58ad73791e` at end of Phase 1.2; Phase 1.3/1.4/1.5 extend but do not accept Phase 1 anew)
 
-Phase 1 work begins on branch `app-builder-web-reskin` at `9d99c4788e`. The first action is a docs-only commit that adds a standing workflow rule to root `AGENTS.md` (`## Project process and maintained artifacts`) so every later commit/PR in this phase obeys the same-PR artifact-update discipline.
+Phase 1 work ran across branches `app-builder-web-reskin`, `relocate/examples-app-builder`, and the 1.5.x adoption stack. The four MVP packages (`project`, `scaffold`, `preview`, `persona`) ship with bilingual READMEs, Agent Notes, and snapshot tests; `apps/cli/config/examples/app-builder/` was added during 1.5.2.
 
 Next steps in order:
 
@@ -149,7 +149,7 @@ Next steps in order:
 2. Register the `packages/app-builder/` workspace group (`packages/README.md`, `tsconfig.host.json`, root `tsconfig.json` if needed).
 3. Author the four packages with their full per-package obligations (per `planning/Phase 1 prompt.md §10`).
 4. Author the `packages/bundle/app-builder/cordis.patch.yml` patch over `packages/bundle/base`.
-5. Author `examples/app-builder/` with keyless + with-key smokes.
+5. Author `apps/cli/config/examples/app-builder/` with keyless + with-key smokes.
 6. Re-skin `apps/web` on the existing branch (no parallel `apps/app-builder-web`).
 7. Add web browser snapshot scenarios.
 8. File Agent Notes for each non-trivial change (scaffold, preview, project, persona).
@@ -160,35 +160,65 @@ Each step lands as its own commit; planning artifacts (`plan.md`, `inspect/INDEX
 
 Guardrails: no credentials in the sandbox; cost limits on (via `dsh-token-meter`); single-user only.
 
-## 4. Phase 2 — Productize the control plane (2–4 weeks)
+## 4. Phase 1.5 — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)
+
+> Inserted between Phase 1 and Phase 2. Synchronizes the fork to upstream's tagged release so Phase 2 starts on top of upstream's chosen app shape (`apps/cli` + `apps/web`) and the up-to-date API / projection infrastructure.
+
+Sub-phases (native GitHub stacked PRs; each is one PR stacked on the one below):
+
+1. **1.5.1 B2 merge.** `git merge --no-ff upstream/master`. Resolves the 25 shared paths in [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md §3`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md). Regenerate `pnpm-lock.yaml` via `pnpm install`. All 5 gates green. Agent Note: `merge-upstream-v0.1.2-alpha.1`.
+2. **1.5.2 Examples relocation.** Move `examples/app-builder/` → `apps/cli/config/examples/app-builder/`. Re-record snapshots at the new path. Update `planning/Phase 1 prompt.md §6` and `planning/inspect/18-phase1-start-record.md`. 5 gates green. Agent Note: `examples-relocation`.
+3. **1.5.3 Apps/web reskin.** Integrate `packages/client/ui-app-builder-shell` + `packages/client/ui-app-builder-projects` into upstream's rebuilt `apps/web/` (183 files, 56 first-parent merges past `b150a551b8`). Add slot declarations to upstream's host. Re-record web browser snapshots. 5 gates green. Agent Note: `app-builder-shell-on-upstream-web`.
+4. **1.5.4 Projection cache adoption.** Wire `packages/session/session-projection-cache/` (PR #2781, `53c8f64eed`) into `packages/app-builder/project/`. 5 gates green. Agent Note: `projection-cache-integration`.
+5. **1.5.5 API gateway adoption.** Cherry-pick `worktree-apire-*` cluster (PRs #2911, #2968, #3082, #3083, #3085, #3086, #3217, #3235 + #3148). Scaffold `packages/app-builder/api/` (Phase 2 §3, 11 methods). 5 gates green. Agent Note: `api-gateway-cluster`.
+6. **1.5.6 Subagent provider.** Cherry-pick PR #2663 (`f76a225a7d`). Re-apply our `721c1d6fe1 fix(subagent): route spawned children through parent's live model selection` if the B2 merge clobbered it. 5 gates green. Agent Note: `subagent-provider`.
+7. **1.5.7 Planning artifacts.** Update `planning/plan.md` (this section), `planning/goal.md`, `planning/Phase 2 prompt.md`, `planning/inspect/INDEX.md`, `planning/inspect/SUMMARY.md`, `docs/PROJECT.md`. `pnpm run doc-sync` PASS. Agent Note: `phase-1.5-upstream-sync-record`.
+
+### Acceptance criteria
+
+- `master` pin = `0.1.2-alpha.1` (upstream tag `dsh-v0.1.2-alpha.1`).
+- `examples/app-builder/` lives at `apps/cli/config/examples/app-builder/`.
+- `apps/web/` is upstream's; our shell plugins inject into it.
+- `packages/app-builder/api/` scaffolded; 11 methods mounted via Typert RPC.
+- `packages/app-builder/project/` uses the projection cache.
+- `packages/subagent/subagent/` includes both upstream's provider refactor and our `721c1d6fe1` fix.
+- `pnpm-lock.yaml` regenerated; all 5 verification commands PASS.
+- All 7 Agent Notes (en + zh + i18n.yaml) committed in their respective sub-phases.
+- All 7 sub-phase PRs merged via native GitHub stacked PRs.
+- `docs/PROJECT.md` reflects the new state.
+
+Guardrails: do not start any Phase 2 work (`packages/app-builder/{deployment,tool-policy}`) until Phase 1.5 is accepted.
+
+### Status — accepted (commit `1bc7a6b9f7` after 1.5.6; 1.5.7 docs-only commit `docs/phase1.5-record` in progress)
+
+- Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md).
+- Task brief: [`Phase 1.5 prompt.md`](Phase%201.5%20prompt.md).
+- All seven sub-phases land via native GitHub stacked PRs atop `origin/adopt/api-gateway-cluster`:
+  - 1.5.1 `f7386f0f97` merge upstream v0.1.2-alpha.1
+  - 1.5.2 `58ad73791e` relocate examples/app-builder
+  - 1.5.3 `098f7cad1c` apps/web re-skin
+  - 1.5.4 `8a28421e02` projection cache adoption
+  - 1.5.5 `8994998859` API gateway cluster adoption
+  - 1.5.6 `1bc7a6b9f7` subagent provider adoption
+  - 1.5.7 `docs/phase1.5-record` planning artifacts + 1.5.5 regression fixes (this branch)
+
+## 5. Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 Goal: a real product around dsh, still single-user but scale-ready.
 
-### 4.1 Deployment package
+Sub-phases (each lands as a native GitHub stacked PR atop `docs/phase2-record`, which itself sits on `origin/docs/phase1.5-record` = `26bf01ba4a`):
 
-`packages/app-builder/deployment/` — `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates. Approval via `ctx.approval`. Emit `deployment/{started,succeeded,failed}`.
+- **2.0 plan-only** — Update `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md` §8 with the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority** — real authority is sandbox-mode fences. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. This docs-only commit lands on `docs/phase2-record` after the 2.1–2.5 code PRs merge.
 
-### 4.2 ToolPolicy manifest
+Branches: `docs/phase2-record` carries 2.0 + 2.6; `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource` carry 2.1–2.5 code. Stack base `origin/docs/phase1.5-record`.
 
-`packages/app-builder/tool-policy/` — typed `ToolPolicy` schema + `tools/pre-execute` listener. Falls back to `ctx.permissionPresets.current(events)`. Audit event `toolPolicy/decision`. **Intent + audit, not authority** — real authority is sandbox-mode fences.
-
-### 4.3 API surface
-
-`packages/app-builder/api/` — Typert Remote service exposing REST + SSE endpoints. Mount via existing `dsh-api-gateway` + `dsh-api-remotes`. **Do not add a new HTTP layer.**
-
-### 4.4 Projection unit + cache
-
-Add a `project` projection unit in `packages/app-builder/project/` (extends Phase 1). Wire cache via `dsh-session-projection-cache`.
-
-### 4.5 Web UI
-
-Update `apps/web` with project list pane, deployment status pane, preview iframe with `EventSource`.
-
-### 4.6 Snapshot scenarios
-
-`deploy-local`, `deploy-blocked-by-gates`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
-
-### 4.7 Acceptance criteria
+### Acceptance criteria
 
 - Chat UI drives the full loop end-to-end.
 - Sessions resume/fork/replay from the event log.
@@ -267,7 +297,7 @@ Don't:
 ## 7. Testing & evaluation
 
 - Test harness: run the App Builder against a fixed suite of prompts (todo app, CRUD, auth, API integration); assert the app builds, runs, and passes basic checks.
-- Snapshot tests via `examples/app-builder/` (keyless + with-key smokes + per-package fixtures).
+- Snapshot tests via `apps/cli/config/examples/app-builder/` (keyless + with-key smokes + per-package fixtures).
 - Per-file 100% coverage on `packages/*/*/src`.
 - Adversarial tests: prompt injection, malicious uploads, resource exhaustion, SSRF, redirect smuggling.
 - Track per-session token + cost, cache-aware, with alerts.

@@ -1,0 +1,51 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../../packages/runtime-diagnostics/invariants"
+    },
+    {
+      "path": "../../../packages/api/session-controller/tsconfig.host.json"
+    },
+    {
+      "path": "../../../packages/app-builder/project"
+    },
+    {
+      "path": "../../../packages/app-builder/scaffold"
+    },
+    {
+      "path": "../../../packages/app-builder/preview"
+    },
+    {
+      "path": "../../../packages/app-builder/snapshot-bridge"
+    },
+    {
+      "path": "../../../packages/app-builder/deployment"
+    },
+    {
+      "path": "../../../packages/core/session"
+    },
+    {
+      "path": "../../../packages/llm/token-meter"
+    },
+    {
+      "path": "../../../packages/typert/protocol"
+    },
+    {
+      "path": "../../../packages/typert/registry"
+    }
+  ]
+}

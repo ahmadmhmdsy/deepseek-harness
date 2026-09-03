@@ -1,16 +1,12 @@
 # AGENTS.md
 
-DeepSeek Harness is a plugin-based agent harness on vendored Cordis: **everything is a plugin**. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
-
-## Read this first
-
-Operating rules — priority order, inspect-before-change, security, file/command safety, testing discipline, communication style, task states, and the DeepSeek App Builder operating system — live in **[CLAUDE.md](./CLAUDE.md)**. Read CLAUDE.md before working on this repo; this file adds the project-specific contribution rules on top.
-
-For project mode and phase tracking, also read [planning/AGENTS.md](./planning/AGENTS.md); for documentation rules, [docs/AGENTS.md](./docs/AGENTS.md); for packages, [packages/AGENTS.md](./packages/AGENTS.md); for runnable examples, [examples/AGENTS.md](./examples/AGENTS.md). See the [CLAUDE.md read-order table](./CLAUDE.md#read-order) for the full per-folder matrix.
+DeepSeek Harness is an all-plugin Cordis agent harness. Read [docs/architecture.md](docs/architecture.md) before changing `packages/`; follow [docs/AGENTS.md](docs/AGENTS.md) for documentation.
 
 ## Pre-release stance: foundation over blast radius
 
-**Remove this section at the first tagged release.** With no external consumers, prefer the correct foundation over compatibility shims: rename or repackage freely and update every reference together. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
+**Remove at the first tagged release.** Until then, prefer correct foundations to compatibility shims: rename or repackage freely and update every reference. Backends reject old on-disk formats. SQLite uses monotonic `SCHEMA_VERSION`; `dsh-session` keeps `SESSION_FORMAT_VERSION` at `0` with no compatibility promise.
+
+**Application launch.** Only `dsh` profiles launch supported Node apps; package bins, demos, and public SDK argv escapes are forbidden ([rule](docs/architecture.md#application-launch)).
 
 ## Repository layout
 
@@ -23,7 +19,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   llm/         LLM capability: Service Definition/Consumer + DeepSeek providers
   e2b/         E2B POC: sandbox + FS/subprocess adapters
   shell/        bash capability: Service Definition + local/pwsh providers + shell Consumers
-  subprocess/  subprocess capability + local process-tree provider
+  subprocess/  subprocess capability + local process-tree provider + shared Win32 library
   terminal/         persistent sessions
   fs/          filesystem capability + policy
   lsp/         language-server capability
@@ -34,6 +30,7 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   subagent/    subagent capability: Service Definition + providers + delegation Consumers
   bundle/      installable dsh --profile patch-layer bundles
   workflow/    workflow capability + worker-thread provider + tool Consumer
+  webhook/     webhook ingress
   todo/        todo_write tool
   plan/        plan mode as logged state
   preset/      per-session agent composition from preset cordis.yml files
@@ -46,15 +43,14 @@ packages/    @deepseek-ai/dsh-<pkg> workspaces at packages/<group>/<pkg>/
   credentials/ credential/authorization capabilities + env/.env provider
   acp/         automation-only Agent Client Protocol server
   interaction/ approval/interaction capabilities, permission, commands, ask-user
-  boot/        shared app-bin glue
-  sdk/         JSON-RPC protocol, server, and TypeScript client
-  examples/    demo bundles (agent-spine + CLI/ACP/JSON-RPC bins)
+  boot/        shared profile/application boot glue
+  sdk/         JSON-RPC protocol + TypeScript client/server
+  examples/    reusable composition bundles (agent-spine)
   experimental/ private prototypes excluded from official releases
   support/     dev/test infrastructure
   util/        zero-dependency utilities
 python/      Python SDK and bundled runtime (see python/README.md)
 native/      @deepseek-ai/node-addon-landlock-run source of record (see native/README.md)
-examples/    Runnable cordis.yml leaves over packages/examples bundles (see examples/AGENTS.md)
 .agents/     Agent workflows and Agent Notes (`notes/`)
 docs/        architecture, generated catalogs, postmortems, cookbook (see docs/AGENTS.md)
 scripts/     repo gates and generators
@@ -68,10 +64,11 @@ Package groups: [packages/README.md](packages/README.md).
 ```sh
 pnpm install            # pnpm workspaces, node ^22.19 || >=24
 pnpm run clean           # remove build outputs and safe residue from deleted packages
-pnpm run test           # vitest unit tests
+pnpm run test           # unit tests
 pnpm run test:coverage  # CI coverage gate: per-file 100% on packages/*/*/src
 pnpm run test:e2e       # real-API tests; self-skip without DEEPSEEK_API_KEY
-pnpm run test:snapshot  # keyless ACP/headless replay vs expected outputs; filter: -t <name>
+pnpm run test:expected  # owner-local process expectations
+pnpm run test:snapshot  # keyless recorded-session replay through shipped profiles; filter: -t <name>
 pnpm run test:snapshot:record  # re-record expected outputs (needs key)
 pnpm run typecheck
 pnpm run lint
@@ -80,21 +77,21 @@ pnpm run build          # tsc emits lib/types, tsdown bundles runtime
 pnpm run hygiene        # knip + publint + workspace constraints + NodeNext consumer check
 pnpm run check:windows-wine  # ONLY when diagnosing a known Windows failure (needs wine); CI owns this signal
 pnpm run doc-sync       # all documentation gates; leaf list in scripts/run-gates.ts
+pnpm run test:docs      # quick documentation checks (no build; doc-quick aggregate)
 pnpm run website:build  # VitePress build (doubles as dead-link check)
 pnpm dsh --profile headless "task"  # run one task from source (needs DEEPSEEK_API_KEY)
-pnpm run demo:cordis    # the agent modifies its own runtime (needs key)
-pnpm run demo:acp       # ACP automation server (needs DEEPSEEK_API_KEY)
+pnpm run demo:ptc -- "task"  # headless PTC mode run (needs key)
 ```
 
 ### Host sandbox failures
 
-When required `gh`, `pnpm`, build, test, or generator commands fail because the agent sandbox blocks credentials, network, IPC, file watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation before diagnosing authentication or project failure. Require sandbox evidence; never bypass genuine test failures or the product sandbox under test.
+If a required `gh`, `pnpm`, build, test, or generator command fails because the sandbox blocks credentials, network, IPC, watching, or nested `sandbox-exec`, retry unchanged with the narrowest host escalation. Require sandbox evidence; never bypass test failures or the product sandbox.
 
 ### Run relevant checks locally
 
 Run checks before pushes via [dsh-pre-push-checks](.agents/skills/dsh-pre-push-checks/SKILL.md); report only commands run. After `gh stack sync`, validate immediately; do not merge before checks pass.
 
-- Match evidence to the surface: focused tests for behavior, snapshots for model or user output, `doc-sync` for docs, build/hygiene and built smokes for published paths, and real-API e2e for provider behavior.
+- Match evidence to the surface: focused behavior tests, model/user-output snapshots, `doc-sync` for docs, built smokes for published paths, and real-API e2e for providers.
 - Never default to the full suite or repeat a passing check for commit or push. CI owns exhaustive coverage and the platform matrix; rehearse all locally only by explicit request, for CI diagnosis, or for an irreducibly repository-wide change.
 - `test:coverage`, not `test`, is the CI coverage gate ([why](docs/testing.md)).
 
@@ -108,7 +105,7 @@ Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, 
 - ESM everywhere (`"type": "module"`). Use package names across packages and `.ts` in local relative imports. Config subprocesses run built `lib/` under plain Node; source regressions use their declared launcher ([testing policy](docs/testing.md#test-subprocess-launch-modes)). The `dsh` CLI source launch runs through tsx's ESM-only hook (`node --import tsx/esm`); modules it reaches must stay ESM (no CJS-only exports) — Node's native TypeScript modes are unavailable across the engines range ([source-launch contract](.agents/notes/implemented/architecture/2026-07-29-dsh-source-launch-tsx-esm.md)). Raw/Web `cordis.yml` bare plugins must appear in their resolver manifest's `dependencies`; `verify-cordis-config` enforces it.
 - **Registrations are effects**: every contribution goes through `ctx.effect()` / `ctx.on()`; a registry's `register()` returns the disposer.
 - **Runtime invariants assert owned relationships.** Check authoritative event streams or mutable data, not service or method presence, plugin metadata or effects, or fixed pure examples. Without a plausible relationship, an explained empty companion is correct ([package invariant rules](packages/AGENTS.md)).
-- **Typed events use declaration merging** and merge-extensible maps. Event JSDoc needs `@mode` and payload `@param`; scoped keys absent from payloads need `@dshScopeScan unsupported`. Public service methods document parameters and non-void returns. A `SessionEventMap` member is required-on-read by default — builds that do not know its type refuse the log unless the event carries the envelope's `ignorable: true`; only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/architecture/2026-08-10-session-log-version-mechanism.md)).
+- **Typed events use declaration merging** and merge-extensible maps. Event JSDoc needs `@mode` and payload `@param`; scoped keys absent from payloads need `@dshScopeScan unsupported`. Public service methods document parameters and non-void returns. Every `SessionEventMap` member is required-on-read: builds that do not know its type refuse the log; only structural format changes bump `SESSION_FORMAT_VERSION` ([mechanism](.agents/notes/implemented/simplification/2026-08-25-fail-closed-session-event-vocabulary.md)).
 - **Switch on discriminant tags.** Closed unions end in `assertNever`; merge-extensible unions fall through a documented default.
 - **Waterfall listeners MUST call `next()`** to delegate; returning without it short-circuits the chain ([semantics](docs/cordis-primer.md#cordis-waterfall-semantics)).
 - **Model-visible ⟺ logged**: anything that reaches a model request must be reconstructable from the session log; a new model-visible input requires a session event.
@@ -121,17 +118,18 @@ Real-API tests and demos read `DEEPSEEK_API_KEY`, optional `DEEPSEEK_BASE_URL`, 
 - **Opaque cross-boundary ids are branded** (`Branded<B>` from `dsh-brand`), never bare `string`.
 - **Trust TypeScript at typed same-process boundaries.** Do not add runtime validation, fallback behavior, or hostile-input tests solely for values the static interface requires; validate at parser/config, queued, model/tool JSON, durable/file, worker, process, and wire boundaries.
 - **Source plane vs artifact plane, never mixed.** Static gates and tests resolve workspace imports through tsconfig `paths` to `src` and pass on a clean tree; gates consuming built `lib/` declare that dependency ([layout](docs/development.md#typescript-project-layout)).
-- **Keep compiler faces explicit.** Each package uses one aggregate except `api/remotes`; repo-wide programs seed a face config, never the root solution ([layout](docs/development.md#typescript-project-layout)).
+- **Keep compiler faces explicit.** A package with both Host and Client programs exposes face-specific leaf configs and a solution-only root; repo-wide programs seed a face config, never the root solution ([layout](docs/development.md#typescript-project-layout)).
 - **An empty `catch` names what it swallows** and why nothing else can reach it; keep the `try` to one statement.
-- Do not comment on facts obvious from code.
+- **Keep comments local.** Do not restate code, explain distant behavior unless locally required, or expand unrelated comments ([rationale](.agents/notes/implemented/process/2026-08-09-concrete-prose-names-actors-and-recorded-facts.md)).
 - **Prefer symmetry for parallel values**; unexplained asymmetry usually signals a missed extraction.
 - **Tests describe behavior, not correctness.** Change obsolete behavior with its tests; explain why in the PR.
 - **Non-trivial changes MUST include an Agent Note in the same PR;** only mechanical/local edits are exempt ([scope](.agents/notes/README.md#when-to-write-one)). Archived notes are frozen: never edit or treat them as current authority ([archive policy](.agents/notes/README.md#archiving-and-deletion)).
-- **Testing policy** — [docs/testing.md](docs/testing.md). Every non-trivial model- or product-user-visible behavior change adds or updates a keyless snapshot through a real runnable example in the same PR; package tests, e2e-only assertions, and mock-only fixtures do not substitute for the assembled application transcript. Fixtures must replay on macOS/Linux; fix fixtures, not normalizers.
-- **A tool's UI render intent is part of its design**, decided up front (`generic`/`terminal`/`diff`, `locations`); presentation methods are pure functions of `args` ([cookbook](docs/cookbook/adding-a-tool.md)).
+- **Client UI copy is locale-owned.** Route product text through typed dictionaries and `t` or localized primitive props; `verify-client-ui-i18n` rejects hardcoded copy ([decision](.agents/notes/implemented/architecture/2026-08-23-locale-owned-client-ui-copy.md)).
+- **Testing policy** — [docs/testing.md](docs/testing.md). Every non-trivial model- or product-user-visible change updates a keyless recorded-session snapshot; [snapshot ownership](snapshots/AGENTS.md) reserves the top-level tree for session-driven cases and keeps other expected output owner-local. Fixtures replay on macOS/Linux; fix fixtures, not normalizers.
+- **Design each tool's UI presentation up front.** Host presenters stay pure; Web cards derive from raw events and persisted result metadata ([cookbook](docs/cookbook/adding-a-tool.md)).
 - **Plan unit, e2e, and snapshot coverage** for capability seams, lifecycle paths, and transcript output; include missing snapshot-harness support in the same change.
 - **Both SDKs project the loop.** Agent-loop, session-lifecycle, and `SessionEventMap` changes update the TypeScript and Python SDK expected outputs in the same PR; `pnpm run test` covers neither ([surfaces](docs/testing.md#when-a-snapshot-test-is-required)).
-- **Choose PR history deliberately.** Split independent changes; fix the introducing PR before propagation. Standalone PRs and official stacks may merge-forward or rebase after review. Rewrites use `--force-with-lease`, abort on remote movement, never raw `--force`; an in-progress merge-forward preserves its checkpoint before taking a newer base ([rationale](.agents/notes/implemented/process/2026-08-02-native-github-stacks-and-optional-rebases.md)).
+- **Choose PR history deliberately.** Split independent changes and fix the introducing PR before propagation. Standalone/stack branches may merge-forward or rebase. Rewrites use `--force-with-lease`, abort on remote movement, never raw `--force`; preserve an in-progress merge-forward checkpoint before taking a newer base ([rationale](.agents/notes/implemented/process/2026-08-02-native-github-stacks-and-optional-rebases.md)).
 - **Labels:** one PR `kind/*`, all material `area/*`, and native Issue Type ([taxonomy](.agents/notes/implemented/process/2026-08-08-unified-github-label-taxonomy.md)).
 - TODO markers: `FIXME`/`TODO`/`XXX` by urgency ([semantics](docs/development.md)).
 - Files end with exactly one trailing newline; `git diff --cached --check` (pre-commit) gates it.
@@ -146,55 +144,11 @@ Everything compiles under `strict: true` with `noImplicitAny`; every remaining `
 
 Comments and docs state complete contracts and context, not reasoning transcripts. Use direct, concrete terms. Do not use metaphors. Before writing `contract`, `boundary`, or `shape`, ask whether a more exact term names the subject: write `response fields`, `JSON validation`, or `ESM exports` instead of `response shape`, `validation boundary`, or `module shape`. Keep `contract` for preconditions, postconditions, invariants, compatibility promises, and other obligations that callers, callees, implementers, providers, producers, or consumers rely on. Keep a literal process, wire, security, transaction, or lifecycle boundary. Do not narrate control flow or tests, preserve review history, or restate code. Keep behavior, failure, timing, ownership, and safe-use facts; link the rationale. Use [dsh-prose-standard](.agents/skills/dsh-prose-standard/SKILL.md) for decisions. Wire mechanically checkable invariants into an executed top-level gate and prove each changed acceptance path rejects an invalid case. Use narrow, justified exceptions instead of disabling a rule globally.
 
-## Project process and maintained artifacts
-
-This project is large and multi-phase. Every agent updates the maintained artifacts continuously so a later agent — or a session resume — can recover context from disk. Work stays structured and tidy at every step, not batched at the end.
-
-### Working rules
-
-- Update the running `todo_write` list before starting a chunk and after each meaningful sub-step.
-- Update the relevant artifact in the same commit/PR as the change that drove it, never as a follow-up cleanup PR.
-- When a decision moves from open to resolved, record it in `planning/plan.md` or the matching `planning/Phase N prompt.md §0` immediately.
-- When a chunk discovers a plan-vs-reality gap, file a `planning/inspect/NN-*.md` step or update `planning/inspect/SUMMARY.md` in the same PR.
-- Maintain one explicit project mode per `planning/AGENTS.md §3` at all times.
-
-### Maintained artifacts
-
-| Path | Records | Update when |
-|---|---|---|
-| `planning/plan.md` | Multi-phase plan, per-phase status, residual failures | Phase status changes; residual-failure reclassification |
-| `planning/Phase * prompt.md` | Per-phase task brief; resolved decisions; verification | Phase starts (resolve open decisions); scope changes |
-| `planning/inspect/{NN-topic}.md` | Focused inspection: sources, evidence, plan mismatches | New inspection topic opens |
-| `planning/inspect/INDEX.md` | Numbered list of inspection steps | A new `NN-*.md` is added |
-| `planning/inspect/SUMMARY.md` | Executive summary | Consolidated gap analysis changes |
-| `.agents/notes/implemented/{class}/yyyy-mm-dd-topic-{title}.md` + `.zh.md` + `.i18n.yaml` | Agent Note triplet (en + zh + sidecar) | Every non-trivial change, in the same PR |
-| `docs/PROJECT.md` + `docs/PROJECT.zh.md` + `docs/PROJECT.i18n.yaml` | Canonical project status, bilingual pair | Phase status, accepted caveats, or git pointers change |
-| `todo_write` running list | Current task state for the active phase | Before every chunk; after every meaningful sub-step |
-
-Archived notes under `.agents/notes/archived/{kind}/` are frozen; never edit them.
+Docs accompany every code change: update affected README and JSDoc contracts together. Routine bilingual work follows [docs/AGENTS.md](docs/AGENTS.md); only explicit user invocation may run `dsh-translate-docs`. Current-state prose, one physical line per paragraph, one home per fact, and word budgets live there.
 
 ## Editing these instructions
 
-This file is project-specific. The general agent operating system lives in [CLAUDE.md](./CLAUDE.md); keep that file authoritative for operating rules, this file authoritative for contribution rules. Every edit here must keep each rule self-contained while linking high-level docs.
-
-### `CLAUDE.md` / `AGENTS.md` layout per folder
-
-| Path | Type | What it carries | Where to edit |
-|---|---|---|---|
-| `CLAUDE.md` | regular file | Agent operating system (canonical) | This file is the source of truth; edit here |
-| `packages/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
-| `examples/CLAUDE.md` | regular file (synchronized copy) | Mirror of root `CLAUDE.md` with relative paths adjusted | Edit root; mirror in the same commit. Do not edit directly |
-| `vendor/CLAUDE.md` | regular file (synchronized copy) | Mirror of `vendor/AGENTS.md` (vendored conventions) | Edit `vendor/AGENTS.md`; mirror in the same commit. Vendored content follows the [vendor/README.md](./vendor/README.md) sync procedure |
-| `.agents/notes/implemented/CLAUDE.md` | regular file (synchronized copy) | Mirror of `.agents/notes/implemented/AGENTS.md` (notes-tree conventions) | Edit that `AGENTS.md`; mirror in the same commit |
-| `packages/AGENTS.md` | regular file | Package-supplement (Cordis plugin patterns, exports, packaging) | Edit directly; supplements the root file |
-| `examples/AGENTS.md` | regular file | Example-supplement (Cordis configs, snapshot harness) | Edit directly; supplements the root file |
-| `docs/AGENTS.md`, `planning/AGENTS.md`, `website/AGENTS.md`, `native/landlock-run/AGENTS.md`, `.github/AGENTS.md`, `scripts/AGENTS.md`, `vendor/AGENTS.md` | regular files | Folder-specific supplements | Edit directly; each owns its own scope |
-
-When changing the **shape** of one of these files (regular → symlink, symlink target, scope of a folder-specific supplement), update this table in the same commit so the documented state matches the file state on disk.
-
-### Why no `CLAUDE.md` is a symlink in this repo
-
-`tools.write` (and any other path-based file API on Windows) follows NTFS reparse points, so writing to a tracked `CLAUDE.md` symlink would write through to its target. The original `AGENTS.md` symlink arrangement caused a real bug: a write to root `CLAUDE.md` clobbered `AGENTS.md` with the operating-system draft, losing 18 KB of contribution rules. Replacing every `CLAUDE.md` symlink with a regular-file synchronized copy removes that whole class of bug — a write to any `CLAUDE.md` now writes to itself and never empties another tracked file. The trade-off is that `CLAUDE.md` content in `packages/`, `examples/`, `vendor/`, and `.agents/notes/implemented/` is duplicated and must be mirrored in the same commit as its source; the editing rule above enforces that.
+`CLAUDE.md` symlinks `AGENTS.md` at root and `packages/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
 
 ## Vendoring policy
 

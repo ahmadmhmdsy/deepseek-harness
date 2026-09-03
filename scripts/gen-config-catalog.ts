@@ -518,14 +518,19 @@ function findSchemaExpr(ctx: FileCtx, pluginClass: ts.ClassDeclaration | null): 
 }
 
 /** Read an `inject` service-key list: `export const inject = […]` in the entry
- * file, else `static inject = […]` on the plugin class. */
+ * file, else `static inject = […]` on the plugin class. Accepts an optional
+ * `as const` assertion on the array literal (the literal-as-tuple idiom). */
 function findInject(ctx: FileCtx, pluginClass: ts.ClassDeclaration | null, violations: string[]): string[] {
   const fromArray = (expr: ts.Expression, where: string): string[] => {
-    if (!ts.isArrayLiteralExpression(expr)) {
+    // Accept `as const` (or any type assertion) on a plain string-array literal.
+    const unwrapped = ts.isAsExpression(expr) || ts.isTypeAssertionExpression(expr) || ts.isParenthesizedExpression(expr)
+      ? expr.expression
+      : expr
+    if (!ts.isArrayLiteralExpression(unwrapped)) {
       violations.push(`${where}: inject is not a plain string-array literal; teach the generator the new declaration form.`)
       return []
     }
-    return expr.elements.map(el => ts.isStringLiteral(el) ? el.text : el.getText(ctx.sf))
+    return unwrapped.elements.map(el => ts.isStringLiteral(el) ? el.text : el.getText(ctx.sf))
   }
   for (const stmt of ctx.sf.statements) {
     if (!ts.isVariableStatement(stmt)) continue
@@ -874,7 +879,6 @@ function main(): void {
   console.log(`gen-config-catalog: wrote ${OUT}.`)
 }
 
-// Run only when invoked as a script, not when imported by a test.
 if (process.argv[1] && import.meta.filename === resolve(process.argv[1])) {
   main()
 }

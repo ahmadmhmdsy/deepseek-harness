@@ -12,9 +12,13 @@
  * manual subscribe wiring).
  */
 import clsx from 'clsx'
+import type { JSX } from 'react'
 import type { AppBuilderProjectsComponentProps } from './contract/slots.ts'
 import type { AppBuilderProject, AppBuilderDevServer } from './snapshot.ts'
 import styles from './ProjectsList.module.css'
+
+/** Plural form returned by Intl.PluralRules for the active locale. The pane owns the formatter; the t() helper carries the strings. */
+type SessionCountForm = 'one' | 'other'
 
 /** Owner-prop view of the current selection (the shell passes it on renderSlot). */
 type OwnerSelection = { selectedProjectId?: string | undefined }
@@ -59,12 +63,15 @@ export function ProjectsList(props: AppBuilderProjectsComponentProps): JSX.Eleme
               key={project.id}
               project={project}
               devServer={devServers[project.id]}
+              sessionCount={state.snapshot.sessionCounts[project.id]}
               selected={ownerSelection === project.id}
               onSelect={selectProject}
               tStarting={t('previewStarting')}
               tReady={t('previewReady')}
               tIdle={t('previewIdle')}
               tFailed={t('previewFailed')}
+              tSessionCountOne={t('sessionCountOne')}
+              tSessionCountOther={t('sessionCountOther')}
             />
           ))}
       </div>
@@ -98,14 +105,17 @@ function EmptyState(props: {
 function ProjectRow(props: {
   project: AppBuilderProject
   devServer: AppBuilderDevServer | undefined
+  sessionCount: number | undefined
   selected: boolean
   onSelect: (id: string) => void
   tStarting: string
   tReady: string
   tIdle: string
   tFailed: string
+  tSessionCountOne: string
+  tSessionCountOther: string
 }): JSX.Element {
-  const { project, devServer, selected, onSelect } = props
+  const { project, devServer, sessionCount, selected, onSelect } = props
   const status = devServer?.status ?? 'idle'
   const statusLabel = status === 'ready' ? props.tReady
     : status === 'starting' ? props.tStarting
@@ -117,6 +127,22 @@ function ProjectRow(props: {
     status === 'starting' && styles.dotStarting,
     status === 'failed' && styles.dotFailed,
   )
+  // Render the session-count badge only when the host published a positive
+  // count. Zero / undefined values render no badge so the row matches the
+  // host's empty state and so the visual surface stays minimal for projects
+  // with no live sessions yet. The badge carries the count text via the
+  // locale-aware t() formatter and announces the count to assistive tech.
+  const badge = sessionCount !== undefined && sessionCount > 0
+    ? (
+      <span
+        className={styles.badge}
+        data-session-count={sessionCount}
+        aria-label={formatSessionCountLabel(sessionCount, props.tSessionCountOne, props.tSessionCountOther)}
+      >
+        {formatSessionCountLabel(sessionCount, props.tSessionCountOne, props.tSessionCountOther)}
+      </span>
+    )
+    : null
   return (
     <button
       type='button'
@@ -132,6 +158,19 @@ function ProjectRow(props: {
         <span className={styles.rowMeta}>{project.rootPath}</span>
       </span>
       <span className={styles.statusLabel}>{statusLabel}</span>
+      {badge}
     </button>
   )
+}
+
+/**
+ * Render the session-count chip text. Uses Intl.PluralRules on the project
+ * count to pick between the `one` and `other` dictionary entries; the
+ * English count text includes the numeric value for visual scanability.
+ */
+function formatSessionCountLabel(count: number, oneText: string, otherText: string): string {
+  const rules = new Intl.PluralRules('en').select(count)
+  const form: SessionCountForm = rules === 'one' ? 'one' : 'other'
+  const template = form === 'one' ? oneText : otherText
+  return template.replace('{count}', String(count))
 }

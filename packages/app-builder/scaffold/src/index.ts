@@ -51,6 +51,7 @@ export const Config: z<Config> = z.object({
 })
 
 /** Re-exports for tests and tool consumers. */
+export { TEMPLATES } from './templates.ts'
 export { validateProjectName, validateTemplatePath } from './validate.ts'
 
 /** POSIX-style join that accepts any base form and emits a forward-slash path. */

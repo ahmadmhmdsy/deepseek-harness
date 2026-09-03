@@ -34,6 +34,40 @@ declare module '@deepseek-ai/dsh-jobs' {
   }
 }
 
+/**
+ * Status the snapshot bridge sees for a project's dev server. The preview
+ * tool emits one event per transition; the bridge subscribes and projects
+ * the entry into the snapshot's `devServers` map.
+ */
+type PreviewDevStatus = 'starting' | 'ready' | 'failed'
+
+/**
+ * Preview tool → snapshot bridge event payload. Carries the canonical project
+ * root the dev server runs in (the bridge resolves it to a project id via
+ * the registry), the framework, the loopback URL once ready, and the port.
+ */
+interface PreviewDevStateEvent {
+  rootPath: string
+  framework: PreviewFramework
+  status: PreviewDevStatus
+  url?: string
+  port?: number
+  message?: string
+  reason?: string
+  sinceMs: number
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Events {
+    /**
+     * Preview tool → snapshot bridge. Fired on every dev-server state transition.
+     * @param state - the new dev-server state (status, url, port, sinceMs, etc.).
+     * @mode emit
+     */
+    'app-builder-preview/dev-state'(state: PreviewDevStateEvent): void
+  }
+}
+
 /** Cordis plugin name used by loader diagnostics and the bundle patch row. */
 export const name = 'app-builder-preview'
 
@@ -327,6 +361,17 @@ export function apply(ctx: Context, config: Config = {}): void {
         },
       })
 
+      // Snapshot bridge: announce the dev server is starting. The bridge
+      // resolves `rootPath` to a project id and seeds its `devServers` map.
+      await ctx.emit('app-builder-preview/dev-state', {
+        rootPath: resolvedRoot,
+        framework,
+        status: 'starting',
+        port,
+        message: `framework: ${framework}`,
+        sinceMs: Date.now(),
+      })
+
       try {
         const readiness = await awaitReadiness({
           host: '127.0.0.1',
@@ -348,11 +393,36 @@ export function apply(ctx: Context, config: Config = {}): void {
           polls: readiness.polls,
           readyMs: readiness.readyMs,
         }
+        // Snapshot bridge: dev server is now ready. The bridge writes the
+        // url+port into `devServers[projectId]` so the projects pane can
+        // surface a preview link next to the project row.
+        await ctx.emit('app-builder-preview/dev-state', {
+          rootPath: resolvedRoot,
+          framework,
+          status: 'ready',
+          url: result.url,
+          port: result.port,
+          message: `framework: ${framework}`,
+          sinceMs: Date.now(),
+        })
         return result
       } catch (error) {
         // Readiness failure: cancel the spawned dev server so it does not
         // outlive the tool call, then re-throw so the model sees the error.
         try { jobs.kill(jobId, exec.agent, 'readiness timeout') } catch { /* already settled */ }
+        const reason = error instanceof Error ? error.message : String(error)
+        // Snapshot bridge: dev server failed readiness; surface the failure
+        // so the projects pane can render the failed status until the next
+        // preview call replaces it.
+        await ctx.emit('app-builder-preview/dev-state', {
+          rootPath: resolvedRoot,
+          framework,
+          status: 'failed',
+          port,
+          reason,
+          message: `framework: ${framework}`,
+          sinceMs: Date.now(),
+        })
         throw error
       }
     },

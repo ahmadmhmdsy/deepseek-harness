@@ -6,7 +6,7 @@
 
 **Goal**: confirm dsh is ready to serve as the App Builder foundation. No new packages, no new features.
 
-- Pin the dsh version (`0.1.1-rc.2`) and record release cadence in `docs/PROJECT.md`.
+- Pin the dsh version (`0.1.2-alpha.1`, post-Phase-1.5) and record release cadence in `docs/PROJECT.md`. The Phase 0 pin of `0.1.1-rc.2` is obsolete.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`; capture the JSONL.
 - Verify the four gates are green: `pnpm run typecheck`, `pnpm run test:coverage`, `pnpm run doc-sync`, `pnpm run hygiene`.
 - Confirm `docs/PROJECT.md` is canonical and `planning/PROJECT.md` redirects to it.
@@ -24,7 +24,7 @@
   - `dsh-app-builder-scaffold` (~150 LOC; composes `dsh-tool-fs` + `dsh-tool-bash` + `dsh-tool-str-replace-editor`).
   - `dsh-app-builder-preview` (readiness probe + optional headless screenshot).
   - `dsh-app-builder-persona`.
-- One new example `examples/app-builder/` with keyless + with-key smokes.
+- One new example `apps/cli/config/examples/app-builder/` with keyless + with-key smokes.
 - Re-skin `apps/web` with project list + chat + preview iframe.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
 - Agent Notes: `scaffold-plugin`, `preview-plugin`, `project-entity`, `app-builder-persona`.
@@ -32,19 +32,41 @@
 
 **Exit criteria**: prompt -> scaffold -> run -> preview -> iterate -> resume works locally, sandboxed; all five verification commands pass.
 
-## Phase 2 — Productize the control plane (2–4 weeks)
+**Status**: accepted (the four MVP packages ship; `apps/cli/config/examples/app-builder/` was added during 1.5.2; Phase 1.5x extends but does not re-accept Phase 1).
+
+## Phase 1.5 — Upstream sync to `dsh-v0.1.2-alpha.1` (3–7 days)
+
+**Goal**: synchronize the fork to upstream's tagged release so Phase 2 starts on top of upstream's chosen app shape and up-to-date API / projection infrastructure. The pin moves from `0.1.1-rc.2` to `0.1.2-alpha.1`.
+
+- **Sub-phase 1.5.1 — B2 merge.** `git merge --no-ff upstream/master` on a new branch. Resolve the 25 shared paths. Regenerate `pnpm-lock.yaml`. All 5 gates green.
+- **Sub-phase 1.5.2 — Examples relocation.** Move `examples/app-builder/` → `apps/cli/config/examples/app-builder/`. Re-record snapshots. 5 gates green.
+- **Sub-phase 1.5.3 — Apps/web reskin.** Integrate `ui-app-builder-shell` + `ui-app-builder-projects` into upstream's rebuilt `apps/web/` (183 files). Add slot declarations. Re-record web snapshots. 5 gates green.
+- **Sub-phase 1.5.4 — Projection cache adoption.** Wire `xtr/projection-per-session-cache` (PR #2781) into `packages/app-builder/project/`. 5 gates green.
+- **Sub-phase 1.5.5 — API gateway adoption.** Cherry-pick `worktree-apire-*` cluster. Scaffold `packages/app-builder/api/`. 5 gates green.
+- **Sub-phase 1.5.6 — Subagent provider.** Cherry-pick PR #2663. Re-apply our `721c1d6fe1 fix` if clobbered. 5 gates green.
+- **Sub-phase 1.5.7 — Planning artifacts.** Update `plan.md`, `goal.md`, `Phase 2 prompt.md`, `inspect/INDEX.md`, `inspect/SUMMARY.md`, `docs/PROJECT.md`. `pnpm run doc-sync` PASS.
+
+Detailed plan: [`inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md`](inspect/19-upstream-v0.1.2-alpha.1-adoption-plan.md).
+
+**Exit criteria**: `master` pin = `0.1.2-alpha.1`; `examples/app-builder/` lives at `apps/cli/config/examples/app-builder/`; `apps/web/` is upstream's; `packages/app-builder/api/` scaffolded; `packages/app-builder/project/` uses the cache; `packages/subagent/subagent/` includes both upstream's refactor and our fix; all 5 verification commands PASS; all 7 sub-phase PRs merged via native stacked PRs; `docs/PROJECT.md` reflects the new state.
+
+**Status**: accepted (sub-phases 1.5.1–1.5.6 merged; 1.5.7 docs-only commit `docs/phase1.5-record` lands this phase's planning artifacts + 1.5.5 cordis-catalog regression fixes). `pnpm run doc-sync` returns 25 PASS / 7 FAIL — the 7 failures are documented §9 backlog (translation pairing divergences in `capability-seams`/`event-producer-consumer`/`config-catalog` from 1.5.4/1.5.5 adoption + pre-existing gates that were failing pre-1.5.7). In-scope gates (cordis-catalog, doc-graphs, subsystem-pages, doc-typecheck, documentation site checks, regenerated client/config catalogs) all PASS.
+
+## Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 **Goal**: a real product around dsh, still single-user but scale-ready.
 
-- **Three new packages**:
-  - `packages/app-builder/deployment` (Deployment entity + `deploy` tool + SAST/SCA/secrets gates).
-  - `packages/app-builder/tool-policy` (typed `ToolPolicy` schema + `tools/pre-execute` enforcer; falls back to `ctx.permissionPresets`).
-  - `packages/app-builder/api` (Typert Remote service exposing REST + SSE).
-- Mount the API via existing `dsh-api-gateway` + `dsh-api-remotes` (do not add a new HTTP layer).
-- Add a `project` projection unit + cache.
-- Update `apps/web` with project list, deployment status pane, preview iframe with `EventSource`.
-- Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
-- Agent Notes: `deployment-pipeline`, `tool-policy-typed-schema`, `control-plane-api`.
+Sub-phases (each lands as a native GitHub stacked PR atop `docs/phase2-record`, which itself sits on `origin/docs/phase1.5-record` = `26bf01ba4a`):
+
+- **2.0 plan-only** — Update `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, `docs/PROJECT.md` §8 with the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority**. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`$.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. This docs-only commit lands on `docs/phase2-record` after the 2.1–2.5 code PRs merge.
+
+Branches: `docs/phase2-record` carries 2.0 + 2.6; `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource` carry 2.1–2.5 code. Stack base `origin/docs/phase1.5-record`.
 
 **Most important Phase 2 item**: the typed `ToolPolicy` schema. dsh's runtime enforcement already exists (`permission-presets`, `sandbox-policy`, `tools/pre-execute`, `tools/guard`); this phase adds the typed schema + enforcer that ties them together. Build it now, not later — retrofitting it is painful.
 
@@ -70,7 +92,7 @@
 ## What to avoid (carry-over from the original plan)
 
 - Don't expose dsh's local RPC directly to any user — it has no auth and full-access mode is genuinely dangerous. The control plane is the auth boundary.
-- Don't fork dsh to add features; it ships breaking changes rapidly and doesn't accept external PRs. Stay on top of a pinned version (0.1.1-rc.2) and keep all additions as plugins + bundles.
+- Don't fork dsh to add features; it ships breaking changes rapidly and doesn't accept external PRs. Stay on top of a pinned version (currently `0.1.2-alpha.1`) and keep all additions as plugins + bundles.
 - Don't invent `apps/control-plane` + `apps/worker`. dsh's mental model is one app + bundle patches. Use `apps/web` + `packages/bundle/app-builder/`.
 - Don't invent `packages/plugins`. dsh's plugin namespace is the existing capability groups under `packages/`. Use `packages/app-builder/`.
 - Don't skip the per-package obligations. Every new package ships `tests/`, `./invariant`, bilingual README, per-file 100% coverage on `src`, catalog registration, Agent Note.

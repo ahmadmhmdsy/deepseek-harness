@@ -1,4 +1,4 @@
-﻿/**
+/**
  * App Builder shell plugin, browser half. Registers the 3-pane shell into
  * the root layout through the slot-declaration-injection chain pattern: the
  * chain entry waits on the actual root declaration and tears down with the
@@ -16,9 +16,12 @@
  * boundary. Cross-package store sharing is forbidden by slot-system design;
  * service handles are the sanctioned channel.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pull the locale plugin Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
+// Type-only: pull the SlotRegistry service merge (ctx.slots) the shell reads
+// for chain take-over registration.
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { createAppBuilderShellStore, type AppBuilderShellStore } from './stores.ts'
 import { Shell } from './Shell.tsx'
 import { en, zh, type AppBuilderShellKey } from './locales.ts'

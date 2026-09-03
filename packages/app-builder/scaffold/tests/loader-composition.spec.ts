@@ -5,7 +5,7 @@
  * here means a model can escape the sandbox policy.
  *
  * The full end-to-end composition (write files + run `npm install`) lives in
- * `examples/app-builder/tests/e2e/` once the bundle is mounted; this spec
+ * `apps/cli/config/examples/app-builder/tests/` once the bundle is mounted; this spec
  * keeps the package self-contained at the validator tier.
  */
 

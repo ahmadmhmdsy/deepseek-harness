@@ -1,4 +1,4 @@
-﻿/**
+/**
  * App Builder projects pane plugin, browser half. Registers the projects list
  * into the host-declared `app-builder.projects` slot through
  * `ctx.slots.inject` (chain take-over for child slots), then drives a
@@ -17,15 +17,18 @@
  * - `selectProject` is the shell's selection callback; the projects pane
  *   never touches the shell's store handle directly.
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { Context as ClientContext } from '@deepseek-ai/cordis'
 // Type-only: pulls the locale plugin Context merge (ctx.locale) and the shell's
 // appBuilder service merge (ctx.appBuilder).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-app-builder-shell/client'
-import type { AppBuilderShellService } from './app-builder.ts'
+// Type-only: pulls the SlotRegistry service merge (ctx.slots) the pane reads
+// for chain registration into the shell-declared slot.
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import { createAppBuilderProjectsSnapshotStore } from './stores.ts'
 import { ProjectsList } from './ProjectsList.tsx'
 import { en, zh, type AppBuilderProjectsKey } from './locales.ts'
+import type { AppBuilderShellService } from './app-builder.ts'
 import { EMPTY_SNAPSHOT, type AppBuilderDevServer, type AppBuilderProject, type AppBuilderSnapshot } from './snapshot.ts'
 
 export type {
@@ -135,7 +138,7 @@ async function fetchSnapshot(url: string): Promise<AppBuilderSnapshot> {
     credentials: 'same-origin',
   })
   if (!response.ok) {
-    throw new Error('snapshot fetch failed: ' + String(response.status) + ' ' + String(response.statusText))
+    throw new Error(`snapshot fetch failed: ${String(response.status)} ${String(response.statusText)}`)
   }
   const json: unknown = await response.json()
   return normalizeSnapshot(json)
@@ -158,6 +161,7 @@ function normalizeSnapshot(value: unknown): AppBuilderSnapshot {
   const tsRaw = record['ts']
   const projectsRaw = record['projects']
   const devServersRaw = record['devServers']
+  const sessionCountsRaw = record['sessionCounts']
   return {
     ts: typeof tsRaw === 'number' && Number.isFinite(tsRaw) ? tsRaw : 0,
     projects: Array.isArray(projectsRaw)
@@ -170,7 +174,26 @@ function normalizeSnapshot(value: unknown): AppBuilderSnapshot {
           .filter((entry): entry is [string, AppBuilderDevServer] => entry[1] !== null),
       )
       : {},
+    sessionCounts: normalizeSessionCounts(sessionCountsRaw),
   }
+}
+
+/**
+ * Coerce the per-project session count map. Forward-compat: hosts older
+ * than Phase 2.4 do not publish this field; missing or malformed values
+ * degrade to an empty map so the pane renders no badge. Non-string keys
+ * and non-finite / negative numbers are filtered out so the per-row
+ * lookup `sessionCounts[project.id]` never returns a corrupt value.
+ */
+function normalizeSessionCounts(value: unknown): Readonly<Record<string, number>> {
+  if (!isPlainRecord(value)) return {}
+  const out: Record<string, number> = {}
+  for (const [key, count] of Object.entries(value)) {
+    if (key === '') continue
+    if (typeof count !== 'number' || !Number.isFinite(count) || count < 0) continue
+    out[key] = Math.trunc(count)
+  }
+  return out
 }
 
 function normalizeProject(value: unknown): AppBuilderProject | null {

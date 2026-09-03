@@ -11,7 +11,7 @@ Turn DeepSeek Harness (dsh) — already a working developer preview of a coding-
 ## 2. Constraints
 
 1. **Local + single-user first.** Design every seam for later multi-user scale, but do not build multi-user features yet.
-2. **Extend dsh via plugins. NEVER fork it.** Pin the version (0.1.1-rc.2); dsh ships breaking changes and does not accept external PRs.
+2. **Extend dsh via plugins. NEVER fork it.** Pin the version (0.1.2-alpha.1); dsh ships breaking changes and does not accept external PRs.
 3. **Safety is a system property, not a model property.** Landlock/bwrap/Seatbelt/Windows-ACL sandboxing, least privilege, and approval gates are required, not optional.
 4. **Never expose dsh's local RPC to end users.** The control plane is the auth boundary.
 5. **All work stays inside the authorized workspace.** Never touch credentials, home-dir config, or other projects.
@@ -159,14 +159,14 @@ A new bundle that patches over `packages/bundle/base`. Adds: App Builder persona
 
 ### Phase 0 — Acceptance gate, no new code (0.5 day)
 
-- Pin the dsh version (`0.1.1-rc.2`); record release cadence.
+- Pin the dsh version (`0.1.2-alpha.1`); record release cadence.
 - Verify Node 22.19+ + pnpm 11.7.0.
 - Run `pnpm dsh --profile headless 'create a hello-world app'` with `DEEPSEEK_API_KEY`. Capture the JSONL.
 - Run `pnpm run doc-sync` + `pnpm run hygiene` to confirm zero gate failures on the current tree.
 - Relocate this file: `planning/PROJECT.md` -> `docs/PROJECT.md` (already done).
 - Decide bundle location: `packages/bundle/app-builder/` (recommended).
 
-### Phase 1 — App Builder MVP (1–2 weeks)
+### Phase 1 — App Builder MVP (1–2 weeks) ✓ accepted
 
 Goal: prompt -> running app with live preview, locally, no auth.
 
@@ -184,17 +184,41 @@ Goal: prompt -> running app with live preview, locally, no auth.
 - Snapshot scenarios: `cordis.yml`, `scaffold-hello-world`, `preview-dev-server`, `preview-iterate`.
 - Agent Notes: one per non-trivial package.
 
-### Phase 2 — Productize the control plane (2–4 weeks)
+
+### Phase 1.5 — Adopt upstream v0.1.2-alpha.1 into the worktree (1–2 weeks) ✓ accepted
+
+Goal: every package listed under `packages/app-builder/` and `packages/bundle/app-builder/` in upstream's `v0.1.2-alpha.1` ships in this tree, on a fresh worktree, with the local projection-cache, gateway-cluster, and subagent-provider changes adopted in-place. No new product features; planning artifacts + regression fixes only.
+
+Sub-phases (each landed as a native GitHub stacked PR atop `origin/adopt/api-gateway-cluster`):
+
+- **1.5.1** — Merge upstream `v0.1.2-alpha.1` (`f7386f0f97`).
+- **1.5.2** — Relocate `examples/app-builder/` to `apps/cli/config/examples/app-builder/` (`58ad73791e`).
+- **1.5.3** — Re-skin `apps/web` App Builder 3-pane shell on upstream web (`098f7cad1c`).
+- **1.5.4** — Adopt `xtr/projection-per-session-cache` (`8a28421e02`).
+- **1.5.5** — Adopt App Builder Host BFF cluster (`8994998859`).
+- **1.5.6** — Adopt upstream `subagent` provider (`1bc7a6b9f7`).
+- **1.5.7** — Planning artifacts + 1.5.5 regression fixes (in progress on `docs/phase1.5-record`).
+
+Per-package reality after 1.5.5: `packages/app-builder/{project,scaffold,preview,persona,snapshot-bridge,api}` and `packages/bundle/app-builder/` exist with bilingual READMEs, Agent Notes, and snapshot tests; `packages/app-builder/api` mounts a Typert Remote service through `packages/api/gateway`; `packages/session/session-projection-cache` is the projection cache; `packages/subagent/subagent` includes both `f76a225a7d` (PR #2663) and `721c1d6fe1` (fork fix).
+
+Version pin after this phase: `0.1.2-alpha.1` (matches upstream). The Phase 0 pin of `0.1.1-rc.2` is obsolete.
+
+
+### Phase 2 — Productize the control plane (2–4 weeks) — in progress
 
 Goal: a real product around dsh, still single-user but scale-ready.
 
-- Add `packages/app-builder/deployment` (Deployment entity + `deploy` tool + SAST/SCA/secrets gates).
-- Add `packages/app-builder/tool-policy` (typed `ToolPolicy` schema + `tools/pre-execute` listener).
-- Add `packages/app-builder/api` (Typert Remote service: REST + SSE).
-- Mount the API via existing `dsh-api-gateway` + `dsh-api-remotes`.
-- Add a `Project` projection unit + projection cache for the projects list pane.
-- Update `apps/web` with project list, deployment status pane, preview iframe with `EventSource` for live updates.
-- Snapshot scenarios: `deploy-local`, `tool-policy-allow`, `tool-policy-deny`, `api-list-projects`.
+Lands as six native GitHub stacked sub-phases plus one docs-only closure on `docs/phase2-record` (branched from `origin/docs/phase1.5-record` = `26bf01ba4a`):
+
+- **2.0 plan-only** — Updates `planning/plan.md` §5, `planning/goal.md` §Phase 2, `planning/Phase 2 prompt.md` §0/§11, `planning/inspect/INDEX.md` (entries 29–34), `planning/inspect/SUMMARY.md`, this §8 to add the sub-phase breakdown. `pnpm run doc-sync` PASS.
+- **2.1 Deployment package** — New `packages/app-builder/deployment/`: `Deployment` entity + `deploy` tool + SAST/SCA/secrets gates + approval via `@deepseek-ai/dsh-approval`. Emits `deployment/{started,succeeded,failed}`. Wires the `deploy` Typert Remote placeholder. Snapshot scenarios: `deploy-local`, `deploy-blocked-by-gates`. Agent Note: `deployment-pipeline`.
+- **2.2 ToolPolicy manifest** — New `packages/app-builder/tool-policy/`: typed `ToolPolicy` schema + `tools/pre-execute` listener + audit event `toolPolicy/decision`. Falls back to `ctx.permissionPresets.current(events)`. **Intent + audit, not authority**. Snapshot scenarios: `tool-policy-allow`, `tool-policy-deny`. Agent Note: `tool-policy-typed-schema`.
+- **2.3 API completion** — Wire `getUsage` Typert Remote placeholder to `@deepseek-ai/dsh-token-meter` (cache-aware metrics). `deploy` is 2.1's deliverable. Snapshot scenario: `api-list-projects`. Agent Note: `control-plane-api`.
+- **2.4 Projection unit + Web UI project list** — Verify the 1.5.4 projection unit covers the projects-list pane (fix refresh-on-create/delete gaps if found). Add the project list pane in `apps/web`.
+- **2.5 Web UI deployment status + EventSource preview iframe** — Add deployment status pane to `apps/web`; wire preview iframe to consume `subscribeEvents` via `EventSource` for live updates. Update `packages/bundle/app-builder/cordis.patch.yml` to mount `deployment` + `tool-policy`.
+- **2.6 closure docs** — Phase 2 Agent Note + planning artifacts final state. Docs-only commit lands on `docs/phase2-record` after 2.1–2.5 code PRs merge.
+
+Stack base: `origin/docs/phase1.5-record` = `26bf01ba4a`. Per-sub-phase PRs: `feat/phase2-1-deployment` ... `feat/phase2-5-ui-eventsource`.
 
 ### Phase 3 — Multi-user scale (2–4 weeks)
 
@@ -233,7 +257,7 @@ Per-package invariants:
 - Real-composition tests (Loader-driven `cordis.yml` boots, not unit-style mocks).
 - Snapshot test for every non-trivial model- or product-user-visible change.
 - Agent Note for every non-trivial change (only mechanical/local edits exempt).
-- Bilingual docs (zh.md + i18n.yaml).
+- English-only docs (per `docs/AGENTS.md` writing rules; English sources are canonical since 1.5.7; no `*.zh.md` files or re-recorded `*.i18n.yaml` sidecars).
 - Per-package `./invariant` companion (registers manifest name + event/data relation check).
 
 ### Adversarial test suite

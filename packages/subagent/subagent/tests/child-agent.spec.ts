@@ -1,164 +1,215 @@
-/**
- * @deepseek-ai/dsh-subagent/child-agent.resolveChildAgentOptions
- *
- * The resolved child `AgentOptions` must mirror the parent's LIVE routing
- * waterfall — same as api-proxy's `selectionFor` does for the parent — so a
- * subagent follows whatever model the master is currently using. When the
- * live services are absent, behavior falls back to the parent's
- * creation-time options, preserving backward compatibility.
- *
- * @module @deepseek-ai/dsh-subagent/tests/child-agent
- */
-
 import { describe, expect, it } from 'vitest'
-import { Context } from '@deepseek-ai/cordis'
-// Type-only side-effect import — wires the `agentDefaultModel` ambient
-// augmentation onto Context so `ctx.get('agentDefaultModel')` resolves to the
-// live default selection service when composed.
-import type {} from '@deepseek-ai/dsh-agent-default-model'
-import type { Agent, AgentOptions, ModelSelection } from '@deepseek-ai/dsh-agent'
-import type { EpochHeader } from '@deepseek-ai/dsh-session'
+import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { AgentDefaultModelConfig } from '@deepseek-ai/dsh-agent-default-model'
+import type { ModelSelection } from '@deepseek-ai/dsh-agent'
+import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { Session, SessionId } from '@deepseek-ai/dsh-session'
 import { resolveChildAgentOptions } from '../src/child-agent.ts'
 
-/**
- * Minimal Agent-shaped test fixture. We never exercise methods beyond
- * `options`, `session.requestHeader`, and `ctx.get('agentDefaultModel')`, so
- * `as never` keeps the mock compact while still letting TypeScript check the
- * narrow surface `resolveChildAgentOptions` reads.
- */
-function fakeAgent(input: {
-  options: AgentOptions
-  requestHeader?: EpochHeader | undefined
-  agentDefaultModel?: { currentSelection: () => ModelSelection } | undefined
-}): Agent {
-  const ctx = new Context()
-  if (input.agentDefaultModel !== undefined) {
-    ctx.provide('agentDefaultModel', input.agentDefaultModel as never)
+function parentAgent(): Agent {
+  const id = SessionId('parent')
+  const ctx = {
+    get(_name: string): unknown {
+      // No live sources composed — exercises the parent.options fallback path.
+      return undefined
+    },
   }
-  const session = {
-    requestHeader: () => input.requestHeader,
-  } as unknown as Agent['session']
   return {
-    id: 'parent' as Agent['id'],
-    options: input.options,
-    session,
-    ctx,
-    inbox: {} as Agent['inbox'],
-    status: 'idle' as Agent['status'],
-  } as unknown as Agent
+    id,
+    options: {
+      provider: 'parent-provider',
+      model: 'parent-model',
+      reasoningEffort: ReasoningEffortId('high'),
+      maxTokens: 512,
+    },
+    session: Session.create(id),
+    ctx: ctx as unknown as Agent['ctx'],
+  } as Agent
 }
 
-describe('resolveChildAgentOptions', () => {
-  it('reads provider/model from agentDefaultModel.currentSelection() when composed', () => {
-    const parent = fakeAgent({
-      options: { provider: 'stale-provider', model: 'stale-model' },
-      agentDefaultModel: { currentSelection: () => ({ provider: 'live-provider', model: 'live-model' }) },
+/** Build a parent Agent whose `ctx.get('agentDefaultModel')` returns a service stub. */
+function parentAgentWithDefault(selection: ModelSelection): Agent {
+  const id = SessionId('parent')
+  const ctx = {
+    get(name: string): unknown {
+      if (name === 'agentDefaultModel') {
+        return { currentSelection: () => selection } satisfies Pick<AgentDefaultModelConfig, 'currentSelection'>
+      }
+      return undefined
+    },
+  }
+  return {
+    id,
+    options: {
+      provider: 'parent-provider',
+      model: 'parent-model',
+      reasoningEffort: ReasoningEffortId('high'),
+      maxTokens: 512,
+    },
+    session: Session.create(id),
+    ctx: ctx as unknown as Agent['ctx'],
+  } as Agent
+}
+
+describe('child Agent options', () => {
+  it('inherits the parent effort while the exact route is unchanged', () => {
+    expect(resolveChildAgentOptions(parentAgent(), undefined, 1)).toEqual({
+      provider: 'parent-provider',
+      model: 'parent-model',
+      reasoningEffort: 'high',
+      maxTokens: 512,
+      subagentDepth: 1,
     })
+  })
+
+  it('clears an inherited effort when the child route changes', () => {
+    expect(resolveChildAgentOptions(parentAgent(), { model: 'child-model' }, 1)).toEqual({
+      provider: 'parent-provider',
+      model: 'child-model',
+      maxTokens: 512,
+      subagentDepth: 1,
+    })
+  })
+
+  it('keeps an explicit child effort when the child route changes', () => {
+    expect(resolveChildAgentOptions(parentAgent(), {
+      provider: 'child-provider',
+      model: 'child-model',
+      reasoningEffort: ReasoningEffortId('max'),
+    }, 1)).toEqual({
+      provider: 'child-provider',
+      model: 'child-model',
+      reasoningEffort: 'max',
+      maxTokens: 512,
+      subagentDepth: 1,
+    })
+  })
+
+  it('inherits the latest logged request selection over creation-time values', () => {
+    const parent = parentAgent()
+    parent.session.append('request/header', {
+      header: {
+        config: {
+          provider: 'current-provider',
+          model: 'current-model',
+          reasoningEffort: ReasoningEffortId('low'),
+        },
+      },
+      reason: 'initial',
+    })
+
+    expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
+      provider: 'current-provider',
+      model: 'current-model',
+      reasoningEffort: 'low',
+      maxTokens: 512,
+      subagentDepth: 1,
+    })
+  })
+
+  it('inherits the agentDefaultModel live selection before any request is logged', () => {
+    // No request/header appended; without a logged header the live default
+    // service is the next-precedence live source.
+    const parent = parentAgentWithDefault({
+      provider: 'live-provider',
+      model: 'live-model',
+      reasoningEffort: ReasoningEffortId('medium'),
+    })
+
     expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
       provider: 'live-provider',
       model: 'live-model',
+      reasoningEffort: 'medium',
+      maxTokens: 512,
       subagentDepth: 1,
     })
   })
 
-  it('falls back to parent.options when agentDefaultModel is not composed', () => {
-    const parent = fakeAgent({
-      options: { provider: 'p', model: 'm' },
-    })
-    expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'p',
-      model: 'm',
-      subagentDepth: 1,
-    })
-  })
-
-  it('prefers session.requestHeader().config over currentSelection() and parent.options', () => {
-    const parent = fakeAgent({
-      options: { provider: 'frozen', model: 'frozen-model' },
-      requestHeader: { config: { provider: 'logged', model: 'logged-model' } } as EpochHeader,
-      agentDefaultModel: { currentSelection: () => ({ provider: 'live', model: 'live-model' }) },
-    })
-    expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'logged',
-      model: 'logged-model',
-      subagentDepth: 1,
-    })
-  })
-
-  it('prefers currentSelection() over parent.options when requestHeader is undefined', () => {
-    const parent = fakeAgent({
-      options: { provider: 'frozen', model: 'frozen-model' },
-      agentDefaultModel: { currentSelection: () => ({ provider: 'live', model: 'live-model' }) },
-    })
-    expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'live',
+  it('drops the inherited effort when the live default supplies a route without one', () => {
+    // The parent's frozen options carry effort 'high', but the live default
+    // supplies a route that omits effort. Route-owned effort rule applies:
+    // the new model resolves its own default.
+    const parent = parentAgentWithDefault({
+      provider: 'live-provider',
       model: 'live-model',
-      subagentDepth: 1,
     })
-  })
 
-  it('uses requestHeader().config even without agentDefaultModel composed', () => {
-    const parent = fakeAgent({
-      options: { provider: 'frozen', model: 'frozen-model' },
-      requestHeader: { config: { provider: 'logged', model: 'logged-model' } } as EpochHeader,
-    })
     expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'logged',
-      model: 'logged-model',
-      subagentDepth: 1,
-    })
-  })
-
-  it('lets the per-child requested override win over every inherited source', () => {
-    const parent = fakeAgent({
-      options: { provider: 'frozen', model: 'frozen-model' },
-      requestHeader: { config: { provider: 'logged', model: 'logged-model' } } as EpochHeader,
-      agentDefaultModel: { currentSelection: () => ({ provider: 'live', model: 'live-model' }) },
-    })
-    const requested: AgentOptions = { provider: 'override', model: 'override-model', maxTokens: 4096 }
-    expect(resolveChildAgentOptions(parent, requested, 1)).toEqual({
-      provider: 'override',
-      model: 'override-model',
-      maxTokens: 4096,
-      subagentDepth: 1,
-    })
-  })
-
-  it('preserves parent.options.maxTokens regardless of the routed provider/model', () => {
-    const parent = fakeAgent({
-      options: { provider: 'frozen', model: 'frozen-model', maxTokens: 8192 },
-      agentDefaultModel: { currentSelection: () => ({ provider: 'live', model: 'live-model' }) },
-    })
-    expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'live',
+      provider: 'live-provider',
       model: 'live-model',
-      maxTokens: 8192,
+      maxTokens: 512,
       subagentDepth: 1,
     })
   })
 
-  it('stamps subagentDepth on the resolved options', () => {
-    const parent = fakeAgent({
-      options: { provider: 'p', model: 'm' },
+  it('prefers the logged request header over the live default selection', () => {
+    // Per-field precedence: a logged request/header always wins over the
+    // agentDefaultModel.currentSelection() fallback.
+    const parent = parentAgentWithDefault({
+      provider: 'live-provider',
+      model: 'live-model',
     })
-    expect(resolveChildAgentOptions(parent, undefined, 7)).toMatchObject({ subagentDepth: 7 })
-  })
+    parent.session.append('request/header', {
+      header: {
+        config: {
+          provider: 'logged-provider',
+          model: 'logged-model',
+          reasoningEffort: ReasoningEffortId('low'),
+        },
+      },
+      reason: 'initial',
+    })
 
-  it('omits undefined fields when no source carries provider/model', () => {
-    const parent = fakeAgent({ options: {} })
-    expect(resolveChildAgentOptions(parent, undefined, 0)).toEqual({
-      subagentDepth: 0,
-    })
-  })
-
-  it('keeps backward-compatible behavior when no live source is composed', () => {
-    const parent = fakeAgent({
-      options: { provider: 'legacy', model: 'legacy-model', maxTokens: 1024 },
-    })
     expect(resolveChildAgentOptions(parent, undefined, 1)).toEqual({
-      provider: 'legacy',
-      model: 'legacy-model',
-      maxTokens: 1024,
+      provider: 'logged-provider',
+      model: 'logged-model',
+      reasoningEffort: 'low',
+      maxTokens: 512,
+      subagentDepth: 1,
+    })
+  })
+
+  it('falls back to creation options when neither live source is composed', () => {
+    // Rosterless deployment: no request header, no agentDefaultModel service.
+    // The parent's frozen options are the only source, matching the legacy
+    // behavior preserved for backward compatibility.
+    expect(resolveChildAgentOptions(parentAgent(), undefined, 1)).toEqual({
+      provider: 'parent-provider',
+      model: 'parent-model',
+      reasoningEffort: 'high',
+      maxTokens: 512,
+      subagentDepth: 1,
+    })
+  })
+
+  it('keeps maxTokens inherited from parent options across every live route source', () => {
+    // maxTokens is a budget, not a route; it is never pulled from any live
+    // source and always inherits from parent.options.maxTokens.
+    const parent = parentAgentWithDefault({
+      provider: 'live-provider',
+      model: 'live-model',
+      reasoningEffort: ReasoningEffortId('low'),
+    })
+
+    const resolved = resolveChildAgentOptions(parent, undefined, 1)
+    expect(resolved.maxTokens).toBe(512)
+  })
+
+  it('still lets the per-tool requested override win over every inherited source', () => {
+    const parent = parentAgentWithDefault({
+      provider: 'live-provider',
+      model: 'live-model',
+    })
+
+    expect(resolveChildAgentOptions(parent, {
+      provider: 'child-provider',
+      model: 'child-model',
+      reasoningEffort: ReasoningEffortId('max'),
+    }, 1)).toEqual({
+      provider: 'child-provider',
+      model: 'child-model',
+      reasoningEffort: 'max',
+      maxTokens: 512,
       subagentDepth: 1,
     })
   })

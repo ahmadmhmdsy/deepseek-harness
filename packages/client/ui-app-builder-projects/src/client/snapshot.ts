@@ -4,10 +4,13 @@
  * pane polls it every `pollIntervalMs` and renders the resulting list.
  *
  * Two-level shape: a top-level `ts` echo of the last write, a `projects`
- * list of every durable project, and a `devServers` map keyed by project id
- * for live preview state. The host may add new fields; the projects pane
+ * list of every durable project, a `devServers` map keyed by project id
+ * for live preview state, and a `sessionCounts` map keyed by project id
+ * carrying the count of live sessions whose `project` projection resolves
+ * to the matching project. The host may add new fields; the projects pane
  * reads every entry point but only renders `projects` and surfaces the
- * matching dev-server status from `devServers`.
+ * matching dev-server status and session count from `devServers` and
+ * `sessionCounts`.
  */
 
 /** Status a project's preview dev server is currently in. */
@@ -49,6 +52,15 @@ export interface AppBuilderSnapshot {
   projects: readonly AppBuilderProject[]
   /** Per-project preview state; absent keys mean no preview has run yet. */
   devServers: Readonly<Record<string, AppBuilderDevServer>>
+  /**
+   * Per-project live-session count, derived from the host's `project`
+   * projection unit (Phase 1.5.4). The host counts every live session whose
+   * projection resolves to a registered project; sessions outside every
+   * project (no cwd, cwd outside any project root) do not contribute to any
+   * key. Missing on snapshots published by hosts older than Phase 2.4; the
+   * pane renders no badge when the key is absent or the value is zero.
+   */
+  sessionCounts: Readonly<Record<string, number>>
 }
 
 /** Initial empty snapshot used before the first host write. */
@@ -56,4 +68,5 @@ export const EMPTY_SNAPSHOT: AppBuilderSnapshot = {
   ts: 0,
   projects: [],
   devServers: {},
+  sessionCounts: {},
 }
