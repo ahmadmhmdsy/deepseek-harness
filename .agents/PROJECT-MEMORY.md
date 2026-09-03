@@ -7,27 +7,29 @@
 
 ## 1. Active stack
 
-The App Builder stack on fork `ahmadmhmdsy/deepseek-harness-work` (PAT authenticates as `alshahia`).
+The App Builder stack on fork `ahmadmhmdsy/deepseek-harness-work` (PR author/committer: `ahmadmhmdsy`; tokens of `ahmadmhmdsy` are PATs of record in `.env`).
 
 | Layer | Branch | Tip | PR | Status |
 |---|---|---|---|---|
 | Base (fork master) | `master` | `9b38f16feda` (web-reskin PR #2 merge) | — | public |
-| Phase 1.5 → 2.4 stack | `feat/phase2-4-projection-ui` | `32b10fda0d` | **#14** | open, stacked on master |
-| Phase 2.5 (deployments + preview-iframe panes) | `feat/phase2-5-ui-eventsource` | `68c6ed62d7` | **#15** | open, stacked on #14 |
+| Phase 1.5 → 2.4 stack | `feat/phase2-4-projection-ui` | `32b10fda0d` | **#16** | open, stacked on master |
+| Phase 2.5 (deployments + preview-iframe panes + project memory) | `feat/phase2-5-ui-eventsource` | `b6fdfcf29b` | **#17** | open, stacked on #16 |
 | Handoff (multi-session narrative) | `phase2-5-handoff-draft` | `a14df0d7c2` | — | open, pending merge once 2.5 lands |
 
-Stack rule: each phase lands on the previous phase's branch; the upstream-most PR (#14) merges first; GitHub auto-retargets dependents. Never rewrite to drop ancestor commits unless they introduce a known regression.
+Stack rule: each phase lands on the previous phase's branch; the upstream-most PR (#16) merges first; GitHub auto-retargets dependents. Never rewrite to drop ancestor commits unless they introduce a known regression.
+
+PR numbering note: the original PRs #14 + #15 were opened with a token that authenticated as a different GitHub account (`alshahia`); they were closed unmerged and re-opened as #16 + #17 to attribute the PRs to the actual repo owner `ahmadmhmdsy`. The underlying branches (`feat/phase2-4-projection-ui` @ `32b10fda0d`, `feat/phase2-5-ui-eventsource` @ `b6fdfcf29b`) are unchanged; only the PR authorship differs.
 
 ## 2. PR scope and what landed where
 
 | Phase | Scope | Diff vs prev | Commits | Notes |
 |---|---|---|---|---|
 | 1.5 | App Builder Host BFF cluster, tool policy, deployment registry | foundation | many | landed on local `cc317420c369`; not yet on fork master |
-| 2.1, 2.2, 2.3 | Project lifecycle, deployments host, preview-stream host | incremental | stacked on 1.5 | included in #14's diff |
-| 2.4 | Projection cache wiring + `sessionCounts` from projection to projects pane | incremental | stacked on 2.3 | PR #14 head |
-| 2.5 | `ui-app-builder-deployments` + `ui-app-builder-preview-iframe` Client panes + BFF `./typert`/`./remote` exports | +3,978 / −36, 50 files, 5 commits | stacked on 2.4 | PR #15 head |
+| 2.1, 2.2, 2.3 | Project lifecycle, deployments host, preview-stream host | incremental | stacked on 1.5 | included in #16's diff |
+| 2.4 | Projection cache wiring + `sessionCounts` from projection to projects pane | incremental | stacked on 2.3 | PR #16 head |
+| 2.5 | `ui-app-builder-deployments` + `ui-app-builder-preview-iframe` Client panes + BFF `./typert`/`./remote` exports + project memory | +4,080 / −36, 52 files, 6 commits | stacked on 2.4 | PR #17 head |
 
-PR #14 carries the entire Phase 1.5 → 2.4 stack as a single 1,095-commit diff vs `master` per the option-(d) trade-off agreed in session 7. PR #15 carries only Phase 2.5 as a focused 5-commit diff vs PR #14's branch.
+PR #16 carries the entire Phase 1.5 → 2.4 stack as a single 1,095-commit diff vs `master` per the option-(d) trade-off agreed in session 7. PR #17 carries Phase 2.5 as a focused 6-commit diff vs PR #16's branch (5 Phase-2.5 commits + 1 docs commit for `.agents/PROJECT-MEMORY.md` and the AGENTS.md pointer).
 
 ## 3. Architectural decisions (in effect)
 
@@ -55,9 +57,9 @@ Each phase's Agent Note documents these in its §9; do not silently bundle fixes
 
 ## 5. In-flight work and next steps
 
-1. **Merge PR #14** in GitHub UI.
-2. **PR #15 auto-retargets** from `feat/phase2-4-projection-ui` to `master` after #14 lands.
-3. **Merge PR #15** in GitHub UI.
+1. **Merge PR #16** in GitHub UI.
+2. **PR #17 auto-retargets** from `feat/phase2-4-projection-ui` to `master` after #16 lands.
+3. **Merge PR #17** in GitHub UI.
 4. **Land `phase2-5-handoff-draft`** (optional, recommended) to capture the multi-session narrative on `master`.
 5. **Outstanding follow-ups** (each is a separate PR):
    - Per-area 1.5.x shell children-table fix (unblocks runtime)
@@ -70,11 +72,12 @@ Each phase's Agent Note documents these in its §9; do not silently bundle fixes
 
 - **Repo path**: `D:\my_deepseek_harness\deepseek-harness\`
 - **Remote**: `https://github.com/ahmadmhmdsy/deepseek-harness-work.git` (origin)
-- **PAT retrieval**: `git credential fill` with input `protocol=https\nhost=github.com\n` → user `alshahia`, token in Windows Credential Manager
-- **GitHub API**: `curl -H "Authorization: token ${GITHUB_TOKEN}" -H "Accept: application/vnd.github+json"`; payloads via `--data-binary "@<file>"`. No `gh` CLI on this Windows env.
-- **Token permissions** (effective on `ahmadmhmdsy/deepseek-harness-work`): `push: true`, `triage: true`, `pull: true`, `pull_requests: write` (verified by successful PR creation in session 7).
+- **Credentials** (in order of preference):
+  1. `.env` file at the repo root — `GITHUB_TOKEN_ahmadmhmdsy` is the canonical token for `ahmadmhmdsy` operations (PRs, pushes, GitHub API). Authenticates as `ahmadmhmdsy` (id 35102575) with `admin: true, push: true, triage: true, pull: true`.
+  2. Windows Credential Manager — `git credential fill` with input `protocol=https\nhost=github.com\n` retrieves a token authenticating as `alshahia` (id 118257197) with `push: true, triage: true, pull: true, pull_requests: write`. **Use only when `.env` is unavailable** — prefer `.env` so PR author/committer is `ahmadmhmdsy`, the actual repo owner.
+- **GitHub API**: `curl -H "Authorization: Bearer ${GITHUB_TOKEN_ahmadmhmdsy}" -H "Accept: application/vnd.github+json"`; payloads via `--data-binary "@<file>"`. No `gh` CLI on this Windows env.
 - **PowerShell gotchas**: no `head`/`tail` aliases (use `Select-Object -First`); heredoc `<<<` fails in `-Command` (use files); `/tmp/` doesn't exist (use `$env:TEMP`); CRLF endings on Windows files trip `git diff --cached --check` "new blank line at EOF" — strip to single LF before committing Markdown touched by append operations.
-- **`run_code` CWD gotcha**: `node:fs` resolves paths relative to worker CWD `D:\deepseek_harness\deepseek-harness\`; use absolute paths starting with `D:\my_deepseek_harness\deepseek-harness\` for the actual repo.
+- **`run_code` CWD gotcha**: `node:fs` resolves paths relative to worker CWD `D:\deepseek_harness\deepseek-harness\`; use absolute paths starting with `D:\my_deepseek_harness\deepseek-harness\` for the actual repo. `process.env.TEMP` resolves to `/tmp/` here even on Windows — use literal `C:\Users\AHMADM~1\AppData\Local\Temp\` paths when writing via node `fs`.
 - **Lefthook pre-push runs only `pnpm run typecheck`** (~60s); pre-commit runs whitespace + vendor-manifest-guard + translation-pairing + archived-agent-notes + lint + third-party-notices (most skip when staged files don't match).
 - **DSH file policy**: `danger-full-access`; approval prompts disabled.
 
@@ -87,3 +90,4 @@ Each phase's Agent Note documents these in its §9; do not silently bundle fixes
 ## 8. Change log
 
 - **2026-09-04** — Initial creation. Captures state at end of session 8 (PR #15 stacked on PR #14, both open; handoff branch advanced to `a14df0d7c2`). Author: session 8 agent per user request to make project memory durable.
+- **2026-09-04 (same day)** — Token correction: original PRs #14 + #15 were opened using a token that authenticated as `alshahia`. Closed unmerged; re-opened as **PR #16** (Phase 2.4, +335,985 / −128,231, 6,554 files, 1,095 commits) and **PR #17** (Phase 2.5, +4,080 / −36, 52 files, 6 commits) using `GITHUB_TOKEN_ahmadmhmdsy` from `.env`. Authorship now correctly attributed to `ahmadmhmdsy` (repo owner). Updated §1 / §2 / §5 / §6 to reflect new PR numbers, token preference, and the added project-memory commit (`b6fdfcf29b`) in the 2.5 tip.
