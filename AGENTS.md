@@ -146,6 +146,19 @@ Comments and docs state complete contracts and context, not reasoning transcript
 
 Docs accompany every code change: update affected README and JSDoc contracts together. Routine bilingual work follows [docs/AGENTS.md](docs/AGENTS.md); only explicit user invocation may run `dsh-translate-docs`. Current-state prose, one physical line per paragraph, one home per fact, and word budgets live there.
 
+## Project memory
+
+The canonical live-state record for this project lives at [`.agents/PROJECT-MEMORY.md`](.agents/PROJECT-MEMORY.md). Every agent must **read it on session start** (after this file and the relevant [`docs/AGENTS.md`](docs/AGENTS.md) supplements) and **update it whenever a structural fact changes**:
+
+- A branch tip, PR number, or merge state changes → update §1 / §2.
+- A new architectural decision is made or an existing one is reversed → update §3.
+- A known carry-forward failure is fixed, deferred, or discovered → update §4.
+- An in-flight task lands, a follow-up is opened, or a plan shifts → update §5.
+- A change to the working environment (PAT, branch protection, CI gate, sandbox policy) → update §6.
+- Any of the above → append a one-line entry to §8 "Change log" with the date and reason.
+
+Project memory complements but does not replace Agent Notes (per-decision rationale, archived in `.agents/notes/implemented/`) or session handoffs (per-session trail, usually on a `*-handoff-draft` branch). It is the **always-current, fast-lookup, structured-by-fact** layer. Keep entries direct and concrete; no session transcripts, no design-citation residue, no `{{current}}`/`{{rejected}}` markers that suggest in-flight state. Mark reversed decisions `[replaced by ...]` and link the replacement.
+
 ## Editing these instructions
 
 `CLAUDE.md` symlinks `AGENTS.md` at root and `packages/`; edit the real file. Keep each rule self-contained while linking high-level docs. Condense when clarity survives; raise a `verify-doc-budgets` ceiling when the required content genuinely needs more space.
