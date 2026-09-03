@@ -125,11 +125,19 @@ export function apply(ctx: ClientContext, config: Config = {}): void {
   // Chain take-over: wait for the root slot to be declared by the existing
   // root layout, then register the shell as an alternate renderer. The shell
   // entry lifetime ties to the caller plugin fiber.
+  //
+  // Phase 2.5 adds the deployments pane: the shell renders the 4th pane and
+  // passes the selectedProjectId through to it. The runtime mount of
+  // app-builder-shell into ui-layout root children remains gated by the
+  // per-area shell regression documented in
+  // 2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md; once
+  // that architectural fix lands, every child below materializes.
   ctx.slots.inject('root', () => ctx.slots.register({
     name: 'app-builder-shell',
     locale: NS,
     children: {
       'app-builder.projects': { kind: 'single', scope: 'root' },
+      'app-builder.deployments': { kind: 'single', scope: 'root' },
       'app-builder.preview': { kind: 'single', scope: 'root' },
       'app-builder.conversation': { kind: 'single', scope: 'session' },
     },
