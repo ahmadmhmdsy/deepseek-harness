@@ -40,6 +40,7 @@
 40. [33-phase-2-projection-ui.md](33-phase-2-projection-ui.md) — 2.4 record: 1.5.4 projection unit verification + `apps/web` project list pane consuming the unit
 41. [34-phase-2-ui-eventsource.md](34-phase-2-ui-eventsource.md) — 2.5 record: `apps/web` deployment status pane + EventSource preview iframe; `packages/bundle/app-builder/cordis.patch.yml` updated to mount `deployment` + `tool-policy`
 42. [35-phase-2-closure-record.md](35-phase-2-closure-record.md) — 2.6 record: Phase 2 closure Agent Note + planning artifacts final state on `docs/phase2-record`
+43. [36-app-builder-shell-chain-take-over-finish-plan.md](36-app-builder-shell-chain-take-over-finish-plan.md) — Finish plan for the chain take-over branch: milestones M1–M5 (test:gui green, browser snapshot replay, runtime smoke on 3081, decisions + build + commits, Agent Note + memory + push); continues from the resume handoff
 ## Conventions
 
 - Each file ends with a 'Plan mismatches identified (carried to Step 14)' section (steps 1-14).
