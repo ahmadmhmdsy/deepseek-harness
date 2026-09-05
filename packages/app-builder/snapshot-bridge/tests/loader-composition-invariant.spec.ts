@@ -56,6 +56,10 @@ describe('app-builder-snapshot-bridge (real composition)', () => {
     await writeFile(join(tempDir, 'marker'), 'present')
 
     const ctx = new Context()
+    // The project plugin's inject list declares 'sessionProjections'; provide a
+    // stub so its apply runs and registers the ProjectRegistry service that
+    // the bridge reads through `ctx.appBuilderProjects`.
+    ctx.provide('sessionProjections', { register: () => undefined })
     await ctx.plugin({ name: Project.name, inject: Project.inject, apply: Project.apply }, Project.Config({}))
 
     const fake = makeFakeWebServer()
@@ -101,6 +105,10 @@ describe('app-builder-snapshot-bridge (real composition)', () => {
     const snapshotPath = join(tempDir, 'state', 'app-builder-snapshot.json')
 
     const ctx = new Context()
+    // The project plugin's inject list declares 'sessionProjections'; provide a
+    // stub so its apply runs and registers the ProjectRegistry service that
+    // the bridge reads through `ctx.appBuilderProjects`.
+    ctx.provide('sessionProjections', { register: () => undefined })
     await ctx.plugin({ name: Project.name, inject: Project.inject, apply: Project.apply }, Project.Config({}))
 
     const fake = makeFakeWebServer()
