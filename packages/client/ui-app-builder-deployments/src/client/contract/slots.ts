@@ -1,9 +1,8 @@
 /**
  * App Builder deployments pane contract. The slot `app-builder.deployments`
- * is declared by this package's SlotMap augmentation below; the shell will
- * register the `app-builder.deployments` slot in its children table once
- * the per-area shell regression fix lands (see
- * `2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md`).
+ * is declared by this package's SlotMap augmentation below and registered in
+ * the shell's children table (the chain take-over at root is landed, so the
+ * shell is the elected root entry).
  *
  * Stream state is registrant-private: it lives in the inject `hooks`
  * compartment as a bare `HostObservable` (the standard kit's registrant-

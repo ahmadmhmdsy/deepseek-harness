@@ -316,8 +316,8 @@
     # (option B: the App Builder Remote contribution is mounted inside the
     # pane's apply closure; it is NOT aggregated by api-remotes). Renders
     # the per-project deployment list with selection wired to the shell store.
-    # Runtime gated by the per-area app-builder-shell children-table fix
-    # documented in 2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md.
+    # Runtime live: the chain take-over landed (the shell is the elected
+    # root entry).
     - id: app-builder-deployments
       name: '@deepseek-ai/dsh-client-ui-app-builder-deployments'
 
