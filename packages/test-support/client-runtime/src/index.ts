@@ -167,8 +167,10 @@ export class TestRoot {
 
   /**
    * Register the root frame, declaring (and thereby claiming) the child
-   * slots. One declaration per runtime — a second call fails loud in the
-   * core ('root' is a single slot).
+   * slots. 'root' is chain-kind, so the runtime's frame is one chain entry
+   * (always-true select at priority 0); a second call adds another chain
+   * entry. The first always-true select wins at render time, so a runtime
+   * that calls this twice renders only the first frame.
    * @param children - child-slot declaration table (declaration + render authorization + runtime spec).
    * @param frame - minimal frame component; its props derive from the declared keys (composed-props contract).
    * @returns completion of the act-wrapped registration.
@@ -180,7 +182,7 @@ export class TestRoot {
     await this.stabilize(() => {
       // Erased hop (same pattern as SlotRegistry's own implementation arm);
       // the declaration signature above is the typed contract.
-      this.disposeEntry = (this.slots.register as unknown as ErasedRegister)({ name: 'root', children }, frame)
+      this.disposeEntry = (this.slots.register as unknown as ErasedRegister)({ name: 'root', children, select: () => ({}) }, frame)
     })
   }
 
@@ -305,12 +307,13 @@ export class SlotTestRuntime {
   }
 
   /**
-   * Declare child slots under an auto-generated root frame — the single-slot
+   * Declare child slots under an auto-generated root frame — the auto-frame
    * mounting path for local DOM snapshots. Each key later supplied through
    * {@link SlotTestRuntime.renderSlot} renders inside the renderer's own
    * `<div data-slot="<key>">` outlet anchor (the snapshot root — the frame
-   * adds no wrapper of its own). Mutually exclusive with
-   * {@link TestRoot.declare} ('root' is a single slot); one call per runtime.
+   * adds no wrapper of its own). 'root' is chain-kind, so this call
+   * adds an always-true chain entry alongside any prior
+   * {@link TestRoot.declare} call; the first such entry wins at render time.
    * @param children - child-slot declaration table (same contract as TestRoot.declare).
    * @returns completion of the act-wrapped registration.
    */

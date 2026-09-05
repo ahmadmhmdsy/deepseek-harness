@@ -883,7 +883,7 @@ describe('plugin lifecycle', () => {
     await ctx.plugin(TestSessions).await()
     const conversationEvents = new UiConversation(ctx, ctx.sessions).events
     ctx.slots.register({
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: { 'conversation.chat.node': { kind: 'keyed', scope: 'session' } },
     } as never, () => null)
     await ctx.plugin({ inject: localeInject, apply: applyLocale }).await()

@@ -27,7 +27,7 @@ async function bench(): Promise<{ ctx: Context; fiber: ReturnType<Context['plugi
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: {
       'conversation.session.header.actions': { kind: 'list', scope: 'session' },
     },

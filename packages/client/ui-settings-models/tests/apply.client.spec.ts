@@ -49,7 +49,7 @@ async function bench(isLoopback = true, settings?: object, services: object = {}
 function declare(slots: SlotRegistry): () => void {
   return slots.register(
     {
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: {
         'settings.section': { kind: 'list', scope: 'root' },
         'settings.onboarding': { kind: 'list', scope: 'root' },

@@ -39,7 +39,7 @@ interface PresentationCapture {
 function providePresentation(ctx: Context): PresentationCapture {
   const slots = new SlotRegistry(ctx)
   slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: { 'tool.call.toolview': { kind: 'keyed', scope: 'session' } },
   } as never, () => null)
   const capture: PresentationCapture = {

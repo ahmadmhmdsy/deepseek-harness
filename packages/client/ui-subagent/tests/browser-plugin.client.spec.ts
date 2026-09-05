@@ -57,7 +57,7 @@ function sessionsWith(sessions: SessionSummary[]) {
 async function provideSlotFaces(ctx: Context): Promise<void> {
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: {
       'conversation.session.header.lineage': { kind: 'single', scope: 'session' },
       'conversation.composer': { kind: 'chain', scope: 'session' },

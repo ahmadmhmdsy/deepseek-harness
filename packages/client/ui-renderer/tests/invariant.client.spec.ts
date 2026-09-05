@@ -29,7 +29,7 @@ describe('renderer slots/changed invariant', () => {
     // onMutate — the audit sees version > 0 and stays quiet. (Erased call:
     // the typed register face rides the wave-1 ui-slots types.)
     const slots = ctx.slots as unknown as { register(options: object, component: unknown): () => void }
-    expect(() => slots.register({ name: 'root' }, () => null)).not.toThrow()
+    expect(() => slots.register({ name: 'root', select: () => ({}) }, () => null)).not.toThrow()
   })
 
   it('fails loud on a missing key and on an emission with no applied mutation', async () => {

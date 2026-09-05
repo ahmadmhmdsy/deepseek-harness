@@ -62,7 +62,7 @@ async function bench() {
   ctx.provide('remote.messageFeedback', messageFeedback)
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: { 'conversation.chat.assistant-actions': { kind: 'list', scope: 'session' } },
   } as never, (() => null) as never)
   ctx.provide('locale', new LocaleRuntime(ctx))

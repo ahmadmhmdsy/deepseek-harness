@@ -48,6 +48,8 @@ function makeHost() {
   const rootEntry: StoredEntry = {
     component: (props: { renderSlot: (key: string, owner: object) => React.ReactNode }) =>
       <>{props.renderSlot('k.session', {})}</>,
+    // Root entries ride the renderer's chain election: always-electing selector.
+    select: () => ({ tag: 'spec' }) as const,
     options: {},
     children: { 'k.session': { kind: 'single', scope: 'session' } },
   }

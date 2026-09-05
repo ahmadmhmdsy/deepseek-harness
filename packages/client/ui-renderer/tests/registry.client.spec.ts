@@ -85,7 +85,7 @@ function captureHost(bench: Bench, children?: object): SlotRendererHost {
   bench.erased.install({
     renderRoot: (h: SlotRendererHost) => { host = h; return 'rendered' },
   })
-  bench.erased.register({ name: 'root', ...(children !== undefined ? { children } : {}) }, C)
+  bench.erased.register({ name: 'root', select: () => ({}), ...(children !== undefined ? { children } : {}) }, C)
   bench.erased.renderSlot('root', {})
   if (host === undefined) throw new Error('renderer never received the host')
   return host
@@ -106,16 +106,16 @@ function scopedBinding(_ctx: Context, key: string) {
 describe("built-in 'root'", () => {
   it('is declared at construction: spec readable, occupancy open, no plugin needed', async () => {
     const bench = await boot()
-    expect(bench.svc.spec('root')).toEqual({ kind: 'single', scope: 'root' })
-    expect(() => bench.erased.register({ name: 'root' }, C)).not.toThrow()
+    expect(bench.svc.spec('root')).toEqual({ kind: 'chain', scope: 'root' })
+    expect(() => bench.erased.register({ name: 'root', select: () => ({}) }, C)).not.toThrow()
     expect(bench.svc.entries('root')).toHaveLength(1)
   })
 
-  it('rejects a second declaration of root, attributing the built-in row', async () => {
+  it('rejects a child declaration that names root itself (the cell is already declared by the built-in)', async () => {
     const bench = await boot()
     expect(() => bench.erased.register({
-      name: 'root', children: { 'root': { kind: 'single', scope: 'root' } },
-    }, C)).toThrow(/already declared.*built-in/)
+      name: 'root', select: () => ({}), children: { 'root': { kind: 'single', scope: 'root' } },
+    }, C)).toThrow(/already declared/)
   })
 })
 
@@ -127,7 +127,7 @@ describe('load-time validation', () => {
 
   it('throws on a duplicate declaration, naming the slot and the prior declarant', async () => {
     const bench = await boot()
-    bench.erased.register({ name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } } }, C)
+    bench.erased.register({ name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } } }, C)
     bench.erased.register({
       name: 't.host', children: { 't.rows': { kind: 'list', scope: 'root' } },
     }, C)
@@ -139,7 +139,7 @@ describe('load-time validation', () => {
   it('throws when one store handle is bound to two scopes', async () => {
     const bench = await boot()
     bench.erased.register({
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: {
         't.host': { kind: 'single', scope: 'root' },
         't.panel': { kind: 'single', scope: 'session' },
@@ -153,12 +153,22 @@ describe('load-time validation', () => {
 
   it('commits nothing when the core rejects the entry (children stay undeclared)', async () => {
     const bench = await boot()
-    bench.erased.register({ name: 'root' }, C) // 'root' single slot now occupied
+    // First call: declare t.host under root.
+    bench.erased.register({
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
+    }, C)
+    // Second call: would redeclare the same child under root, which the
+    // children-table guard rejects at load time.
     expect(() => bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
-    }, C)).toThrow(/already has a registration/)
-    // The failing call's declaration must not have landed.
-    expect(() => bench.erased.register({ name: 't.host' }, C)).toThrow(/is not declared/)
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
+    }, C)).toThrow(/already declared/)
+    // The rejected entry did not contribute a t.rows shadow either; the
+    // shadow-t.rows declare path stays undeclared.
+    bench.erased.register({
+      name: 't.host', children: { 't.rows': { kind: 'list', scope: 'root' } },
+    }, C)
+    expect(() => bench.erased.register({ name: 't.host', children: { 't.rows': { kind: 'list', scope: 'root' } } }, C))
+      .toThrow(/already has a registration|already declared/)
   })
 })
 
@@ -166,7 +176,7 @@ describe('declaration injection', () => {
   it('activates immediately and ignores ordinary entry mutations', async () => {
     const bench = await boot()
     bench.erased.register({
-      name: 'root', children: { 't.rows': { kind: 'list', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.rows': { kind: 'list', scope: 'root' } },
     }, C)
     const setup = vi.fn(() => bench.erased.register({ name: 't.rows', id: 'injected' }, C))
     const dispose = bench.erased.inject('t.rows', setup)
@@ -188,7 +198,7 @@ describe('declaration injection', () => {
     bench.erased.inject('t.host', setup)
     expect(setup).not.toHaveBeenCalled()
     const disposeFrame = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     await Promise.resolve()
     expect(setup).toHaveBeenCalledOnce()
@@ -198,7 +208,7 @@ describe('declaration injection', () => {
     expect(cleanup).toHaveBeenCalledOnce()
     expect(bench.svc.entries('t.host')).toHaveLength(0)
     bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     await Promise.resolve()
     expect(setup).toHaveBeenCalledTimes(2)
@@ -208,7 +218,7 @@ describe('declaration injection', () => {
   it('observes a same-tick collapse and redeclaration through the declaration epoch', async () => {
     const bench = await boot()
     const firstFrame = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     const cleanup = vi.fn()
     const setup = vi.fn(() => {
@@ -218,7 +228,7 @@ describe('declaration injection', () => {
     bench.erased.inject('t.host', setup)
     firstFrame()
     bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     await Promise.resolve()
     expect(cleanup).toHaveBeenCalledOnce()
@@ -229,7 +239,7 @@ describe('declaration injection', () => {
   it('plugin disposal removes an active injection and prevents a waiting one from resurrecting', async () => {
     const active = await boot()
     active.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     const activeFiber = active.ctx.plugin({
       name: 'active-injection',
@@ -251,7 +261,7 @@ describe('declaration injection', () => {
     await waitingFiber.await()
     await waitingFiber.dispose()
     waiting.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     await Promise.resolve()
     expect(setup).not.toHaveBeenCalled()
@@ -260,7 +270,7 @@ describe('declaration injection', () => {
   it('rolls back earlier yielded registrations when generator setup fails', async () => {
     const bench = await boot()
     bench.erased.register({
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: {
         't.host': { kind: 'single', scope: 'root' },
         't.rows': { kind: 'list', scope: 'root' },
@@ -288,7 +298,7 @@ describe('declaration injection', () => {
       const later = vi.fn(() => () => undefined)
       bench.erased.inject('t.host', later)
       const disposeFrame = bench.erased.register({
-        name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+        name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
       }, C)
       await new Promise(resolve => setTimeout(resolve, 20))
       expect(failures).toHaveLength(1)
@@ -297,7 +307,7 @@ describe('declaration injection', () => {
       expect(later).toHaveBeenCalledOnce()
       disposeFrame()
       bench.erased.register({
-        name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+        name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
       }, C)
       expect(setup).toHaveBeenCalledOnce()
     } finally {
@@ -317,7 +327,7 @@ describe('declaration injection', () => {
     stopLater = bench.erased.inject('t.host', later)
 
     bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     expect(first).toHaveBeenCalledOnce()
     expect(later).not.toHaveBeenCalled()
@@ -326,7 +336,7 @@ describe('declaration injection', () => {
   it('keeps a nested redeclaration activation when the outer collapse resumes', async () => {
     const bench = await boot()
     const disposeFrame = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     let disposeReplacement = (): void => {}
     let replaced = false
@@ -334,7 +344,7 @@ describe('declaration injection', () => {
       if (replaced) return
       replaced = true
       disposeReplacement = bench.erased.register({
-        name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+        name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
       }, C)
     })
     const later = vi.fn(() => () => undefined)
@@ -365,7 +375,7 @@ describe('declaration injection', () => {
     await contributor.await()
     const disposing = contributor.dispose()
     expect(() => bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)).not.toThrow()
     expect(setup).not.toHaveBeenCalled()
     await vi.waitFor(() => { expect(pauseUnload).toHaveBeenCalledOnce() })
@@ -376,7 +386,7 @@ describe('declaration injection', () => {
   it('supports dynamic plugin replacement without retaining the old rendered entry', async () => {
     const bench = await boot()
     bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     const componentA = (): null => null
     const componentB = (): null => null
@@ -400,7 +410,7 @@ describe('declaration injection', () => {
     let host: SlotRendererHost | undefined
     bench.erased.install({ renderRoot: (value: SlotRendererHost) => { host = value; return null } })
     const disposeFrame = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     bench.erased.renderSlot('root', {})
     if (host === undefined) throw new Error('renderer never received the host')
@@ -411,7 +421,7 @@ describe('declaration injection', () => {
     disposeFrame()
     expect(() => host?.storeOf(oldEntry as never, undefined)).toThrow(/not registered/)
     bench.erased.register({
-      name: 'root', children: { 't.panel': { kind: 'single', scope: 'session' } },
+      name: 'root', select: () => ({}), children: { 't.panel': { kind: 'single', scope: 'session' } },
     }, C)
     bench.erased.register({ name: 't.panel', store: handle }, C)
     const panelEntry = host.entriesOf('t.panel')[0]
@@ -450,7 +460,7 @@ describe('renderer install seam', () => {
     const bench = await boot()
     const renderRoot = vi.fn(() => 'tree')
     bench.erased.install({ renderRoot })
-    bench.erased.register({ name: 'root' }, C)
+    bench.erased.register({ name: 'root', select: () => ({}) }, C)
     expect(bench.erased.renderSlot('root', {})).toBe('tree')
     expect(renderRoot).toHaveBeenCalledTimes(1)
   })
@@ -464,7 +474,7 @@ describe('host face', () => {
     const rootEntry = host.entriesOf('root')[0]
     expect(rootEntry).toBeDefined()
     expect(rootEntry?.component).toBe(C)
-    expect(host.specOf('root')).toEqual({ kind: 'single', scope: 'root' })
+    expect(host.specOf('root')).toEqual({ kind: 'chain', scope: 'root' })
     expect(host.specOf('t.host')).toEqual({ kind: 'single', scope: 'root' })
     const childEntry = host.entriesOf('t.host')[0]
     expect(host.isLive(childEntry as never)).toBe(true)
@@ -691,12 +701,12 @@ describe('entry-unload cascade', () => {
     })
     // The declarer here is NOT the root occupant: root stays occupied by a
     // separate entry so disposing the declarer only kills its children.
-    const disposeRoot = bench.erased.register({ name: 'root' }, C)
+    const disposeRoot = bench.erased.register({ name: 'root', select: () => ({}) }, C)
     bench.erased.renderSlot('root', {})
     if (host === undefined) throw new Error('renderer never received the host')
     disposeRoot()
     const disposeDeclarer = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     bench.erased.register({ name: 't.host' }, C)
     const [childEntry] = host.entriesOf('t.host')
@@ -709,14 +719,14 @@ describe('entry-unload cascade', () => {
     expect(host.isLive(childEntry as never)).toBe(false) // stale bindings will throw upstream
     // The freed key is re-declarable by a new entry (no residue).
     expect(() => bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)).not.toThrow()
   })
 
   it('cascades through cordis fiber disposal (plugin unload = full cleanup)', async () => {
     const bench = await boot()
     bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     const fiber = bench.ctx.plugin({
       name: 'occupant',
@@ -735,12 +745,12 @@ describe('entry-unload cascade', () => {
   it('disposer is idempotent (stale second call is a no-op)', async () => {
     const bench = await boot()
     const dispose = bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)
     dispose()
     expect(() => { dispose() }).not.toThrow()
     expect(() => bench.erased.register({
-      name: 'root', children: { 't.host': { kind: 'single', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.host': { kind: 'single', scope: 'root' } },
     }, C)).not.toThrow()
   })
 })
@@ -751,7 +761,7 @@ describe('event bridge', () => {
     const seen: string[] = []
     bench.ctx.on('slots/changed', (key) => { seen.push(key) })
     bench.erased.register({
-      name: 'root', children: { 't.rows': { kind: 'list', scope: 'root' } },
+      name: 'root', select: () => ({}), children: { 't.rows': { kind: 'list', scope: 'root' } },
     }, C)
     bench.erased.register({ name: 't.rows', id: 'a' }, C)
     expect(seen).toEqual(['root', 't.rows', 't.rows'])

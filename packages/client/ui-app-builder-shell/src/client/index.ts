@@ -122,25 +122,25 @@ export function apply(ctx: ClientContext, config: Config = {}): void {
     return ctx.reflect.provide('appBuilder', service)
   }, 'ui-app-builder-shell: appBuilder service')
 
-  // Chain take-over: wait for the root slot to be declared by the existing
-  // root layout, then register the shell as an alternate renderer. The shell
-  // entry lifetime ties to the caller plugin fiber.
-  //
-  // Phase 2.5 adds the deployments pane: the shell renders the 4th pane and
-  // passes the selectedProjectId through to it. The runtime mount of
-  // app-builder-shell into ui-layout root children remains gated by the
-  // per-area shell regression documented in
-  // 2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md; once
-  // that architectural fix lands, every child below materializes.
-  ctx.slots.inject('root', () => ctx.slots.register({
-    name: 'app-builder-shell',
+  // Chain take-over at root: register the App Builder shell as the
+  // priority-0 entry on the chain-kind `root` slot — the ledger consults
+  // selectors in ascending-priority order, so the shell's always-electing
+  // `select` shadows the classic AppFrame (priority 1, in ui-layout)
+  // whenever the shell is enabled. When the shell is disabled, the early
+  // return above prevents this whole registration: only the classic
+  // AppFrame is live at root.
+  ctx.slots.register({
+    name: 'root',
+    priority: 0,
+    select: () => ({ tag: 'app-builder' }) as const,
     locale: NS,
     children: {
+      'app-builder-shell': { kind: 'chain', scope: 'root' },
       'app-builder.projects': { kind: 'single', scope: 'root' },
       'app-builder.deployments': { kind: 'single', scope: 'root' },
       'app-builder.preview': { kind: 'single', scope: 'root' },
-      'app-builder.conversation': { kind: 'single', scope: 'session' },
+      'app-builder.conversation': { kind: 'single', scope: 'session-maybe' },
     },
     store: storeHandle,
-  }, Shell))
+  }, Shell)
 }

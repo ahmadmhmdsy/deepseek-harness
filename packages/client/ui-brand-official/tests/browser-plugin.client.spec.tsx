@@ -22,7 +22,7 @@ async function bench(declare = true) {
   await ctx.plugin(SlotRegistry).await()
   const slots = ctx.get('slots') as SlotRegistry
   const declareHoles = () => slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: Object.fromEntries(HOLES.map(name => [name, { kind: 'single', scope: 'root' }])),
   } as never, () => null)
   const disposeHoles = declare ? declareHoles() : undefined

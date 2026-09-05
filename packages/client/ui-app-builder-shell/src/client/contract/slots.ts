@@ -6,12 +6,10 @@
  * The shell entry holds exclusive render authority over its declared
  * children per the slot type chain standard.
  *
- * Note: the runtime mount of `app-builder-shell` into `ui-layout` root
- * children is currently gated by the per-area shell regression documented in
- * `2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md`. The
- * static SlotMap declarations here are still authoritative; once the
- * architectural fix lands in ui-layout, every slot below materializes at
- * runtime.
+ * Take-over contract: the root slot is chain-kind. This shell registers the
+ * `root` entry at priority 0 (consulted first in the ascending-priority
+ * election) while `enabled` is true; the classic ui-layout AppFrame is the
+ * priority-1 fallback, so a disabled shell leaves the classic frame in place.
  */
 import type { PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import type { createAppBuilderShellStore } from '../stores.ts'
@@ -19,20 +17,21 @@ import type { createAppBuilderShellStore } from '../stores.ts'
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /**
-     * App Builder 4-pane shell. Declared by this package; the existing root
-     * layout takes over when the chain select returns false (i.e. when
-     * `appBuilder.enabled` is false). Empty owner: the shell owns its own
-     * layout state through the selection store.
+     * App Builder 4-pane shell. Declared by this package; this package's
+     * priority-0 `root` entry renders it, gated by the apply-time `enabled`
+     * check (a disabled shell never registers, leaving the classic AppFrame
+     * fallback). Empty owner: the shell owns its own layout state through the
+     * selection store.
      */
-    'app-builder-shell': { kind: 'single'; scope: 'root'; owner: AppBuilderShellOwnerProps }
+    'app-builder-shell': { kind: 'chain'; scope: 'root'; owner: AppBuilderShellOwnerProps }
     /** Left pane: project list. */
     'app-builder.projects': { kind: 'single'; scope: 'root'; owner: AppBuilderProjectsOwnerProps }
     /** Center-right pane: deployments list (Phase 2.5). */
     'app-builder.deployments': { kind: 'single'; scope: 'root'; owner: AppBuilderDeploymentsOwnerProps }
     /** Right pane: preview iframe. */
     'app-builder.preview': { kind: 'single'; scope: 'root'; owner: AppBuilderPreviewOwnerProps }
-    /** Center pane: chat. */
-    'app-builder.conversation': { kind: 'single'; scope: 'session'; owner: AppBuilderConversationOwnerProps }
+    /** Center pane: chat. Session-maybe: rides the ambient session binding, empty until a session is selected. */
+    'app-builder.conversation': { kind: 'single'; scope: 'session-maybe'; owner: AppBuilderConversationOwnerProps }
   }
 }
 

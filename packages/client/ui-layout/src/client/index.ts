@@ -122,6 +122,13 @@ export function apply(ctx: ClientContext): void {
     const disposeService = ctx.reflect.provide('layout', layout)
     const disposeRegistration = ctx.slots.register({
       name: 'root',
+      // Chain fallback: the ledger consults selectors in ascending-priority
+      // order, so priority 1 + always-true select renders the classic
+      // AppFrame only when no lower-priority entry elected. The App Builder
+      // shell registers at priority 0 and shadows it while enabled; a
+      // disabled shell never registers, so the classic frame stays the root.
+      priority: 1,
+      select: () => ({ tag: 'classic' }) as const,
       locale: 'common',
       children: {
         'sidebar': { kind: 'single', scope: 'root' },

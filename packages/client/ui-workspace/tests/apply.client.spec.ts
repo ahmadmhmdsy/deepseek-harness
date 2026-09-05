@@ -82,7 +82,7 @@ type HoleName = 'sidebar.workspaces' | 'conversation.hero.workspace' | 'conversa
 /** Declare any subset of the holes with a single root registration ('root' is a single slot). */
 function declare(slots: SlotRegistry, ...names: HoleName[]): () => void {
   const children = Object.fromEntries(names.map(name => [name, { kind: 'single', scope: 'root' }]))
-  return slots.register({ name: 'root', children } as never, () => null)
+  return slots.register({ name: 'root', select: () => ({}), children } as never, () => null)
 }
 
 describe('ui-workspace apply', () => {

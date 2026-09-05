@@ -40,7 +40,7 @@ async function bench() {
   ctx.provide('remote.commands', commandsRemote)
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
-    name: 'root', children: { 'conversation.input.overlay': { kind: 'list', scope: 'session' } },
+    name: 'root', select: () => ({}), children: { 'conversation.input.overlay': { kind: 'list', scope: 'session' } },
   } as never, (() => null) as never)
   ctx.provide('locale', new LocaleRuntime(ctx))
   const fiber = ctx.plugin({ inject: [...inject], apply })

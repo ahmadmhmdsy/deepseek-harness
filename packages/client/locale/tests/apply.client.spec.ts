@@ -50,7 +50,7 @@ async function bench() {
 /** Stand in for the settings shell: declare the General item slot from root. */
 function declareItems(slots: SlotRegistry): () => void {
   return slots.register(
-    { name: 'root', children: { [SLOT]: { kind: 'list', scope: 'root' } } } as never,
+    { name: 'root', select: () => ({}), children: { [SLOT]: { kind: 'list', scope: 'root' } } } as never,
     () => null,
   )
 }

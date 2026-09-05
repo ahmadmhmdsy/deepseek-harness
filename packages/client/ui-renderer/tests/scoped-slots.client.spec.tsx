@@ -195,7 +195,12 @@ function makeHost() {
     },
     declare: (key: string, spec: DeclaredSpec) => { specs.set(key, spec); bump(key) },
     add: (key: string, partial: Omit<StoredEntry, 'options'> & { options?: StoredEntry['options'] }) => {
-      const entry = entryOf(partial)
+      // Root entries ride the renderer's chain election: default the
+      // always-electing selector the real ledger mandates on chain entries.
+      const minted = key === 'root' && partial.select === undefined
+        ? { ...partial, select: () => ({ tag: 'spec' }) as const }
+        : partial
+      const entry = entryOf(minted)
       const next = [...(entries.get(key) ?? []), entry]
       // Mirror the ledger contract: entries arrive priority-sorted (stable,
       // ascending; list refines equal priorities by order) — outlets iterate

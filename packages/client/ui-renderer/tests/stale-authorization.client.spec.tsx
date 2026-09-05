@@ -64,12 +64,17 @@ function makeHost() {
   return {
     host,
     add: (key: string, entry: StoredEntry) => {
-      entries.set(key, [...(entries.get(key) ?? []), entry])
-      live.add(entry)
+      // Root entries ride the renderer's chain election: default the
+      // always-electing selector the real ledger mandates on chain entries.
+      const minted = key === 'root' && entry.select === undefined
+        ? { ...entry, select: () => ({ tag: 'spec' }) as const }
+        : entry
+      entries.set(key, [...(entries.get(key) ?? []), minted])
+      live.add(minted)
       bump(key)
       return () => {
-        entries.set(key, (entries.get(key) ?? []).filter(e => e !== entry))
-        live.delete(entry)
+        entries.set(key, (entries.get(key) ?? []).filter(e => e !== minted))
+        live.delete(minted)
         bump(key)
       }
     },

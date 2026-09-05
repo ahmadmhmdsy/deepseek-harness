@@ -696,7 +696,13 @@ export class SlotCore {
   constructor() {
     // The a-priori root hole. No markDirty: nothing can observe construction.
     const root = this.record('root')
-    root.spec = { kind: 'single', scope: 'root' }
+    // Chain-kind: root hosts multiple plugin entries; each entry's
+    // `select(owner)` runs in ledger order (priority ascending, the register
+    // sort) and the first non-null election renders. The App Builder shell
+    // lives at priority 0 with an always-electing select (the plugin's
+    // apply() early-returns when `enabled` is false, so a disabled shell
+    // never registers); the classic UI AppFrame is the priority-1 fallback.
+    root.spec = { kind: 'chain', scope: 'root' }
     root.declaredBy = '(built-in)'
     root.declarationEpoch = 1
   }

@@ -60,8 +60,12 @@ function hostOver(core: SlotCore): SlotRendererHost {
 
 /** Register the root frame (declaring both child keys) and mount the renderer. */
 function mountFrame(core: SlotCore, body: (renderSlot: FrameSlots['renderSlot']) => React.ReactNode) {
+  // `root` is chain-kind: chain entries need `select`, and the renderer
+  // elects the first non-null selector in ledger (priority-ascending) order.
+  // This frame is the always-electing baseline.
   const dispose = core.register({
     name: 'root',
+    select: () => ({ tag: 'classic' }) as const,
     children: {
       'spec.single': { kind: 'single', scope: 'root' },
       'spec.list': { kind: 'list', scope: 'root' },
@@ -87,6 +91,41 @@ describe('createSlotRenderer over the real SlotCore', () => {
     expect(view.container.textContent).toBe('none')
   })
 
+  it('elects the root entry whose selector returns non-null, consulted in ascending-priority order with matched injected', () => {
+    const core = new SlotCore()
+    core.register({
+      name: 'root', priority: 1, select: () => ({ tag: 'classic' }) as const,
+    }, () => <i>classic</i>)
+    core.register({
+      name: 'root', priority: 0, select: () => ({ tag: 'app-builder' }) as const,
+    }, ({ matched }: { matched?: { tag: string } }) => <b>{matched?.tag}</b>)
+    const view = render(<>{createSlotRenderer().renderRoot(hostOver(core), {})}</>)
+    expect(view.container.textContent).toBe('app-builder')
+  })
+
+  it('falls through a declining lower-priority root selector to the next entry', () => {
+    const core = new SlotCore()
+    core.register({ name: 'root', priority: 0, select: () => null }, () => <b>declined</b>)
+    core.register({ name: 'root', priority: 1, select: () => ({ tag: 'classic' }) as const }, () => <i>classic</i>)
+    const view = render(<>{createSlotRenderer().renderRoot(hostOver(core), {})}</>)
+    expect(view.container.textContent).toBe('classic')
+  })
+
+  it('contains a crashing root selector as a decline and renders the crash face when every selector declines', async () => {
+    const core = new SlotCore()
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    core.register({ name: 'root', priority: 0, select: () => { throw new Error('boom') } }, () => <b>never</b>)
+    core.register({ name: 'root', priority: 1, select: () => null }, () => <i>never</i>)
+    const view = render(<>{createSlotRenderer().renderRoot(hostOver(core), {})}</>)
+    expect(view.container.querySelector('[data-slot-error="root"]')).not.toBeNull()
+    expect(spy.mock.calls.some(([msg]) => String(msg).includes('chain selector crashed'))).toBe(true)
+    spy.mockRestore()
+    await act(async () => {
+      core.register({ name: 'root', priority: 2, select: () => ({ tag: 'late' }) as const }, () => <u>elected</u>)
+    })
+    expect(view.container.textContent).toBe('elected')
+  })
+
   it('coalesces same-tick mutations into one notification (uSES pairing stays consistent)', async () => {
     const core = new SlotCore()
     const notified = vi.fn()
@@ -102,7 +141,7 @@ describe('createSlotRenderer over the real SlotCore', () => {
 
   it('passes owner props through and keeps sibling entries() references stable across mutations', async () => {
     const core = new SlotCore()
-    core.register({ name: 'root', children: {
+    core.register({ name: 'root', select: () => ({}) , children: {
       'spec.single': { kind: 'single', scope: 'root' },
       'spec.list': { kind: 'list', scope: 'root' },
     } }, (props: FrameSlots) => <>

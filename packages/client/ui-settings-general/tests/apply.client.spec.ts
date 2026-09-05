@@ -56,7 +56,7 @@ async function bench(isLoopback = true) {
 function declare(slots: SlotRegistry): () => void {
   return slots.register(
     {
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: {
         'settings.trigger': { kind: 'single', scope: 'root' },
         'settings.header': { kind: 'single', scope: 'root' },

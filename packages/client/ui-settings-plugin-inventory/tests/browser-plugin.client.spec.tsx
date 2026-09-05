@@ -37,7 +37,7 @@ async function bench() {
 
 function declare(slots: SlotRegistry): () => void {
   return slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: { 'settings.plugins.tab': { kind: 'list', scope: 'root' } },
   } as never, () => null)
 }

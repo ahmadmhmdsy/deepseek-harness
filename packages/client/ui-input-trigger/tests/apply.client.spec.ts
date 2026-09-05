@@ -23,7 +23,7 @@ async function bench() {
   // slot without providing ConversationController, which is not its lifecycle
   // signal.
   slots.register(
-    { name: 'root', children: { 'conversation.input.overlay': { kind: 'list', scope: 'session' } } } as never,
+    { name: 'root', select: () => ({}), children: { 'conversation.input.overlay': { kind: 'list', scope: 'session' } } } as never,
     () => null,
   )
   // Sessions face: mint one real scope for session 'a' and resolve it by id.

@@ -17,14 +17,14 @@ describe('dynamic-key escape hatch', () => {
   it('specDynamic reads wide-typed specs for string keys; undefined while undeclared', () => {
     const core = new SlotCore()
     expect(core.specDynamic('dynamic.a')).toBeUndefined()
-    core.register({ name: 'root', children: { 'dynamic.a': { kind: 'single', scope: 'root' } } }, Comp as never)
+    core.register({ name: 'root', select: () => ({}), children: { 'dynamic.a': { kind: 'single', scope: 'root' } } }, Comp as never)
     expect(core.specDynamic('dynamic.a')).toEqual({ kind: 'single', scope: 'root' })
     expect(core.specDynamic('never.declared')).toBeUndefined()
   })
 
   it('spec() narrows by SlotMap key', () => {
     const core = new SlotCore()
-    core.register({ name: 'root', children: { 'dynamic.a': { kind: 'single', scope: 'root' } } }, Comp as never)
+    core.register({ name: 'root', select: () => ({}), children: { 'dynamic.a': { kind: 'single', scope: 'root' } } }, Comp as never)
     expect(core.spec('dynamic.a')).toEqual({ kind: 'single', scope: 'root' })
     expect(core.spec('dynamic.b')).toBeUndefined()
   })
@@ -34,6 +34,7 @@ describe('dynamic-key escape hatch', () => {
     const inject = { token: 'shared' }
     core.register({
       name: 'root',
+      select: () => ({}),
       children: { 'surface.injected': { kind: 'single', scope: 'root', inject } },
     }, Comp as never)
     expect(core.spec('surface.injected')?.inject).toBe(inject)

@@ -94,7 +94,7 @@ async function bench(options: {
   })
   await ctx.plugin(SlotRegistry).await()
   ctx.slots.register({
-    name: 'root', children: {
+    name: 'root', select: () => ({}), children: {
       'conversation.input.dock': { kind: 'list', scope: 'session' },
       'conversation.chat.node': { kind: 'keyed', scope: 'session' },
     },

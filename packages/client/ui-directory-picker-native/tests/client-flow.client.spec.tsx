@@ -20,7 +20,7 @@ async function bench() {
   ctx.provide('uiWorkspace', { pickDirectory } as never)
   const slots = ctx.get('slots') as SlotRegistry
   const declare = () => slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: Object.fromEntries(HOLES.map(name => [name, { kind: 'single', scope: 'root' }])),
   } as never, () => null)
   return { ctx, slots, pickDirectory, declare }

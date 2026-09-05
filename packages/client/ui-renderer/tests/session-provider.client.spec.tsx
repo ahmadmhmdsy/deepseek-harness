@@ -70,6 +70,8 @@ function makeHost(
       renderSlot: (key: string, owner: object) => React.ReactNode
       SessionProvider: SessionProviderComponent
     }) => <>{bodies.root(props.renderSlot, props.SessionProvider)}</>,
+    // Root entries ride the renderer's chain election: always-electing selector.
+    select: () => ({ tag: 'spec' }) as const,
     options: {},
     children: { 'k.session': { kind: 'single', scope: 'session' } },
   }

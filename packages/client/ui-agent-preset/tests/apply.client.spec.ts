@@ -122,7 +122,7 @@ async function bench() {
 
 function declareRoot(slots: SlotRegistry): () => void {
   return slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: {
       'settings.general.item': { kind: 'list', scope: 'root' },
       'settings.section': { kind: 'list', scope: 'root' },

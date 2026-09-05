@@ -77,6 +77,7 @@ describe('tsdown client artifact', () => {
     // The conversation entry's role: the ring must be declared before riders land.
     slots.register({
       name: 'root',
+      select: () => ({}) ,
       children: { 'conversation.view': { kind: 'list', scope: 'session' } },
     }, (_p: { renderSlot?: unknown }) => null)
     // Paging is session-owned; this registration-only probe never renders the

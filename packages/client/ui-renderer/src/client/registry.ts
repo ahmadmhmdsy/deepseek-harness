@@ -28,19 +28,19 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface SlotMap {
     /**
      * The built-in render-tree root hole (seeded by SlotCore): the one slot the
-     * shell itself renders, and the ancestor of every other seat. OCCUPIED by
-     * ui-layout's AppFrame, which declares the sidebar, conversation, details,
-     * and shell.overlay seats inside it.
+     * shell itself renders, and the ancestor of every other seat. Chain-kind:
+     * selectors run in ledger order (priority ascending, the core sorts at
+     * register) and the first non-null election renders with its marker
+     * injected as `matched`. The App Builder shell is the priority-0 entry
+     * with an `enabled`-gated registration; the classic UI AppFrame is the
+     * priority-1 always-electing fallback.
      *
-     * DO NOT register here. This is a single slot, so a second entry does not
-     * sit beside the frame — it shadows it, and a dynamically registered entry
-     * is assigned a lower priority than the shipped one, which makes it the
-     * winner: the page would render your component alone, with every seat the
-     * frame declares gone. For a surface of your own that floats over the whole
-     * app, register into `shell.overlay` instead (a list slot: additive, and
-     * click-through until your entry opts into pointer events).
+     * Register here as a chain entry with a `select` callback: returning a
+     * non-null marker elects your entry; returning null passes to the next
+     * chain entry. Register at a lower priority than the entry you shadow
+     * (priority-0 entries are consulted first).
      */
-    'root': { kind: 'single'; scope: 'root'; owner: RootOwnerProps }
+    'root': { kind: 'chain'; scope: 'root'; owner: RootOwnerProps }
   }
 }
 

@@ -28,8 +28,13 @@ function fakeHandle(): StoreHandle<{ n: number }, Record<string, (d: { n: number
 }
 
 function mountFrame(core: SlotCore) {
+  // `root` is chain-kind at runtime, so a chain entry needs `select`.
+  // We pass an always-true selector so the entry elects whenever the
+  // renderer asks; the renderer never does in this bench.
   return core.register({
     name: 'root',
+    select: () => ({ tag: 'classic' }) as const,
+    priority: 0,
     children: {
       'test.single': { kind: 'single', scope: 'root' },
       'test.session': { kind: 'single', scope: 'session' },
@@ -45,9 +50,9 @@ function mountFrame(core: SlotCore) {
 const flushMicrotasks = () => new Promise<void>((resolve) => { queueMicrotask(resolve) })
 
 describe('a-priori root and declaration gate', () => {
-  it('seeds root as single/root at construction', () => {
+  it('seeds root as chain/root at construction', () => {
     const core = new SlotCore()
-    expect(core.specDynamic('root')).toEqual({ kind: 'single', scope: 'root' })
+    expect(core.specDynamic('root')).toEqual({ kind: 'chain', scope: 'root' })
   })
 
   it('throws on registering into an undeclared slot', () => {
@@ -55,10 +60,15 @@ describe('a-priori root and declaration gate', () => {
     expect(() => core.register({ name: 'test.single' }, Comp)).toThrow('not declared')
   })
 
-  it('root is single: a second frame registration throws', () => {
+  it('root is chain: a second frame registration at any priority succeeds (chain kind accepts multiple entries)', () => {
     const core = new SlotCore()
     mountFrame(core)
-    expect(() => core.register({ name: 'root' }, Comp)).toThrow('already has a registration')
+    // Chain-kind slots accept multiple registrations regardless of priority;
+    // every entry's `select(owner)` runs and the first non-null elects. The
+    // kind-collision guards (single, keyed, list) only fire under their
+    // respective kinds.
+    expect(() => core.register({ name: 'root', select: () => ({ tag: 'x' }) }, Comp)).not.toThrow()
+    expect(() => core.register({ name: 'root', priority: 1, select: () => ({ tag: 'y' }) }, Comp)).not.toThrow()
   })
 
   it('children declaration makes child slots registerable, with specs recorded', () => {

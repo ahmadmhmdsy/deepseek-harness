@@ -23,6 +23,7 @@ async function bench() {
   const slots = ctx.get('slots') as SlotRegistry
   slots.register({
     name: 'root',
+    select: () => ({}),
     children: { 'conversation.input.plan': { kind: 'single', scope: 'session' } },
   } as never, () => null)
   const execute = vi.fn((_sessionId: SessionId, _line: string) =>
@@ -53,7 +54,7 @@ describe('ui-plan browser apply', () => {
     await fiber.await()
     expect(ctx.slots.entries('conversation.input.plan')).toHaveLength(0)
     ctx.slots.register({
-      name: 'root', children: { 'conversation.input.plan': { kind: 'single', scope: 'session' } },
+      name: 'root', select: () => ({}), children: { 'conversation.input.plan': { kind: 'single', scope: 'session' } },
     } as never, () => null)
     await Promise.resolve()
     expect(ctx.slots.entries('conversation.input.plan')).toHaveLength(1)

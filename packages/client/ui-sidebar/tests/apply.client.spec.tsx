@@ -17,7 +17,7 @@ async function bench(declare = true) {
   const slots = ctx.get('slots') as SlotRegistry
   if (declare) {
     slots.register(
-      { name: 'root', children: { 'sidebar': { kind: 'single', scope: 'root' } } } as never,
+      { name: 'root', select: () => ({}), children: { 'sidebar': { kind: 'single', scope: 'root' } } } as never,
       () => null,
     )
   }

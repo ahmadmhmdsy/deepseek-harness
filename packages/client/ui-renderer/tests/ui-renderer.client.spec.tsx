@@ -56,7 +56,7 @@ describe('UI renderer plugin', () => {
 
   it('installs the renderer and mounts the assembled application', async () => {
     const { ctx, slots } = await bench()
-    slots.register({ name: 'root' }, () => <div data-testid="root-probe" />)
+    slots.register({ name: 'root', select: () => ({}) }, () => <div data-testid="root-probe" />)
     const renderer = ctx.get('uiRenderer')
     expect(renderer).toBeDefined()
     const el = container()
@@ -66,7 +66,7 @@ describe('UI renderer plugin', () => {
 
   it('hydrates the boot page before switching to the assembled application', async () => {
     const { ctx, slots } = await bench()
-    slots.register({ name: 'root' }, () => <div data-testid="root-probe" />)
+    slots.register({ name: 'root', select: () => ({}) }, () => <div data-testid="root-probe" />)
     const el = container()
     el.innerHTML = '<div class="boot" data-dsh-boot=""><div><div class="spinner" data-dsh-boot-spinner="" style="--dsh-boot-arc: 180deg"></div><div>Loading plugins…</div></div></div>'
     const boot = el.firstElementChild
@@ -86,7 +86,7 @@ describe('UI renderer plugin', () => {
 
   it('returns an unmount disposer', async () => {
     const { ctx, slots } = await bench()
-    slots.register({ name: 'root' }, () => <div data-testid="root-probe" />)
+    slots.register({ name: 'root', select: () => ({}) }, () => <div data-testid="root-probe" />)
     const el = container()
     let unmount: () => void = () => {}
     act(() => { unmount = ctx.get('uiRenderer')!.mount(el) })

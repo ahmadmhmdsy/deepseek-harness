@@ -43,7 +43,7 @@ async function bench() {
   const settingsRemote = scriptedSettingsRemote()
   const remote = new TestRemote(ctx, { settings: settingsRemote.settings })
   ctx.slots.register({
-    name: 'root',
+    name: 'root', select: () => ({}),
     children: {
       'settings.general.item': { kind: 'list', scope: 'root' },
     },

@@ -95,7 +95,7 @@ describe('ui-layout client apply', () => {
     expect(slots.entries('root')).toHaveLength(0)
     expect(slots.spec('sidebar')).toBeUndefined()
     // The built-in root declaration survives entry teardown (renderer-owned).
-    expect(slots.spec('root')).toEqual({ kind: 'single', scope: 'root' })
+    expect(slots.spec('root')).toEqual({ kind: 'chain', scope: 'root' })
   })
 })
 

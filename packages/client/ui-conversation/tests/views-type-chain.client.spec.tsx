@@ -42,6 +42,7 @@ describe('view-ring runtime dual (real ledger)', () => {
     // The conversation entry's role: declare the ring (declaring is claiming).
     slots.register({
       name: 'root',
+      select: () => ({ tag: 'classic' }) as const,
       children: { 'conversation.view': { kind: 'list', scope: 'session' } },
     }, (_p: { renderSlot?: unknown }) => null)
     return { slots }

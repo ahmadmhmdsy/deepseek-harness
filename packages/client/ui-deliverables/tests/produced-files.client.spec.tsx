@@ -575,7 +575,7 @@ describe('plugin registration', () => {
     new UiConversation(ctx, { binding: () => undefined } as never)
     // The owning view's child declaration, stood up by a bench root entry.
     ctx.slots.register({
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: { 'conversation.chat.turnTail': { kind: 'chain', scope: 'session' } },
     } as never, () => null)
     const generation = { getSnapshot: () => undefined, subscribe: () => () => {} }
@@ -633,7 +633,7 @@ describe('plugin registration', () => {
     await ctx.plugin(SlotRegistry).await()
     new UiConversation(ctx, { binding: () => undefined } as never)
     ctx.slots.register({
-      name: 'root',
+      name: 'root', select: () => ({}),
       children: { 'conversation.chat.turnTail': { kind: 'chain', scope: 'session' } },
     } as never, () => null)
     ctx.provide('connection', {

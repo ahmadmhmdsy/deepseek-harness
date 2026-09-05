@@ -32,7 +32,7 @@ async function bench() {
 
 function declare(slots: SlotRegistry): () => void {
   return slots.register(
-    { name: 'root', children: { 'sidebar.settings': { kind: 'single', scope: 'root' } } } as never,
+    { name: 'root', select: () => ({}), children: { 'sidebar.settings': { kind: 'single', scope: 'root' } } } as never,
     () => null,
   )
 }

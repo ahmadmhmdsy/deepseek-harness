@@ -894,26 +894,50 @@ function RootOutlet({ ownerProps }: { ownerProps: object }) {
     () => host.getVersion('root'),
   )
   useLocaleRevision(host.locale)
-  const entry = host.entriesOfSlot('root')[0]
-  if (!entry) {
-    // Registrations exist but every one abdicated: the shadowing collapse ran
-    // dry, so the crash face replaces the tree (registered-but-broken is a
-    // crash, not the boot-order assembly failure below).
-    if (host.entriesOf('root').length > 0) return <div data-slot-error="root" />
-    throw new SlotAssemblyError("renderSlot('root') before any 'root' registration (boot order)")
+  // Chain election at the ctx-level root, the same contract as the child-slot
+  // chain branch: selectors run in ledger order (priority ascending, the core
+  // sorts at register); the first non-null election renders with its selector
+  // result injected as `matched`; a crashing selector degrades to a decline.
+  let elected: StoredEntry | undefined
+  let matched: unknown
+  for (const entry of host.entriesOfSlot('root')) {
+    let result: unknown
+    try {
+      result = (entry.select as (owner: object) => unknown)(ownerProps)
+    } catch (error) {
+      console.error(
+        `chain selector crashed in 'root' (${entry.registrant ?? 'unknown registrant'}), treating as declined:`,
+        error)
+      continue
+    }
+    if (result !== null) {
+      elected = entry
+      matched = result
+      break
+    }
   }
+  if (elected === undefined) {
+    // Every selector declined or every entry abdicated: the crash face
+    // replaces the tree (registered-but-unelected is a crash, not a silent
+    // blank); zero registrations is the boot-order assembly failure.
+    if (host.entriesOf('root').length === 0) {
+      throw new SlotAssemblyError("renderSlot('root') before any 'root' registration (boot order)")
+    }
+    return <div data-slot-error="root" />
+  }
+  const winner = elected
   // Same anchor contract as SlotOutlet: 'root' is a slot like any other, and
   // display:contents keeps the wrapper out of the shell's layout.
   return (
     <div data-slot="root" style={ANCHOR_STYLE}>
       <SlotErrorBoundary
         slotKey="root"
-        key={entryKeyOf(entry)}
-        onEntryError={(error) => { host.reportEntryError('root', entry, error, { abdicate: true }) }}
+        key={entryKeyOf(winner)}
+        onEntryError={(error) => { host.reportEntryError('root', winner, error, { abdicate: true }) }}
       >
         <RootEntry
-          entry={entry}
-          ownerProps={ownerProps}
+          entry={winner}
+          ownerProps={{ ...ownerProps, matched }}
           slotKey="root"
           slotInjected={EMPTY_SLOT_INJECT}
           hookContext={undefined}
