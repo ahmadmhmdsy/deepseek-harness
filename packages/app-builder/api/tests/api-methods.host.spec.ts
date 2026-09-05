@@ -92,8 +92,8 @@ class FakeSessionController extends Service {
     return { sourceSessionId: req.sessionId, newSessionId: 'forked-test', anchorSeq: req.anchorSeq ?? 0 }
   }
 
-  async inspect(sessionId: string, _signal?: AbortSignal): Promise<{ meta: unknown }> {
-    return { meta: { id: sessionId, resumed: true } }
+  async inspect(sessionId: string, _signal?: AbortSignal): Promise<{ meta: unknown; events: readonly { seq: number }[] }> {
+    return { meta: { id: sessionId, resumed: true }, events: [{ seq: 0 }] }
   }
 
   async *follow(req: { sessionId: string; afterSeq?: number }, signal: AbortSignal): AsyncIterable<unknown> {
