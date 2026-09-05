@@ -143,13 +143,6 @@
     - id: client-hmr
       name: '@deepseek-ai/dsh-client-hmr'
 
-    # App Builder host-side state projector: subscribes to project/created
-    # and app-builder-preview/dev-state, atomically writes the snapshot
-    # file, and serves GET /__dsh/app-builder/snapshot.json on ctx.webServer.
-    # Mounted before the client plugins so the snapshot endpoint is live
-    # by the time the projects pane starts polling.
-    - id: app-builder-snapshot-bridge
-      name: '@deepseek-ai/dsh-app-builder-snapshot-bridge'
 
     # ── browser plugin roster (dsh.client rows; node halves are layer-2 hosts) ──
 
@@ -316,7 +309,24 @@
     - id: app-builder-projects
       name: '@deepseek-ai/dsh-client-ui-app-builder-projects'
       config:
-        snapshotUrl: !!js '/__dsh/app-builder/snapshot.json'
+        snapshotUrl: '/__dsh/app-builder/snapshot.json'
+
+    # App Builder deployments pane (Phase 2.5): subscribes to the deployment
+    # lifecycle event stream via ctx.remote.appBuilder.subscribeDeploymentEvents
+    # (option B: the App Builder Remote contribution is mounted inside the
+    # pane's apply closure; it is NOT aggregated by api-remotes). Renders
+    # the per-project deployment list with selection wired to the shell store.
+    # Runtime gated by the per-area app-builder-shell children-table fix
+    # documented in 2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md.
+    - id: app-builder-deployments
+      name: '@deepseek-ai/dsh-client-ui-app-builder-deployments'
+
+    # App Builder preview iframe pane (Phase 2.5): subscribes to the preview
+    # dev-server event stream and renders an iframe (sandbox=allow-scripts
+    # only) for the selected project's preview URL. Same option B mount
+    # pattern as the deployments pane.
+    - id: app-builder-preview-iframe
+      name: '@deepseek-ai/dsh-client-ui-app-builder-preview-iframe'
 
 # ── the agent plane moves behind agent presets ─────────────────────────────
 #

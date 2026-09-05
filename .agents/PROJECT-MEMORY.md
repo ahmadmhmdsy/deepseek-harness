@@ -1,0 +1,106 @@
+# Project Memory
+
+> **Canonical, always-current project state for resuming agents.**
+> Read this file first after [AGENTS.md](../AGENTS.md). Update it whenever a structural fact changes â€” branches landing, stack SHAs moving, a decision being made, a follow-up being closed, or a known failure being fixed.
+>
+> This is **not** an Agent Note (which captures one decision's rationale) and **not** a session handoff (which captures one session's trail). It is the live state of the project, structured for fast lookup.
+
+## 1. Active stack
+
+The App Builder stack on fork `ahmadmhmdsy/deepseek-harness-work` (PR author/committer: `ahmadmhmdsy`; tokens of `ahmadmhmdsy` are PATs of record in `.env`).
+
+| Layer | Branch | Tip | PR | Status |
+|---|---|---|---|---|
+| Base (fork master) | `master` | `3f120f3d3c` (squash-merge of #21 + 5 Phase-2.5-closure commits: zod dep + handoff + memory + getTranscript fixture + cordis-config + snapshot-bridge test) | â€” | public |
+| Phase 1.5 â†’ 2.4 stack | `feat/phase2-4-projection-ui` | `9f31af1d6d` (squash-merge of #16) | **#16** | **merged** |
+| Phase 2.5 (deployments + preview-iframe panes + project memory) | `feat/phase2-5-ui-eventsource` | `66696e4aed` (squash-merge of #17) | **#17** | **merged** |
+| Handoff (multi-session narrative) | `phase2-5-handoff-draft` | `a14df0d7c2` | â€” | **merged into `master` at `ccf71d0e5b` as a docs-only commit**; `.agents/drafts/phase2-5-handoff.md` (+1217 lines) now on origin/master |
+| Wiring-fix stack (5 bugs blocking `dsh --profile app-builder-web`) | `fix/app-builder-api-remotes-de-dup-rebased` | `1a4f4412c3` (squash-merge into `master`) | **#21** | **merged** â€” admin-override squash on 2026-09-05; 8 files / +338 / âˆ’24; 3 cherry-picked commits + PROJECT-MEMORY; pre-existing `snapshot-bridge` tests + `verify-cordis-config` Phase-2.5 errors documented in PR body |
+| Wiring-fix stack (pre-Phase 2.5 base `8994998859`) | `fix/app-builder-api-remotes-de-dup` | `2d5c972043` | #21 (closed) + #18/#20 (against `adopt/api-gateway-cluster`, merged 2026-09-05 06:39Z / 07:40Z) | **superseded** â€” same 3 wiring-fix commits were cherry-picked onto `master` and squash-merged via #21 (rebased); the api-gateway-cluster merges predated the rebased PR |
+
+Stack rule: each phase lands on the previous phase's branch; the upstream-most PR (#16) merges first; GitHub auto-retargets dependents. Never rewrite to drop ancestor commits unless they introduce a known regression.
+
+PR numbering note: the original PRs #14 + #15 were opened with a token that authenticated as a different GitHub account (`alshahia`); they were closed unmerged and re-opened as #16 + #17 to attribute the PRs to the actual repo owner `ahmadmhmdsy`. The underlying branches (`feat/phase2-4-projection-ui` @ `32b10fda0d`, `feat/phase2-5-ui-eventsource` @ `b6fdfcf29b`) are unchanged; only the PR authorship differs.
+
+PR #16 + #17 + #21 were squash-merged via admin override into `master` (`9f31af1d6d`, `66696e4aed`, `1a4f4412c3` respectively). Origin/master is now at `1a4f4412c3`. PRs #18 + #20 from the original wiring-fix stack landed in `adopt/api-gateway-cluster` (not `master`); PR #21 was closed unmerged and its number reused for the rebased-on-master branch, which then merged.
+
+## 2. PR scope and what landed where
+
+| Phase | Scope | Diff vs prev | Commits | Notes |
+|---|---|---|---|---|
+| 1.5 | App Builder Host BFF cluster, tool policy, deployment registry | foundation | many | landed on local `cc317420c369`; not yet on fork master |
+| 2.1, 2.2, 2.3 | Project lifecycle, deployments host, preview-stream host | incremental | stacked on 1.5 | included in #16's diff |
+| 2.4 | Projection cache wiring + `sessionCounts` from projection to projects pane | incremental | stacked on 2.3 | PR #16 head |
+| 2.5 | `ui-app-builder-deployments` + `ui-app-builder-preview-iframe` Client panes + BFF `./typert`/`./remote` exports + project memory | +4,080 / âˆ’36, 52 files, 6 commits | stacked on 2.4 | PR #17 head |
+
+PR #16 carries the entire Phase 1.5 â†’ 2.4 stack as a single 1,095-commit diff vs `master` per the option-(d) trade-off agreed in session 7. PR #17 carries Phase 2.5 as a focused 6-commit diff vs PR #16's branch (5 Phase-2.5 commits + 1 docs commit for `.agents/PROJECT-MEMORY.md` and the AGENTS.md pointer).
+
+## 3. Architectural decisions (in effect)
+
+- **App Builder is a Host-side BFF + Client-side Cordis slot system.** Host exposes typed `@Remote` methods under namespace `appBuilder` via Typert; Client mounts Remote contributions into `ctx.remote.appBuilder.*` and reads via `useSnapshot` + slot props.
+- **Phase 2.5 wires BFF â†’ Client via Option B bypass** (`ctx.remote.$mount(appBuilderApiRemote)` inside each pane's `apply`). This is a workaround for the typert-emitter output-path mismatch (`lib/typert.*` vs consumer `outDir: lib/types`); the structural fix (Option A â€” move emitter to `lib/types/typert.*`) is tracked separately as a 10+-package blast-radius change.
+- **Async-generator SSE pattern**: `AbortController` + `signal.addEventListener('abort')` + `finally` dispose. Canonical example: `packages/api/session-controller/src/history.ts:87` `follow()`.
+- **Snapshot store factory** `createSnapshotStore<T>(INITIAL_STATE)` is the only state container pattern for Client panes.
+- **Slot discipline**: `kind: 'single', scope: 'root'`, filled via `ctx.slots.inject(<slot>, () => ctx.slots.register({...}, Component))` â€” never `ctx.slots.register` direct when filling another package's slot.
+- **Locale ownership** is per-pane via `ctx.locale.register(NS, { zh, en })` + typed `LocaleNamespaceMap`. `verify-client-ui-i18n` rejects hardcoded copy.
+- **English-only Agent Notes since Phase 1.5.7** â€” no `.zh.md` siblings, no `.i18n.yaml` for new notes. Pre-1.5.7 notes keep their bilingual triplets (grandfathered).
+- **App Builder work runs under `$DSH_HOME=~/.appbuilder`** (configurable via `DSH_HOME` env var). The running DSH harness keeps its default `$DSH_HOME=~/.dsh`; an App Builder profile, session, projection, or credential added under that tree would clobber the running DSH's home. Profile dir at `$DSH_HOME/profiles/app-builder-web/` links the three workspace bundles (`@deepseek-ai/dsh-base`, `@deepseek-ai/dsh-web-app`, `@deepseek-ai/dsh-app-builder`). Rationale, alternatives, consequences in [app-builder-dsh-home-isolation](notes/implemented/process/2026-09-05-app-builder-dsh-home-isolation.md).
+- **PR history by deliberate stacking.** Use `--force-with-lease=<branch>:<observed-oid>` for rewrites; never raw `--force`. Use base-branch stacking (PR base = parent PR's head branch) for dependent layers; do not use `gh stack link` here (no `gh` CLI on Windows).
+- **Labels per PR**: one `kind/*` + all material `area/*` + native Issue Type. Custom labels created via `POST /repos/.../labels`.
+
+## 4. Known carry-forward failures (out of current phase scope)
+
+Each phase's Agent Note documents these in its آ§9; do not silently bundle fixes.
+
+| Failure | First observed | Owner | Note |
+|---|---|---|---|
+| Runtime gating: `app-builder-shell` slot not declared in `packages/client/ui-layout/src/client/index.ts` children table → new 2.5 panes runtime-dead | v0.1.2-alpha.1 merge | slot-system team (chain-vs-single architectural decision) | Documented in `2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md`. Explicitly out of scope for the Phase 2.5 closure PR. Adding the row requires: (a) chain-vs-single kind decision (the `SlotMap` says `single`, the bundle comment says “chain take-over”); (b) an `AppFrame` chain-priority update that honors chain candidates on `root`; (c) a new `verify-bundled-slot-graph` gate. Owned by the slot-system team. Tracked in `§5` next steps. |
+| Pre-existing oxlint / verify-md-links / verify-doc-budgets baseline | Phase 1.5 | various | CI carries these; not blocking per-PR. |
+| Web seed-map static-link regression | v0.1.2-alpha.1 merge | fixed in 2.5 (`7a4ee612d1`) | Promoted `zustand` + `immer` to `apps/web` devDependencies. |
+
+## 5. In-flight work and next steps
+
+1. **PR #21 squash-merged into master at `1a4f4412c3` (2026-09-05).** 5 host-scope wiring bugs are now on master: dropped duplicate `api-remotes` + `api-session-controller` from `bundle/app-builder` (web-app already declares them); `app-builder-persona` now `disabled: true`; `app-builder-snapshot-bridge` row has `inject: [webServer, appBuilderProjects]` AND `provide: [appBuilderSnapshotBridge]`; source uses `ctx.provide(...)` + `export const provide` and no `export default apply`; `defaultProfile: app-builder` on `app-builder-project`; `snapshotUrl` on `app-builder-projects` is a plain string. PR #18 + #20 from the original wiring-fix stack are already merged into `adopt/api-gateway-cluster` (06:39Z / 07:40Z 2026-09-05), so all 3 PR numbers in the lineage are now closed.
+2. **`phase2-5-handoff-draft` landed** at `ccf71d0e5b` as docs-only commit. 1217 lines captured the multi-session narrative (BFF Remote surface expansion + typert Option B bypass + ui-app-builder-{deployments,preview-iframe} scaffolds + 4-pane shell + the 64-test PASS validation). Not a `gh` PR - direct commit on master after the long-shape doc was sanity-checked.
+3. **Live-boot verification PASS** on 2026-09-05. `dsh --profile app-builder-web -- --no-open --port 0` under `DSH_HOME=~/.appbuilder` bound to a free port and answered 200 on `GET /__dsh/app-builder/snapshot.json` with `{ts, projects:[], devServers:{}, sessionCounts:{}}`. Verified via Start-Process + curl loop on port 55281 (chosen by OS). The verification surfaced a previously-hidden Phase 2.5 dep gap (see آ§8 zod-fix entry) that is now committed at `6b944c0e96`. PR #21's wiring fixes (snapshot-bridge inject+provide, defaultProfile: app-builder, etc.) are confirmed end-to-end through the live HTTP route, not only `--dump-config`.
+4. **Phase 2.5 closure committed on 2026-09-05** (commits `0aa23e9888` + `e86ee5073b` + `3f120f3d3c`): three in-scope follow-ups closed (getTranscript fixture, verify-cordis-config 4 errors, snapshot-bridge loader-composition test). One-line each:
+   - `test(app-builder-api): include events: [{seq: 0}] in FakeSessionController.inspect` (`0aa23e9888`): test fixture now matches the real controller's shape; `getTranscript` test passes.
+   - `fix(cordis-config): declare deployment + tool-policy + app-builder-{deployments,preview-iframe} paths` (`e86ee5073b`): `verify-cordis-config` now `155/155`.
+   - `test(snapshot-bridge): provide sessionProjections stub so project plugin apply runs` (`3f120f3d3c`): the bridge's inject list now actually satisfies; `loader-composition-invariant` 2/2 passes.
+5. **Outstanding follow-ups** (not closed in this closure; each a separate PR; not blocked on each other):
+   - **Per-area 1.5.x**: shell children-table fix (runtime gating for 2.5 panes). Documented in `2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md`; tracked in `§4`. Requires the slot-system team's chain-vs-single decision.
+   - **Option A**: typert-emitter structural fix (move emitter to `lib/types/typert.*`, retire Option B bypass). 10+-package blast radius; deferred.
+6. **Phase 3 begins after wiring-fix lands.** Plan TBD; see `.agents/notes/implemented/architecture/` for what was deferred from 2.x.
+
+## 6. Working environment facts
+
+- **Repo path**: `D:\my_deepseek_harness\deepseek-harness\`
+- **Remote**: `https://github.com/ahmadmhmdsy/deepseek-harness-work.git` (origin)
+- **Credentials** (in order of preference):
+  1. `.env` file at the repo root â€” `GITHUB_TOKEN_ahmadmhmdsy` is the canonical token for `ahmadmhmdsy` operations (PRs, pushes, GitHub API). Authenticates as `ahmadmhmdsy` (id 35102575) with `admin: true, push: true, triage: true, pull: true`.
+  2. Windows Credential Manager â€” `git credential fill` with input `protocol=https\nhost=github.com\n` retrieves a token authenticating as `alshahia` (id 118257197) with `push: true, triage: true, pull: true, pull_requests: write`. **Use only when `.env` is unavailable** â€” prefer `.env` so PR author/committer is `ahmadmhmdsy`, the actual repo owner.
+- **GitHub API**: `curl -H "Authorization: Bearer ${GITHUB_TOKEN_ahmadmhmdsy}" -H "Accept: application/vnd.github+json"`; payloads via `--data-binary "@<file>"`. No `gh` CLI on this Windows env.
+- **PowerShell gotchas**: no `head`/`tail` aliases (use `Select-Object -First`); heredoc `<<<` fails in `-Command` (use files); `/tmp/` doesn't exist (use `$env:TEMP`); CRLF endings on Windows files trip `git diff --cached --check` "new blank line at EOF" â€” strip to single LF before committing Markdown touched by append operations.
+- **`run_code` CWD gotcha**: `node:fs` resolves paths relative to worker CWD `D:\deepseek_harness\deepseek-harness\`; use absolute paths starting with `D:\my_deepseek_harness\deepseek-harness\` for the actual repo. `process.env.TEMP` resolves to `/tmp/` here even on Windows â€” use literal `C:\Users\AHMADM~1\AppData\Local\Temp\` paths when writing via node `fs`.
+- **Lefthook pre-push runs only `pnpm run typecheck`** (~60s); pre-commit runs whitespace + vendor-manifest-guard + translation-pairing + archived-agent-notes + lint + third-party-notices (most skip when staged files don't match).
+- **DSH file policy**: `danger-full-access`; approval prompts disabled.
+
+## 7. How to use this file
+
+- **Resuming agent**: read top-to-bottom on session start. Confirm stack SHAs in آ§1 are still current (`git fetch origin && git rev-parse origin/<branch>`). If a SHA moved, update آ§1.
+- **Mid-session agent**: when you change a structural fact (open a PR, merge one, decide an architecture, document a known failure), edit the relevant section and append a one-line entry under آ§8 "Change log" with date and reason. Keep prose direct and concrete â€” no session transcripts, no design-citation residue.
+- **Closing agent**: if a follow-up in آ§5 is resolved, move it to آ§4 or delete it; if a stack SHA changes, update آ§1; if a decision in آ§3 is reversed, mark it `[replaced by ...]` and link the replacement.
+
+## 8. Change log
+
+- **2026-09-04** â€” Initial creation. Captures state at end of session 8 (PR #15 stacked on PR #14, both open; handoff branch advanced to `a14df0d7c2`). Author: session 8 agent per user request to make project memory durable.
+- **2026-09-04 (same day)** â€” Token correction: original PRs #14 + #15 were opened using a token that authenticated as `alshahia`. Closed unmerged; re-opened as **PR #16** (Phase 2.4, +335,985 / âˆ’128,231, 6,554 files, 1,095 commits) and **PR #17** (Phase 2.5, +4,080 / âˆ’36, 52 files, 6 commits) using `GITHUB_TOKEN_ahmadmhmdsy` from `.env`. Authorship now correctly attributed to `ahmadmhmdsy` (repo owner). Updated آ§1 / آ§2 / آ§5 / آ§6 to reflect new PR numbers, token preference, and the added project-memory commit (`b6fdfcf29b`) in the 2.5 tip.
+- **2026-09-05 (later)** â€” Phase 2.4 + 2.5 landed: PR #16 squash-merged (`9f31af1d6d`), PR #17 squash-merged (`66696e4aed`); origin/master advanced to `66696e4aed`.
+- **2026-09-05 (later)** â€” Discovered the wiring-fix stack (PRs #18 + #20 + #21, branch `fix/app-builder-api-remotes-de-dup` @ `2d5c972043`) had been authored against an old base (`8994998859` Phase 1.5 / 1.5.5) and never reached origin/master. origin/master carries the same 4 wiring bugs PR #21 was created to fix. PRs #18 + #20 + #21 are now superseded.
+- **2026-09-05 (later)** â€” Created `fix/app-builder-api-remotes-de-dup-rebased` from origin/master HEAD `66696e4aed` to re-apply the 3 wiring-fix commits on Phase 2.5. Stash created (empty `.tmp/`) prior to checkout; popped after branch creation.
+- **2026-09-05 (later)** â€” Cherry-picked `6804e3d946` (auto-merge) and `58a81cdd43` (auto-merge); manually resolved 2 conflict hunks on `2d5c972043` (kept Phase 2.1 / 2.2 deployment + tool-policy rows in `bundle/app-builder/cordis.patch.yml`; chose `ctx.provide` over `ctx.reflect.provide` in `snapshot-bridge/src/index.ts`). Lefthook pre-commit gates PASS.
+- **2026-09-05 (later)** â€” Branch pushed (`db51020f95`, 4 commits ahead of origin/master); lefthook pre-push typecheck PASS (69.05s); opened **PR #21** (https://github.com/ahmadmhmdsy/deepseek-harness-work/pull/21, mergeable=True).
+- **2026-09-05 (later)** â€” Confirmed two pre-existing issues NOT introduced by this PR: (1) `snapshot-bridge/tests/loader-composition-invariant.spec.ts` 2/2 tests fail identically on origin/master; (2) `verify-cordis-config` reports 4 errors identically on origin/master (Phase 2.5 added `app-builder-deployments` + `app-builder-preview-iframe` Client UI rows without tsconfig path mappings).
+- **2026-09-05 (squash-merge)** â€” `PUT /repos/ahmadmhmdsy/deepseek-harness-work/pulls/21/merge` returned `sha=1a4f4412c30d11c399696f3824864ffe0ce0ff20, merged=true`. Origin/master advanced `66696e4aed` â†’ `1a4f4412c3`. Squash commit lands 8 files / +338 / âˆ’24 across `packages/bundle/{app-builder,web-app}/cordis.patch.yml`, `packages/app-builder/snapshot-bridge/src/index.ts`, `.agents/PROJECT-MEMORY.md`, plus the bilingual [`app-builder-dsh-home-isolation`](notes/implemented/process/2026-09-05-app-builder-dsh-home-isolation.md) triplet and a plan artifact (`plan-app-builder-web-boot-wiring.md`). PRs #18 + #20 (original wiring-fix stack against `adopt/api-gateway-cluster`) already merged pre-this-session at 06:39Z / 07:40Z, so no orphans required closing. آ§1 updated to mark master tip + #21 merged, orphan-row re-explained, آ§3 links to the new DSH_HOME isolation agent note, آ§5 in-flight rewritten to mark squash-merge done and add post-merge live-boot verification + pre-existing-issues notes, آ§8 this entry.
+- **2026-09-05 (live-boot smoke + zod fix + handoff landing)** â€” post-merge live-boot on `DSH_HOME=~/.appbuilder` initially failed with two pre-existing-but-not-yet-hit Phase 2.5 issues: `Cannot find package '@deepseek-ai/dsh-client-ui-app-builder-{deployments,preview-iframe}'` (profile install state missing transitive deps; fixed by monorepo `pnpm install`), then `Cannot find package 'zod'` from `packages/app-builder/api/lib/typert.host.js` (the typert-host + typert-remote-client artifacts emitted by the typert generator import `zod` but the package manifest never declared it). One-line patch added `zod: ^4.4.3` to `@deepseek-ai/dsh-app-builder-api` `dependencies`; `pnpm install` linked it to `packages/app-builder/api/node_modules/zod`; live-boot passed at port 55281 with `/snapshot.json` returning the cached snapshot `{ts, projects:[], devServers:{}, sessionCounts:{}}`. Commits `6b944c0e96` (zod-dep fix) and `ccf71d0e5b` (handoff doc landing, `.agents/drafts/phase2-5-handoff.md` +1217 lines) both pushed to master. آ§1 marks master tip + #21 + handoff merged; آ§5 records the live-boot PASS (step 3) and the handoff landing (step 2, replacing the obsolete "Not run yet this session" step); آ§8 this entry. The prior آ§5 "live-boot verified" claim was inaccurate; live boot was actually unverified on Phase 2.5 master until this entry - the snapshot-bridge 2/2 test failures noted in آ§4 / آ§5 are similarly pre-existing on `66696e4aed` but did not actually exercise the live boot path.
+- **2026-09-05 (Phase 2.5 closure)** — three in-scope carry-forwards closed, four explicitly out of scope. Closed: (1) `getTranscript` test fixture realignment in `packages/app-builder/api/tests/api-methods.host.spec.ts` — `FakeSessionController.inspect` now returns `{ meta, events: [{ seq: 0 }] }` so `getTranscriptRemote`'s `inspection.events.at(-1)?.seq ?? -1` projects `cursor: 0`; committed as `0aa23e9888`. (2) Four `verify-cordis-config` errors on Phase 2.5 master (two missing `apps/cli/package.json` deps for `@deepseek-ai/dsh-app-builder-{deployment,tool-policy}` and two missing `tsconfig.base.json` path mappings for `@deepseek-ai/dsh-client-ui-app-builder-{deployments,preview-iframe}`) — added 2 deps + 4 path entries; gate now `155/155`; committed as `e86ee5073b`. (3) `snapshot-bridge/tests/loader-composition-invariant.spec.ts` 2/2 tests — root cause was the missing `sessionProjections` upstream-inject stub (the project plugin declares `inject: [sessionProjections]` and its apply never ran, so the bridge's own inject list never satisfied); added `ctx.provide('sessionProjections', { register: () => undefined })` before each project plugin mount; committed as `3f120f3d3c`. The pre-existing `readonly kind: 'approval'` note in آ§4 is stale — that field already has `as const`; verified-cordis-inspect-catalog gate passes. Out of scope for this closure: shell children-table gating (chain-vs-single architectural decision owned by slot-system team, requires `AppFrame` chain-priority + new `verify-bundled-slot-graph` gate); Option A typert-emitter structural fix (10+-package blast radius, explicit deferral). آ§1 master tip updated `1a4f4412c3` → `3f120f3d3c`; آ§4 pruned (getTranscript + readonly kind rows removed; shell entry rewritten with explicit out-of-scope rationale); آ§5 rewritten (new step 4 records the closure commits, step 5 narrows to the two open follow-ups, old step 5's pre-existing-issues note deleted since both issues are now closed); آ§8 this entry. The full `packages/app-builder/*` test suite (143 tests across 14 files) PASSes after these three commits.

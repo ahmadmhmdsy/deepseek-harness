@@ -256,6 +256,10 @@
       "@deepseek-ai/dsh-client-ui-app-builder-shell/client": ["./packages/client/ui-app-builder-shell/src/client/index.ts"],
       "@deepseek-ai/dsh-client-ui-app-builder-projects": ["./packages/client/ui-app-builder-projects/src"],
       "@deepseek-ai/dsh-client-ui-app-builder-projects/client": ["./packages/client/ui-app-builder-projects/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-app-builder-deployments": ["./packages/client/ui-app-builder-deployments/src"],
+      "@deepseek-ai/dsh-client-ui-app-builder-deployments/client": ["./packages/client/ui-app-builder-deployments/src/client/index.ts"],
+      "@deepseek-ai/dsh-client-ui-app-builder-preview-iframe": ["./packages/client/ui-app-builder-preview-iframe/src"],
+      "@deepseek-ai/dsh-client-ui-app-builder-preview-iframe/client": ["./packages/client/ui-app-builder-preview-iframe/src/client/index.ts"],
       // BEGIN generated package aliases — pnpm run gen-tsconfig-paths
       "@deepseek-ai/dsh-acp": ["./packages/acp/acp/src"],
       "@deepseek-ai/dsh-acp/invariant": ["./packages/acp/acp/src/invariant.ts"],

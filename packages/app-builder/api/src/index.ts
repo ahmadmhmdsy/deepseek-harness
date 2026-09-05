@@ -57,6 +57,8 @@ import type {
   SubscribeDeploymentEventsRequest,
   SubscribeEventsFrame,
   SubscribeEventsRequest,
+  SubscribePreviewFrame,
+  SubscribePreviewRequest,
 } from './types.ts'
 
 import { createProjectRemote, deleteProjectRemote, getProjectRemote, listProjectsRemote } from './projects.ts'
@@ -67,7 +69,7 @@ import {
   sendMessageRemote,
   startSessionRemote,
 } from './sessions.ts'
-import { getPreviewRemote } from './preview.ts'
+import { getPreviewRemote, subscribePreviewRemote } from './preview.ts'
 import { subscribeEventsRemote } from './events.ts'
 import { deployRemote } from './deferred.ts'
 import { getUsageRemote } from './usage.ts'
@@ -96,6 +98,7 @@ export type {
   ListDeploymentsValue,
   ListProjectsValue,
   ListProjectsRequest,
+  PreviewStreamRecord,
   ProjectShape,
   ResumeSessionRequest,
   ResumeSessionValue,
@@ -107,6 +110,8 @@ export type {
   SubscribeDeploymentEventsRequest,
   SubscribeEventsFrame,
   SubscribeEventsRequest,
+  SubscribePreviewFrame,
+  SubscribePreviewRequest,
 } from './types.ts'
 
 /**
@@ -314,6 +319,26 @@ export class AppBuilderApi extends TypertRemoteService {
     signal: AbortSignal,
   ): AsyncIterable<SubscribeDeploymentEventsFrame> {
     return subscribeDeploymentEventsRemote(this.ctx, request, signal)
+  }
+
+  // ---- Preview stream (Phase 2.5 option 2) ----
+
+  /**
+   * Stream preview dev-server transitions. Opens with one `snapshot`
+   * frame (the snapshot bridge's current `devServers` map, filtered by
+   * `projectId` when requested) then yields `event` frames as new
+   * transitions land. The carrier aborts by calling `signal.abort()`
+   * and the stream disposes its listener in the `finally` block.
+   * @param request - subscription payload (optional projectId filter).
+   * @param signal - caller / transport cancellation.
+   * @returns the frame iterable.
+   */
+  @Remote({ mode: 'stream' })
+  subscribePreview(
+    request: SubscribePreviewRequest,
+    signal: AbortSignal,
+  ): AsyncIterable<SubscribePreviewFrame> {
+    return subscribePreviewRemote(this.ctx, request, signal)
   }
 }
 

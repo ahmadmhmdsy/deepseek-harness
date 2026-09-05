@@ -770,3 +770,448 @@ Take **Option B** (bypass). It keeps the rest of Phase 2.5 unblocked and isolate
 - Typecheck: PASS (clean 2.5 base)
 - Tests: 18 BFF tests PASS (10 preview-stream + 8 deployments)
 - Skipped work: Phase A.3-A.5 + Phase B/C/D/E
+
+---
+
+# Phase 2.5 — Session 6 Update (Phase A + B + C + D + E complete; 64 tests PASS)
+
+> Appended by the same workflow on the `phase2-5-handoff-draft` branch after the user reported the new GitHub PAT was working and asked to "continue the work per handoff and plan". Session 5 absorbed the web seed-map fix and Phase A.1+A.2. Session 6 ships the full Phase A + B + C + D + E plan (with Option B bypass for the BFF Remote mounting). All 64 tests in the Phase 2.5 surface area PASS; typecheck clean; one Agent Note committed; one PR-ready commit on `feat/phase2-5-ui-eventsource` pushed to origin.
+
+## 0. What landed in this session
+
+| Phase | Description | Commit | Status |
+|---|---|---|---|
+| Phase A.1+A.2 | BFF exports + typert artifact emission | `68c6ed62d7` (consolidated) | DONE |
+| Phase A.3+A.4+A.5 | Option B bypass: `appBuilderApiRemote` mounted in each pane's `apply`; bundle deps added | `68c6ed62d7` | DONE |
+| Phase B | `packages/client/ui-app-builder-deployments` scaffolded + implemented + 12 unit tests | `68c6ed62d7` | DONE |
+| Phase C | `packages/client/ui-app-builder-preview-iframe` scaffolded + implemented + 12 unit tests | `68c6ed62d7` | DONE |
+| Phase D | Shell 4-pane layout (slot map + Shell.tsx + CSS + shell test extension) | `68c6ed62d7` | DONE |
+| Phase E | `tsconfig.client.json` + `cordis.patch.yml` + bundle `package.json` + Agent Note | `68c6ed62d7` | DONE |
+
+## 1. Critical runtime caveat
+
+The new UI panes will NOT render in the browser until the per-area shell children-table regression is fixed. Per the agent note `2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md`:
+
+- `packages/client/ui-layout/src/client/index.ts` does NOT declare `app-builder-shell` in its root `children`.
+- The shell's `ctx.slots.inject('root', ...)` callback fires, `register({ name: 'app-builder-shell', ... })` runs, the registry looks up the slot spec, finds no record, and throws.
+- The boot overlay documented in the agent note disables `app-builder-shell` to keep the page bootable; the architectural fix is a per-area 1.5.x follow-up.
+
+Until that fix lands, the new panes are runtime-dead (Option B + Cordis wiring + unit tests all pass; the live browser smoke is gated).
+
+## 2. Validation results (final)
+
+```sh
+$ pnpm run typecheck
+build:lib:host: PASS
+typecheck:contracts-ready: PASS (exit 0)
+
+$ pnpm exec vitest run \
+    packages/client/ui-app-builder-deployments \
+    packages/client/ui-app-builder-preview-iframe \
+    packages/client/ui-app-builder-shell \
+    packages/client/ui-app-builder-projects \
+    packages/app-builder/api/tests/preview-stream.host.spec.ts \
+    packages/app-builder/api/tests/deployments.host.spec.ts
+ Test Files  6 passed (6)
+      Tests  64 passed (64)
+   ← 12 deployments-pane + 12 preview-iframe + 7 shell + 15 projects + 8 BFF deployments + 10 BFF preview-stream
+```
+
+Lefthook pre-push: PASS (typecheck in 23.02s).
+
+## 3. Branch / stack state at session-6 close
+
+| Key | Value |
+|---|---|
+| Working branch | `feat/phase2-5-ui-eventsource` |
+| Tip | `68c6ed62d7` (Phase 2.5 ship commit) |
+| Working tree | clean |
+| Typecheck | PASS |
+| Tests | 64/64 PASS in the Phase 2.5 surface area |
+| Pushed to | `origin/feat/phase2-5-ui-eventsource` (`e59c31aacf..68c6ed62d7`) |
+| Handoff branch | `phase2-5-handoff-draft` @ `741847f851` (about to advance with this entry) |
+| Agent Note | `.agents/notes/implemented/architecture/2026-09-03-phase-2-5-ui-event-source-panes.md` (NEW) |
+
+## 4. Recommended next step (fresh session)
+
+1. **Land the 2.5 PR.** The branch `feat/phase2-5-ui-eventsource` is ready for PR. Create PR from `feat/phase2-5-ui-eventsource` → master; title `feat(app-builder): ship deployments + preview iframe panes (Phase 2.5)`. PR body should reference this handoff and the Agent Note. The PR should land after the 2.4 PR (`feat/phase2-4-projection-ui`) merges to master.
+2. **The shell regression fix lands separately** as a per-area 1.5.x PR — out of Phase 2.5 scope. Document the gating in the 2.5 PR description so reviewers know the runtime is gated.
+3. **Future per-area PRs**: clean up the Option B bypass once the Option A structural typert-emitter fix lands (delete the `ctx.remote.$mount(appBuilderApiRemote)` lines from both panes + add `appBuilderApiRemote` to `api-remotes`).
+
+## 5. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git checkout feat/phase2-5-ui-eventsource
+git log --oneline -5
+pnpm run typecheck                                                    # expect PASS
+pnpm exec vitest run packages/client/ui-app-builder-deployments \\
+                       packages/client/ui-app-builder-preview-iframe \\
+                       packages/client/ui-app-builder-shell \\
+                       packages/client/ui-app-builder-projects \\
+                       packages/app-builder/api/tests/preview-stream.host.spec.ts \\
+                       packages/app-builder/api/tests/deployments.host.spec.ts   # expect 64/64 PASS
+# then land the 2.5 PR (or continue the per-area 1.5.x follow-ups)
+```
+
+# Phase 2.5 — Session 5 Update (absorb web seed-map fix; Phase A.3 still TS2878-blocked)
+
+> Appended by the same workflow on the `phase2-5-handoff-draft` branch after the user reported the new GitHub PAT is in place and they merged "the last branch" to master. The merged PRs did not contain the web-run fixes — those lived on a different repository (`github.com/ahmadmhmdsy/deepseek-harness`, no `-work` suffix). Session 4 closed with Phase A.3 (BFF Remote wiring) blocked by TS2878 + SessionStore cascade. This session absorbs the web seed-map fix into the 2.5 stack, refreshes the handoff status, and confirms Phase A.3 remains the active unblock target.
+
+## 0. What the user provided in this session
+
+| Item | Value |
+|---|---|
+| New GitHub PAT | added to the `ahmadmhmdsy` account — `git ls-remote`, `git fetch`, `git push` all succeed against `https://github.com/ahmadmhmdsy/deepseek-harness-work.git` (origin) |
+| Origin/master HEAD | `9b38f16fed` (Merge PR #2: app-builder-web-reskin) — **strict ancestor of my Phase 2.4 base** `32b10fda0d`; zero new commits to absorb there |
+| Two merged PRs since session 4 | PR #1 (`fix/subagent-live-routing`, 5 files: subagent child routing) and PR #2 (`app-builder-web-reskin`, 9 files: CLAUDE.md symlink → regular-file copies) — **neither touches the web build/run pipeline** |
+| Web-run fixes location | **a different repository**: `https://github.com/ahmadmhmdsy/deepseek-harness.git` (no `-work` suffix), on its `master` branch |
+| Other/master HEAD | `c7b9d87c9e` (2 commits ahead of `71a23c4506` = my session-4 handoff commit) |
+| Other/master commits ahead of my 2.4 base | 7 (5 are handoff doc commits already on `phase2-5-handoff-draft`; 2 are new: web seed-map fix + agent note) |
+
+## 1. Cherry-picks absorbed into `feat/phase2-5-ui-eventsource`
+
+| New SHA | Subject | Files | Note |
+|---|---|---|---|
+| `7a4ee612d1` | `fix(web): add static-linked dsh-client-store transitive deps to apps/web` | `apps/web/package.json` (+2 devDeps: `immer ^10.1.1`, `zustand ~4.4.7`), `pnpm-lock.yaml` (+immer/zustand pins, vitest vite@8 → vite@6 hoisting fix), `.agents/notes/implemented/process/2026-09-02-v0.1.2-alpha.1-seed-manifest-fix.md` (NEW, 68 lines) | Clean 3-way merge, zero conflicts |
+| `e59c31aacf` | `docs(notes): record app-builder-shell children-table post-merge regression` | `.agents/notes/implemented/process/2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md` (NEW, 133 lines) | Clean 3-way merge, zero conflicts |
+
+Stack now:
+
+```
+e59c31aacf docs(notes): record app-builder-shell children-table post-merge regression
+7a4ee612d1 fix(web): add static-linked dsh-client-store transitive deps to apps/web
+831bfb1f5e feat(api): surface subscribePreview Remote method (Phase 2.5 option 2)
+0abc84c892 feat(api): surface listDeployments + subscribeDeploymentEvents Remote methods (Phase2.5)
+32b10fda0d feat(app-builder): wire sessionCounts from projection cache to projects pane (Phase2.4)
+```
+
+## 2. What the web fix does (per the agent note)
+
+The v0.1.2-alpha.1 merge brought in `@deepseek-ai/dsh-client-store` as a staticLinked package whose `lib/index.js` retains runtime bare imports for `zustand/vanilla`, `zustand/middleware`, `zustand/shallow`, and `immer`. pnpm nests those under `apps/web/node_modules/@deepseek-ai/dsh-client-store/node_modules/`, so the Vite host cannot resolve them when bundling the shell, and Rollup tree-shakes the ClientStore namespace import. The bundled seed map then lacks `@deepseek-ai/dsh-client-store` and the runtime module table reports:
+
+```
+client-modules: require("@deepseek-ai/dsh-client-store") missed the module table
+- not a platform seed word, not a materialized module, and no registered package factory
+```
+
+which gates `dsh-api-session-controller` from materializing in the browser. Promoting `zustand` and `immer` to direct `devDependencies` of `apps/web` hoists them into `apps/web/node_modules/`; Vite resolves them when bundling the shell; the seed map emits `@deepseek-ai/dsh-client-store`; the runtime require resolves.
+
+The agent note operationalizes the static-link contract from `docs/architecture.md`:
+
+> "The Vite host resolves and deduplicates those imports and decides final chunk boundaries."
+
+— which is *not* automatic. The host must declare every staticLinked package's transitive deps in its own `devDependencies`. This is now in the 2.5 stack.
+
+The second agent note (`e59c31aacf`) records a related but separate regression: `packages/client/ui-app-builder-shell`'s merged entry tries to register a new `app-builder-shell` slot via `ctx.slots.inject('root', ...)`, but no parent entry in the merged tree declares `app-builder-shell` in its children table. The runtime check at `packages/client/ui-slots/src/index.ts:786` throws. **Mitigation is a transient boot overlay that disables the three App Builder entries** (app-builder-shell, app-builder-projects, app-builder-snapshot-bridge); the source tree is unchanged. The architectural fix is the per-area 1.5.x follow-up. **This regression currently masks the App Builder Web shell at runtime; document in Agent Note §9 of any 2.5 PR.**
+
+## 3. Verification after cherry-picks
+
+```sh
+$ pnpm install
+Lockfile passes supply-chain policies (1292 entries in 10.8s)
+Done in 22.2s using pnpm v11.7.0
+
+$ node -e "console.log(require.resolve('zustand/vanilla', { paths: ['apps/web'] }))"
+.../zustand@4.4.7_.../node_modules/zustand/vanilla.js
+
+$ node -e "console.log(require.resolve('immer', { paths: ['apps/web'] }))"
+.../immer@10.2.0/node_modules/immer/dist/cjs/index.js
+
+$ pnpm run typecheck
+build:lib:host: PASS
+typecheck:contracts-ready: PASS (exit 0)
+
+$ pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts \\
+                       packages/app-builder/api/tests/deployments.host.spec.ts
+ Test Files  2 passed (2)
+      Tests  18 passed (18)   ← 10 preview-stream + 8 deployments
+```
+
+All green. The BFF tests + typecheck still pass after absorbing the web fix.
+
+## 4. Phase A.3 status (UNCHANGED from session 4)
+
+The web seed-map fix is **orthogonal** to the Phase A.3 TS2878 blocker. The TS2878 + SessionStore cascade still blocks wiring `appBuilderApiRemote` into `packages/api/remotes/src/client/index.ts`. The three documented options (A: structural typert emitter change; B: bypass via UI-pane-internal `ctx.remote.$mount`; C: paths entry) remain the only paths forward.
+
+**Recommendation unchanged: take Option B** in the next session. It keeps the rest of Phase 2.5 unblocked and isolates the workaround to the two new UI packages.
+
+## 5. Branch / stack state at session-5 close
+
+| Key | Value |
+|---|---|
+| Working branch | `feat/phase2-5-ui-eventsource` |
+| Tip | `e59c31aacf` (web fix + agent note cherry-picked) |
+| Working tree | clean |
+| Typecheck | PASS |
+| BFF tests | 18/18 PASS (10 preview-stream + 8 deployments) |
+| New commits pushed | none yet (cherry-picks are local on `feat/phase2-5-ui-eventsource`) |
+| Handoff branch | `phase2-5-handoff-draft` @ `71a23c4506` (about to advance with this entry) |
+| Origin/master | `9b38f16fed` — ancestor of my 2.4 base; no new commits to absorb |
+| Origin/other/master (`ahmadmhmdsy/deepseek-harness`) | `c7b9d87c9e` — has the web fix + agent note; both cherry-picked in |
+
+## 6. Recommended next step (fresh session)
+
+1. Push `feat/phase2-5-ui-eventsource` (with the two new cherry-pick commits) to origin/feat/phase2-5-ui-eventsource — lefthook pre-commit + pre-push will run.
+2. Take **Option B**: in the new UI pane packages (`ui-app-builder-deployments` + `ui-app-builder-preview-iframe`), do `ctx.remote.$mount(appBuilderApiRemote)` inside each pane's own `apply` before reading `ctx.remote.appBuilder.*`.
+3. Then resume Phase 2.5 task list at task 6 (scaffold `ui-app-builder-deployments`) per session-3 task list.
+4. The `app-builder-shell children-table regression` (per agent note `e59c31aacf`) blocks the Web shell from materializing in the browser. This is out of scope for Phase 2.5; document and defer. The `ui-app-builder-{shell,projects}` boot overlay disables it.
+
+## 7. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git checkout feat/phase2-5-ui-eventsource
+git log --oneline -5
+pnpm run typecheck                                                    # expect PASS
+pnpm exec vitest run packages/app-builder/api/tests/preview-stream.host.spec.ts   # expect 10/10 PASS
+pnpm exec vitest run packages/app-builder/api/tests/deployments.host.spec.ts    # expect 8/8 PASS
+# then resume at task 1 (Option B) → task 6 (UI panes) per session-3 task list
+```
+
+
+# Phase 2.5 — Session 7 Update (Phase 2.4 PR #14 opened; 2.5 PR pending until 2.4 merges)
+
+## 0. What the user asked for in this session
+
+Land the 2.5 PR. After confirming `feat/phase2-5-ui-eventsource` is at the correct tip and `origin/master` is at `9b38f16feda` (web-reskin merge), the user selected **option (d)** of the PR-scope question: open the 2.4 PR against `master` first, then rebase 2.5 onto the new master tip and open the 2.5 PR as a separate stacked PR.
+
+## 1. PR created: Phase 2.4 (option d, step 1)
+
+| Field | Value |
+|---|---|
+| Repo | `ahmadmhmdsy/deepseek-harness-work` (PAT authenticates as `alshahia`) |
+| PR URL | https://github.com/ahmadmhmdsy/deepseek-harness-work/pull/14 |
+| PR number | 14 |
+| Title | `feat(app-builder): wire sessionCounts from projection cache to projects pane (Phase 2.4)` |
+| Head | `feat/phase2-4-projection-ui` @ `32b10fda0d` |
+| Base | `master` @ `9b38f16feda` (already-merged PR #2 web-reskin) |
+| Additions / deletions | +335,985 / −128,231 |
+| Changed files | 6,554 |
+| Commits | 1,095 |
+| Mergeable | true |
+| State | open |
+| Labels applied | `enhancement`, `kind/feature`, `area/app-builder`, `area/ui`, `area/api` |
+| Custom labels created (idempotent on re-run) | `kind/feature` (id 12048503783), `area/app-builder` (id 12048503914), `area/ui` (id 12048504149), `area/api` (id 12048504350) |
+
+## 2. Why the diff is huge (6554 files, not the 11 files the PR body describes)
+
+The PR body diffstat reports **11 files / +1033/−9** for the *per-phase* delta. The actual GitHub PR shows **6,554 files / +335,985/−128,231**. Both numbers are correct.
+
+**Reason**: the per-phase diff is relative to the parent branch (`feat/phase2-3-api-completion` per the body). The PR `compare` against `origin/master` includes the entire Phase 1.5 → 2.4 stack because no prior phase has landed on `master` yet.
+
+GitHub compare confirmed: `feat/phase2-4-projection-ui` is 1,095 commits ahead, 0 behind `master`. First-parent chain is 16 commits:
+
+```
+32b10fda0d feat(app-builder): wire sessionCounts (Phase2.4)
+bfba258158 feat(api): wire getUsage (Phase 2.3)
+c7951c4349 feat(tool-policy): ship ToolPolicy (Phase 2.2)
+6c610224fe feat(deployment): ship deployment pipeline (Phase 2.1)
+08e9f9e012 chore(docs/2.0): Phase 2 sub-phase plan
+26bf01ba4a chore(docs/1.5.7): 1.5.5 fixes + English-only policy
+1bc7a6b9f7 chore(planning): StrideTrust Android PRD
+6a1862bb27 fix(subagent): live model selection (Phase 1.5 / 1.5.6)
+8994998859 feat(api): App Builder Host BFF cluster (1.5.5)
+8a28421e02 feat(project): projection cache (1.5.4)
+098f7cad1c feat(apps/web): reskin shell (1.5.3)
+58ad73791e feat(examples): relocate app-builder (1.5.2)
+f7386f0f97 docs(notes): Agent Note 1.5.1 upstream merge
+515fa46121 fix(llm-pi-ai): classify compat fields
+f2e9585b13 merge: bring upstream dsh-v0.1.2-alpha.1 into fork
+cc317420c3 planning: add Phase 1.5 (Upstream Sync)
+```
+
+This is the deliberate trade-off the user accepted with option (d): one large PR rather than 5 stacked PRs. AGENTS.md "Choose PR history deliberately" was discussed in the user prompt before option selection.
+
+## 3. Pre-push checks run on the 2.4 branch
+
+Per the `dsh-pre-push-checks` skill:
+
+```
+$ git checkout feat/phase2-4-projection-ui
+$ pnpm run typecheck
+...
+EXIT=0   # PASS
+
+$ pnpm exec vitest run \
+    packages/app-builder/snapshot-bridge/tests/snapshot-session-counts.spec.ts \
+    packages/client/ui-app-builder-projects/tests/projects-list.client.spec.tsx \
+    packages/client/ui-app-builder-shell/tests/shell.client.spec.tsx
+...
+Test Files  3 passed (3)
+     Tests  27 passed (27)
+EXIT=0   # PASS
+```
+
+`pnpm run change-scope --base 9b38f16feda` reports the 6,554-file diff described above. Pre-existing failures carried in the 2.4 Agent Note §9 are documented in the PR body — none are caused by 2.4 work.
+
+## 4. Branch / stack state at session-7 close
+
+| Key | Value |
+|---|---|
+| Working branch | `phase2-5-handoff-draft` (advancing with this entry) |
+| 2.4 branch | `feat/phase2-4-projection-ui` @ `32b10fda0d` (PR #14 opened) |
+| 2.5 branch | `feat/phase2-5-ui-eventsource` @ `68c6ed62d7` (unchanged, awaiting 2.4 merge) |
+| Origin/master | `9b38f16feda` (unchanged — the PR is open against it) |
+| PR #14 | open, mergeable=true, 5 labels applied |
+| Working tree | clean (other than 3 untracked temp files in `.agents/drafts/`) |
+| PAT scope | authenticated as `alshahia` with `pull_requests:write` (and full repo-write); the same token was used for prior `git push` calls in sessions 5–6 |
+
+## 5. Recommended next step (fresh session)
+
+1. **Do NOT yet rebase 2.5.** Wait for PR #14 to merge. Once `origin/master` advances past `32b10fda0d`:
+2. Force-with-lease rewrite `feat/phase2-5-ui-eventsource` so its tip is `5 commits ahead of the new master tip` (i.e., drop the 1,095-commit delta now on master, keep the 5 Phase 2.5 commits). Use `--force-with-lease=feat/phase2-5-ui-eventsource:<observed-oid>` per AGENTS.md "Protect history-rewriting pushes".
+3. Push the rewritten branch, run the same pre-push checks (typecheck + the 64 2.5 tests), then open the **2.5 PR** with:
+   - `--base master`, `--head feat/phase2-5-ui-eventsource`
+   - Title: `feat(app-builder): ship deployments + preview iframe panes (Phase 2.5)`
+   - Body referencing:
+     - Agent Note: `.agents/notes/implemented/architecture/2026-09-03-phase-2-5-ui-event-source-panes.md`
+     - Carry-forward note: `.agents/notes/implemented/process/2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md` (gating runtime issue, owned by slot-system team)
+     - This handoff branch at `phase2-5-handoff-draft` (advanced to session-7 entry)
+   - Labels: `enhancement`, `kind/feature`, `area/app-builder`, `area/ui`, `area/api`
+4. After 2.5 merges, land the 2.5 handoff (`phase2-5-handoff-draft`) into `master` if it is still pending.
+
+## 6. Open carry-forward items (UNCHANGED from session 6)
+
+- Runtime gating: `app-builder-shell` slot is not declared in `packages/client/ui-layout/src/client/index.ts` children table. The Phase 2.5 panes are runtime-dead until that fix lands. Per the shell children-regression agent note, the architectural decision (chain vs single kind) is owned by the slot-system team.
+- `packages/client/ui-approval/src/client/contract/slots.ts:71` missing `readonly kind: 'approval' = 'approval' as const` annotation. Latent bug masked by short-circuit in `verify-cordis-inspect-catalog`. One-line fix; deferred per AGENTS.md "no-silent-unrelated-fix". Separate follow-up PR.
+- Option A typert-emitter structural fix (move `lib/typert.*` to `lib/types/typert.*`) tracked separately; 10+ package blast radius.
+
+## 7. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git checkout feat/phase2-5-ui-eventsource
+git log --oneline -5
+gh pr view 14 --repo ahmadmhmdsy/deepseek-harness-work --json state,mergeable,merge_state_status,labels  # or:
+curl -sS -H "Authorization: Bearer $TOKEN" -H "Accept: application/vnd.github+json" \
+     https://api.github.com/repos/ahmadmhmdsy/deepseek-harness-work/pulls/14 | jq '.state,.mergeable,.merge_state_status'
+pnpm run typecheck                                                    # expect PASS
+pnpm exec vitest run packages/client/ui-app-builder-deployments packages/client/ui-app-builder-preview-iframe  # expect 24/24 PASS
+# then: wait for PR #14 merge, force-with-lease rebase, push, open 2.5 PR (see §5)
+```
+
+
+
+---
+
+# Phase 2.5 — Session 8 Update (Phase 2.5 PR #15 opened, stacked on PR #14)
+
+> Appended by the same workflow on the `phase2-5-handoff-draft` branch after the user instructed to proceed with **option (2)**: open the 2.5 PR stacked on top of PR #14 (the 2.4 base), with no rebase or force-push.
+
+## 0. What the user asked for in this session
+
+The session-7 plan (§5) was to wait for PR #14 to merge, then force-with-lease rebase 2.5 onto the new master tip and open the 2.5 PR as a 5-commit delta. The user instead chose option (2) in response to my precondition-failed report: open the 2.5 PR now, stacked on PR #14, so GitHub auto-retargets to master after #14 merges.
+
+The user also asked whether I had used the `GITHUB_TOKEN_ahmadmhmdsy` API token. I confirmed the PAT authenticates as `alshahia` (token id 118257197) with effective `push: true, triage: true, pull: true` on `ahmadmhmdsy/deepseek-harness-work`. PR #14 was successfully created with it earlier in session 7, confirming it has `pull_requests:write` in practice.
+
+## 1. Critical finding: 2.5 was already at the correct stack point
+
+I expected a force-with-lease rebase to be needed. Inspection showed:
+
+```
+$ git merge-base origin/feat/phase2-4-projection-ui feat/phase2-5-ui-eventsource
+32b10fda0dd8ce690c9b2b76bc724e30a0ce1850   ← same as 2.4 head
+
+$ git rev-list --count origin/feat/phase2-4-projection-ui..feat/phase2-5-ui-eventsource
+5
+```
+
+The 2.5 branch was already exactly 5 commits ahead of the 2.4 base — the rebase would have been a no-op. `pnpm run change-scope --base origin/feat/phase2-4-projection-ui` confirmed: `mergeBaseSha = baseSha = 32b10fda0d`, 52 committed paths, 0 staged/unstaged/untracked (clean tree), +3,978 / −36 across 50 files. No rebase needed.
+
+## 2. Pre-push checks (per dsh-pre-push-checks skill)
+
+```
+$ pnpm run change-scope --base origin/feat/phase2-4-projection-ui
+... resolved: baseSha=32b10fda0d headSha=68c6ed62d7 mergeBaseSha=32b10fda0d
+... 52 committed paths, clean tree
+
+$ pnpm run typecheck
+build:lib:host: PASS
+typecheck:contracts-ready: PASS (exit 0)
+
+$ pnpm exec vitest run \
+      packages/client/ui-app-builder-deployments \
+      packages/client/ui-app-builder-preview-iframe \
+      packages/client/ui-app-builder-shell \
+      packages/app-builder/api/tests/deployments.host.spec.ts \
+      packages/app-builder/api/tests/preview-stream.host.spec.ts
+ Test Files  5 passed (5)
+      Tests  49 passed (49)
+   ← 12 deployments-pane + 12 preview-iframe + 7 shell + 8 BFF deployments + 10 BFF preview-stream
+```
+
+The `api-methods.host.spec.ts` test file shows 1 pre-existing failure (`getTranscript returns a cold page through ctx.sessionController.page` at `packages/app-builder/api/src/sessions.ts:139`). I verified this is **pre-existing on the 2.4 base** by `git checkout` round-trip (stash + checkout 2.4 versions + run test + checkout 2.5 versions). Per Phase 2.5 Agent Note `2026-09-03-phase-2-5-ui-event-source-panes.md:63,68`:
+
+> "The `getTranscript` test failure in `api-methods.host.spec.ts > getTranscript returns a cold page` is a pre-existing carry-forward (verified in session 2 to fail on the clean prior commit `0abc84c892`); NOT in Phase 2.5 scope; documented in session-2 handoff §4 carry-forward."
+
+Per Phase 2.4 Agent Note `2026-09-04-phase-2-4-projection-ui.md:99`:
+
+> "1 pre-existing test failure: `getTranscript returns a cold page through ctx.sessionController.page` in `packages/app-builder/api/tests/api-methods.host.spec.ts` (verified pre-existing in 2.3; not in 2.4's scope)."
+
+So this failure is **out of 2.5 scope** and **will land with PR #14's pre-existing failures section** (PR #14 §9 carry-forward). Phase 2.5 surface area = **49/49 PASS in scope** + 18 of 20 api-methods tests = **67/68 in the touched surface**.
+
+## 3. PR created: Phase 2.5 (option 2)
+
+| Field | Value |
+|---|---|
+| Repo | `ahmadmhmdsy/deepseek-harness-work` |
+| PR URL | https://github.com/ahmadmhmdsy/deepseek-harness-work/pull/15 |
+| PR number | 15 |
+| Title | `feat(app-builder): ship deployments + preview iframe panes (Phase 2.5)` |
+| Head | `feat/phase2-5-ui-eventsource` @ `68c6ed62d7` |
+| Base | `feat/phase2-4-projection-ui` @ `32b10fda0d` (PR #14 head — **stacked**) |
+| State | open |
+| Draft | false |
+| Mergeable | true (mergeable_state: unstable pending checks) |
+| Additions / deletions | **+3,978 / −36** |
+| Changed files | **50** |
+| Commits | **5** |
+| Labels | `enhancement`, `kind/feature`, `area/app-builder`, `area/ui`, `area/api` |
+| Created | 2026-09-03T08:05:53Z |
+
+The PR body references:
+- Phase 2.5 Agent Note (\.agents/notes/implemented/architecture/2026-09-03-phase-2-5-ui-event-source-panes.md\)
+- Phase 2.4 Agent Note (\.agents/notes/implemented/architecture/2026-09-04-phase-2-4-projection-ui.md\)
+- Runtime gating note (\.agents/notes/implemented/process/2026-09-02-v0.1.2-alpha.1-app-builder-shell-children-regression.md\)
+- This handoff
+
+GitHub will auto-retarget PR #15 to `master` after PR #14 merges (since the base branch is `feat/phase2-4-projection-ui` — the head of #14). After that, the merge button becomes available.
+
+## 4. No force-push required
+
+Since the 2.5 branch was already at the correct stack point (5 commits ahead of the 2.4 head), no `--force-with-lease` push was needed. The branch was already in sync with `origin/feat/phase2-5-ui-eventsource` and remained so. This is the cleanest possible case.
+
+## 5. Branch / stack state at session-8 close
+
+| Key | Value |
+|---|---|
+| Working branch | `phase2-5-handoff-draft` (this file's home) |
+| Tip | `c8096fd924` (will advance with this entry) |
+| 2.5 branch | `feat/phase2-5-ui-eventsource` @ `68c6ed62d7` (unchanged, in sync) |
+| 2.4 branch | `feat/phase2-4-projection-ui` @ `32b10fda0d` (PR #14 head) |
+| PR #14 | open, not yet merged |
+| PR #15 | open, stacked on #14, +3,978 / −36, 50 files, 5 commits |
+| Origin/master | `9b38f16feda` (web-reskin merge — unchanged) |
+
+## 6. Recommended next step
+
+1. **User merges PR #14** (Phase 2.4) on github.com.
+2. GitHub auto-retargets PR #15 to `master` (since #14's head branch `feat/phase2-4-projection-ui` now lives on `master`). PR #15 becomes directly mergeable.
+3. **User merges PR #15** (Phase 2.5). No further git action needed on my side — the branch was already at the correct shape.
+4. **Land `phase2-5-handoff-draft` into master** if still pending — this captures the multi-session history.
+
+## 7. Resume command (fresh session, no context)
+
+```sh
+cd D:\my_deepseek_harness\deepseek-harness
+git fetch origin
+# Verify PR #14 + #15 status
+gh pr view 14 --repo ahmadmhmdsy/deepseek-harness-work --json state,merged,baseRefName
+gh pr view 15 --repo ahmadmhmdsy/deepseek-harness-work --json state,merged,baseRefName
+# After both merge, advance handoff branch one more time with merge state
+git checkout phase2-5-handoff-draft
+# Append a Session 9 entry confirming PR #14 + #15 merged into master
+```
+
+When both PRs are merged, the App Builder foundation stack (Phase 1.5 → 2.5) is live on master. Outstanding follow-ups: per-area 1.5.x shell children-table fix (unblocks the App Builder Web shell at runtime), Option A typert-emitter structural fix (cleans up the Option B bypass in the two new panes), latent `readonly kind: 'approval'` one-line fix on ui-approval slots.ts:71, and the pre-existing `getTranscript` test failure (test fixture returns `{ meta }` without `events`).
