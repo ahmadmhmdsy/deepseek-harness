@@ -11,14 +11,18 @@ The App Builder stack on fork `ahmadmhmdsy/deepseek-harness-work` (PR author/com
 
 | Layer | Branch | Tip | PR | Status |
 |---|---|---|---|---|
-| Base (fork master) | `master` | `9b38f16feda` (web-reskin PR #2 merge) | — | public |
-| Phase 1.5 → 2.4 stack | `feat/phase2-4-projection-ui` | `32b10fda0d` | **#16** | open, stacked on master |
-| Phase 2.5 (deployments + preview-iframe panes + project memory) | `feat/phase2-5-ui-eventsource` | `b6fdfcf29b` | **#17** | open, stacked on #16 |
+| Base (fork master) | `master` | `66696e4aed` (Phase 2.5 squash-merge of #17) | — | public |
+| Phase 1.5 → 2.4 stack | `feat/phase2-4-projection-ui` | `9f31af1d6d` (squash-merge of #16) | **#16** | **merged** |
+| Phase 2.5 (deployments + preview-iframe panes + project memory) | `feat/phase2-5-ui-eventsource` | `66696e4aed` (squash-merge of #17) | **#17** | **merged** |
 | Handoff (multi-session narrative) | `phase2-5-handoff-draft` | `a14df0d7c2` | — | open, pending merge once 2.5 lands |
+| Wiring-fix stack (5 bugs blocking `dsh --profile app-builder-web`) | `fix/app-builder-api-remotes-de-dup-rebased` | `db51020f95` | **#21** | **open** — branch created from origin/master, 3 cherry-picked wiring commits + PROJECT-MEMORY update; lefthook typecheck PASS; ready for squash-merge via admin override |
+| Wiring-fix stack (orphaned, base = Phase 1.5 / 1.5.5) | `fix/app-builder-api-remotes-de-dup` | `2d5c972043` | #18 / #20 / #21 | **abandoned** — superseded by rebased branch above; branches retained for reference |
 
 Stack rule: each phase lands on the previous phase's branch; the upstream-most PR (#16) merges first; GitHub auto-retargets dependents. Never rewrite to drop ancestor commits unless they introduce a known regression.
 
 PR numbering note: the original PRs #14 + #15 were opened with a token that authenticated as a different GitHub account (`alshahia`); they were closed unmerged and re-opened as #16 + #17 to attribute the PRs to the actual repo owner `ahmadmhmdsy`. The underlying branches (`feat/phase2-4-projection-ui` @ `32b10fda0d`, `feat/phase2-5-ui-eventsource` @ `b6fdfcf29b`) are unchanged; only the PR authorship differs.
+
+PR #16 + #17 were squash-merged via admin override into `master` and re-targeted origin/master to `66696e4aed`. PRs #18 + #20 + #21 (wiring-fix stack) were opened against an earlier base (`8994998859` Phase 1.5 / 1.5.5) and never landed; they are now superseded by `fix/app-builder-api-remotes-de-dup-rebased`.
 
 ## 2. PR scope and what landed where
 
@@ -57,16 +61,17 @@ Each phase's Agent Note documents these in its §9; do not silently bundle fixes
 
 ## 5. In-flight work and next steps
 
-1. **Merge PR #16** in GitHub UI.
-2. **PR #17 auto-retargets** from `feat/phase2-4-projection-ui` to `master` after #16 lands.
-3. **Merge PR #17** in GitHub UI.
+1. **PR #21 opened** (head `fix/app-builder-api-remotes-de-dup-rebased` @ `db51020f95` → `master`). mergeable=True. Three commits cherry-picked from `fix/app-builder-api-remotes-de-dup` onto `origin/master` (`66696e4aed`); two conflict hunks resolved manually (kept Phase 2.1 / 2.2 rows in app-builder patch; chose `ctx.provide` over `ctx.reflect.provide` in snapshot-bridge source). Lefthook typecheck PASS (69.05s).
+2. **Squash-merge PR #21 via admin override** (`PUT /repos/ahmadmhmdsy/deepseek-harness-work/pulls/21/merge`).
+3. **Close orphaned PRs #18 + #20** with a comment linking to PR #21 (the OLD PR #21 was closed earlier in this session and the number was reused for the new rebased PR).
 4. **Land `phase2-5-handoff-draft`** (optional, recommended) to capture the multi-session narrative on `master`.
 5. **Outstanding follow-ups** (each is a separate PR):
    - Per-area 1.5.x shell children-table fix (unblocks runtime)
    - Option A typert-emitter structural fix (cleans up the Option B bypass)
    - One-line `readonly kind: 'approval'` fix on `ui-approval`
    - `getTranscript` test fixture realignment
-6. **After 2.5 lands**: Phase 3 work begins. Plan TBD; see `.agents/notes/implemented/architecture/` for what was deferred from 2.x.
+   - `verify-cordis-config` errors on `app-builder-deployments` + `app-builder-preview-iframe` Client UI rows (Phase 2.5 added rows without tsconfig path mappings or `apps/cli/package.json` deps)
+6. **After wiring-fix lands**: Phase 3 work begins. Plan TBD; see `.agents/notes/implemented/architecture/` for what was deferred from 2.x.
 
 ## 6. Working environment facts
 
@@ -91,3 +96,9 @@ Each phase's Agent Note documents these in its §9; do not silently bundle fixes
 
 - **2026-09-04** — Initial creation. Captures state at end of session 8 (PR #15 stacked on PR #14, both open; handoff branch advanced to `a14df0d7c2`). Author: session 8 agent per user request to make project memory durable.
 - **2026-09-04 (same day)** — Token correction: original PRs #14 + #15 were opened using a token that authenticated as `alshahia`. Closed unmerged; re-opened as **PR #16** (Phase 2.4, +335,985 / −128,231, 6,554 files, 1,095 commits) and **PR #17** (Phase 2.5, +4,080 / −36, 52 files, 6 commits) using `GITHUB_TOKEN_ahmadmhmdsy` from `.env`. Authorship now correctly attributed to `ahmadmhmdsy` (repo owner). Updated §1 / §2 / §5 / §6 to reflect new PR numbers, token preference, and the added project-memory commit (`b6fdfcf29b`) in the 2.5 tip.
+- **2026-09-05 (later)** — Phase 2.4 + 2.5 landed: PR #16 squash-merged (`9f31af1d6d`), PR #17 squash-merged (`66696e4aed`); origin/master advanced to `66696e4aed`.
+- **2026-09-05 (later)** — Discovered the wiring-fix stack (PRs #18 + #20 + #21, branch `fix/app-builder-api-remotes-de-dup` @ `2d5c972043`) had been authored against an old base (`8994998859` Phase 1.5 / 1.5.5) and never reached origin/master. origin/master carries the same 4 wiring bugs PR #21 was created to fix. PRs #18 + #20 + #21 are now superseded.
+- **2026-09-05 (later)** — Created `fix/app-builder-api-remotes-de-dup-rebased` from origin/master HEAD `66696e4aed` to re-apply the 3 wiring-fix commits on Phase 2.5. Stash created (empty `.tmp/`) prior to checkout; popped after branch creation.
+- **2026-09-05 (later)** — Cherry-picked `6804e3d946` (auto-merge) and `58a81cdd43` (auto-merge); manually resolved 2 conflict hunks on `2d5c972043` (kept Phase 2.1 / 2.2 deployment + tool-policy rows in `bundle/app-builder/cordis.patch.yml`; chose `ctx.provide` over `ctx.reflect.provide` in `snapshot-bridge/src/index.ts`). Lefthook pre-commit gates PASS.
+- **2026-09-05 (later)** — Branch pushed (`db51020f95`, 4 commits ahead of origin/master); lefthook pre-push typecheck PASS (69.05s); opened **PR #21** (https://github.com/ahmadmhmdsy/deepseek-harness-work/pull/21, mergeable=True).
+- **2026-09-05 (later)** — Confirmed two pre-existing issues NOT introduced by this PR: (1) `snapshot-bridge/tests/loader-composition-invariant.spec.ts` 2/2 tests fail identically on origin/master; (2) `verify-cordis-config` reports 4 errors identically on origin/master (Phase 2.5 added `app-builder-deployments` + `app-builder-preview-iframe` Client UI rows without tsconfig path mappings).
