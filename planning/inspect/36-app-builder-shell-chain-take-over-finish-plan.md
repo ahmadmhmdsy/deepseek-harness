@@ -323,6 +323,8 @@ git commit -m "docs(planning): record chain take-over resume handoff + finish pl
 
 - [ ] `git status --porcelain` → empty. `git log --oneline -5` → lockfile fix, feat, docs, docs(memory), merge.
 
+**Execution record (2026-09-05, commit sequence):** five commits instead of four — `b294ca3388` (lockfile), `164fb95994` (gateway mount), `85ce70bdd6` (feat), `9fcc6a8eb5` (planning docs), `bb9dca012d` (docs(client): stale shell-regression comment retirement in the deployments contract + web-app bundle manifest). The fifth commit exists because the children-regression Agent Note was consolidated into the take-over Agent Note per the notes-README consolidation rule (full supersession; rationale, overlay retirement, and the named `verify-bundled-slot-graph` coverage gap preserved in the take-over note), and two production comments citing it had to be repaired in the same change.
+
 ---
 
 ## Milestone M5 — Agent Note, project memory, push
