@@ -144,6 +144,9 @@ export const name = 'app-builder-snapshot-bridge'
 /** Services required before the bridge can mount. `ctx.logger` is read directly; no entry required. */
 export const inject = ['webServer', 'appBuilderProjects'] as const
 
+/** Services this plugin publishes. The accessor is read by `app-builder-api.getPreview`. */
+export const provide = ['appBuilderSnapshotBridge'] as const
+
 /** Plugin-level config (all optional; the defaults match the inspect step 21 contract). */
 export interface Config {
   /**
@@ -447,9 +450,13 @@ export function apply(ctx: Context, config: Config = {}): void {
   // Expose the in-memory snapshot to the App Builder BFF's `getPreview`
   // method. The accessor returns the same cache the HTTP route serves,
   // so a BFF read is coherent with the most recent browser poll.
-  ctx.reflect.provide('appBuilderSnapshotBridge', { snapshot: () => cachedSnapshot })
+  // `ctx.provide` registers the service in the context's reflect layer so
+  // direct `ctx.appBuilderSnapshotBridge = ...` assignment via the property
+  // proxy is not allowed (Cordis rejects assignment without `provide`).
+  // Both `ctx.provide` and `ctx.reflect.provide` register in `reflect.props`;
+  // `ctx.provide` is the documented public API for plugin source code and
+  // pairs with the `provide = ['appBuilderSnapshotBridge']` named export above.
+  ctx.provide('appBuilderSnapshotBridge', { snapshot: () => cachedSnapshot })
 
   ctx.effect(() => dispose, 'app-builder-snapshot-bridge: route disposer')
 }
-
-export default apply
