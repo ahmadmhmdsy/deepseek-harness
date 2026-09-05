@@ -84,6 +84,15 @@ interface RemoteNamespaceHandle {
   readonly dispose: TypertDisposer
 }
 
+/** One contribution package's live installation, shared by every $mount caller of it. */
+interface MountedContributionRecord {
+  /** Holders that have not released yet; the last release disposes. */
+  refs: number
+  /** Kind-qualified endpoint set a same-package remount must present identically. */
+  readonly endpoints: string
+  readonly dispose: () => Promise<void>
+}
+
 interface LoaderReadiness {
   await(): Promise<unknown>
 }
@@ -131,6 +140,7 @@ class ClientRemoteService extends Service implements ClientRemote {
   private readonly streams = new RemoteStreamMuxClient()
   private readonly events: ClientRemoteEvents
   private mutations = Promise.resolve()
+  private readonly mountedContributions = new Map<string, MountedContributionRecord>()
 
   constructor(ctx: Context) {
     super(ctx, 'remote')
@@ -208,6 +218,19 @@ class ClientRemoteService extends Service implements ClientRemote {
     callerCtx: Context,
     contribution: TypertRemoteContribution,
   ): Promise<TypertDisposer> {
+    // One installation per contribution package: a re-$mount of the same
+    // package shares the live mount (each caller holds one ref) instead of
+    // failing the endpoint-collision check. A same-package remount presenting
+    // a different method set is a packaging defect and fails loud.
+    const endpoints = contributionEndpoints(contribution)
+    const shared = this.mountedContributions.get(contribution.package)
+    if (shared !== undefined) {
+      if (shared.endpoints !== endpoints) {
+        throw new Error(`client api: contribution ${JSON.stringify(contribution.package)} is already mounted with different methods`)
+      }
+      shared.refs += 1
+      return this.releaseContribution(contribution.package, shared)
+    }
     this.validateContribution(contribution)
     const disposeRemote = callerCtx.typert.remotes.register(contribution)
     const groups = new Map<string, InvocationDescriptor[]>()
@@ -226,9 +249,28 @@ class ClientRemoteService extends Service implements ClientRemote {
       await disposeRemote()
       throw error
     }
+    const record: MountedContributionRecord = {
+      refs: 1,
+      endpoints,
+      dispose: async () => {
+        for (const dispose of installed.reverse()) await dispose()
+        await disposeRemote()
+      },
+    }
+    this.mountedContributions.set(contribution.package, record)
+    return this.releaseContribution(contribution.package, record)
+  }
+
+  /** One holder's share of a mounted contribution; the last release disposes. */
+  private releaseContribution(pack: string, record: MountedContributionRecord): () => Promise<void> {
+    let released = false
     return async () => {
-      for (const dispose of installed.reverse()) await dispose()
-      await disposeRemote()
+      if (released) return
+      released = true
+      record.refs -= 1
+      if (record.refs > 0) return
+      this.mountedContributions.delete(pack)
+      await record.dispose()
     }
   }
 
@@ -627,6 +669,14 @@ function remoteServiceKey(namespace: string): string {
 
 function endpointOf(descriptor: Pick<InvocationDescriptor, 'namespace' | 'method'>): string {
   return `${descriptor.namespace}/${descriptor.method}`
+}
+
+/** Kind-qualified, order-stable endpoint signature of one contribution's method set. */
+function contributionEndpoints(contribution: TypertRemoteContribution): string {
+  return contribution.descriptors
+    .map(d => `${d.invocation.kind} ${endpointOf(d)}`)
+    .sort()
+    .join('\n')
 }
 
 function mountActive(token: MountToken): boolean {

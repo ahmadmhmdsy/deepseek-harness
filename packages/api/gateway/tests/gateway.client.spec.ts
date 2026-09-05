@@ -818,6 +818,52 @@ describe('Client Typert API', () => {
     await disposeMultipleScoped()
   })
 
+  it('shares one mount across re-$mount of the same contribution package', async () => {
+    const call = vi.fn<ConnectionHandle['rpc']['call']>()
+      .mockResolvedValue({ ok: true, value: { ref: 'r1' } })
+    const ctx = await bench(call)
+    const contribution = { package: '@fixture/shared', descriptors: [directDescriptor()] }
+
+    const disposeFirst = await ctx.remote.$mount(contribution)
+    const disposeSecond = await ctx.remote.$mount(contribution)
+    expect(ctx.remote.probe.create).toBeTypeOf('function')
+    const retained = ctx.remote.probe.create
+
+    // The first release keeps the endpoint live for the remaining holder.
+    await disposeFirst()
+    await expect(ctx.remote.probe.create('agent-1', { objective: 'ship' }))
+      .resolves.toEqual({ ok: true, value: { ref: 'r1' } })
+
+    // The last release unmounts the namespace; a retained reference observes
+    // the unmount; a fresh remount installs anew.
+    await disposeSecond()
+    await expect(retained('agent-1', { objective: 'ship' })).resolves.toEqual({
+      ok: false,
+      error: {
+        code: 'internal',
+        message: 'client api: Remote method probe/create is no longer mounted',
+        details: {},
+      },
+    })
+    const disposeThird = await ctx.remote.$mount(contribution)
+    expect(ctx.remote.probe.create).toBeTypeOf('function')
+    await disposeThird()
+    expect(ctx.typert.remotes.list()).toEqual([])
+  })
+
+  it('rejects a same-package remount with a different method set', async () => {
+    const ctx = await bench(vi.fn<ConnectionHandle['rpc']['call']>())
+    const first = await ctx.remote.$mount({
+      package: '@fixture/shared',
+      descriptors: [directDescriptor()],
+    })
+    await expect(ctx.remote.$mount({
+      package: '@fixture/shared',
+      descriptors: [{ ...directDescriptor(), id: '@fixture/probe#probe/other', method: 'other' }],
+    })).rejects.toThrow('is already mounted with different methods')
+    await first()
+  })
+
   it('rolls back earlier descriptors when a later descriptor fails to install', async () => {
     const ctx = await bench(vi.fn<ConnectionHandle['rpc']['call']>())
     const { scope: _scope, ...first } = directDescriptor()
