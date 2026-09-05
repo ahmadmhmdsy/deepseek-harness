@@ -93,6 +93,8 @@
     "@deepseek-ai/dsh-app-builder-project": "workspace:^",
     "@deepseek-ai/dsh-app-builder-scaffold": "workspace:^",
     "@deepseek-ai/dsh-app-builder-preview": "workspace:^",
+    "@deepseek-ai/dsh-app-builder-deployment": "workspace:^",
+    "@deepseek-ai/dsh-app-builder-tool-policy": "workspace:^",
     "@deepseek-ai/dsh-bash-local": "workspace:^",
     "@deepseek-ai/dsh-credentials-local": "workspace:^",
     "@deepseek-ai/dsh-fs-observation-policy": "workspace:^",
